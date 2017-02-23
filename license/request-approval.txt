@@ -1,0 +1,36 @@
+Hello!
+
+This mail is coming from the OpenSSL development team.
+
+We are working to change the license for OpenSSL. We want to move from
+the current license (which is custom-written and has some uncommon
+requirements on end-users), to the widely-accepted and common 
+Apache License (version 2).  You can find some explanation in
+our blog entry:
+
+    https://www.openssl.org/blog/blog/2015/08/01/cla/
+
+We wrote some tools to look through every version of our files, and
+our scripts found your email address.  You can see what we found:
+
+    https://license.openssl.org/cgi-bin/lookup.py?uid=%(uid)s
+
+We are asking for your permission to change the licence for your
+contribution. Please visit this link to respond; you will have a chance
+to accept or decline, and enter a brief comment (you can use the comment
+to give the names of other people we should contact, for example):
+
+    https://license.openssl.org/cgi-bin/reply.py?uid=%(uid)s&p=%(secret)s
+
+If you have any questions or concerns, please mail to license@openssl.org;
+please be patient for a repsonse. You can also post to the public mailing
+list, openssl-dev@openssl.org; details about that list can be found at this
+site:
+
+    https://mta.openssl.org/mailman/listinfo/openssl-dev
+
+If we do not hear from you, we will assume that you have no objection.
+
+Thank you!
+
+-The OpenSSL Development Team

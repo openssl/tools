@@ -1,0 +1,96 @@
+#! /usr/bin/env python
+"""Create the database tables for recording license change replies.
+"""
+
+import datetime, mysql.connector, os
+import string, random
+
+try:
+    execfile("devteam.py")
+except:
+    devteam = ()
+
+dbconfig = {
+        'user': 'license',
+        'password': open('rwpass.txt').read().strip(),
+        'database': 'license'
+        }
+
+alphabet = string.uppercase + string.lowercase + string.digits
+
+tables = {}
+
+# The table of everyone whose name is in a commit.
+tables['users'] = (
+        "CREATE TABLE `users` ("
+        "  `email` varchar(80) NOT NULL,"
+        "  `name` varchar(80) DEFAULT NULL,"
+        "  `secret` varchar(20) DEFAULT NULL,"
+        "  `last_asked` date DEFAULT NULL,"
+        "  `date_replied` date DEFAULT NULL,"
+        "  `reply` varchar(1) DEFAULT '?',"
+        "  `comment` TINYTEXT DEFAULT NULL,"
+        "  `uid` int(11) NOT NULL AUTO_INCREMENT,"
+        "  PRIMARY KEY (`uid`),"
+        "  UNIQUE KEY `email` (`email`)"
+        "  )")
+
+# The table of all commits.
+tables['commits'] = (
+        "CREATE TABLE `commits` ("
+        "  `commit` varchar(40) NOT NULL,"
+        "  `date` date DEFAULT NULL,"
+        "  `descrip` TINYTEXT DEFAULT NULL,"
+        "  `cid` int(11) NOT NULL AUTO_INCREMENT,"
+        "  PRIMARY KEY (`cid`)"
+        "  )")
+
+# The log of each commit and involved user.
+tables['log'] = (
+        "CREATE TABLE `log` ("
+        "  `cid` int,"
+        "  `uid` int,"
+        "  FOREIGN KEY (uid) REFERENCES users(uid),"
+        "  FOREIGN KEY (cid) REFERENCES commits(cid),"
+        "  UNIQUE INDEX (uid,cid)"
+        ")")
+
+table_order = [ 'users', 'commits', 'log' ]
+
+conn = mysql.connector.connect(**dbconfig)
+cursor = conn.cursor()
+
+def makesecret():
+    return "".join( [ random.choice(alphabet) for i in xrange(20) ] )
+
+def maketables():
+    drop_order = table_order[:]
+    drop_order.reverse()
+    for t in drop_order:
+        try:
+            cursor.execute("DROP TABLE %s" % (t,))
+            print "Dropped table", t
+        except:
+            pass
+    for t in table_order:
+        print "Creating table", t
+        cursor.execute(tables[t])
+
+def add_devteam(devteam):
+    print "Adding", len(devteam), "to devteam"
+    now = datetime.datetime.today()
+    for email,name in devteam:
+        data = { 'email': email, 'name': name, 'secret': makesecret(),
+                'reply': 'd'
+                }
+        t = ("INSERT INTO users (email, name, secret, reply) "
+             " VALUES ( %(email)s, %(name)s, %(secret)s, %(reply)s )")
+        cursor.execute(t, data)
+
+
+maketables()
+if len(devteam) > 0:
+    add_devteam(devteam)
+    conn.commit()
+
+conn.close()

@@ -1,0 +1,17 @@
+body {
+    background-color: linen;
+    font-size: 1.25em;
+    font-family: "Arial", "Verdana";
+}
+h1 {
+    font-size: 2em;
+    font-family: "Times New Roman", "Georgia";
+}
+p.cw {
+    font-family: Monospace;
+    margin-left: 4em;
+}
+
+ul li {
+    padding: .5em;
+}

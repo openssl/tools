@@ -1,0 +1,7 @@
+#! /bin/sh
+
+# Get all commits and import them.
+
+export GIT_DIR=/opt/openssl/checkouts/openssl/.git
+#CLA_DATE='--before=2015-08-25'
+git rev-list --all $CLA_DATE | xargs ./git-import

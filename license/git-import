@@ -1,0 +1,127 @@
+#! /usr/bin/env python
+"""Import a list of commits specified on the commandline into the license
+database tables."""
+
+import mysql.connector, os, re, subprocess, sys
+import string, random
+
+if not os.environ.has_key('GIT_DIR'):
+    raise SystemExit, '$GIT_DIR not set'
+
+Author = re.compile("Author: (.*) <(.*)>")
+ReviewedBy = re.compile(" *Reviewed-by:")
+Email = re.compile(".*?([0-9a-z.-]+@[0-9a-z.-]+).*", re.I)
+
+# Accented/multi-byte characters we just filter out.
+Stripchars = ''.join([chr(x) for x in range(128,255)])
+
+def hackfilter(s):
+    """Gross hack to just filter out the highbit chars we've seen in
+    our commit logs.  :("""
+    return s.translate(None, Stripchars)
+
+alphabet = string.uppercase + string.lowercase + string.digits
+
+def makesecret():
+    """Make a password/secret."""
+    return "".join( [ random.choice(alphabet) for i in xrange(20) ] )
+
+def parse(commit):
+    """Parse a commit message and return a tuple of the email
+    addresses involved, the date of the commit, and the abbreviated
+    text description."""
+    args = ('git', 'log', '-1', '--format=%cI %s', commit)
+    # 0         1         2
+    # 012345678901234567890123456
+    # 2015-05-22T16:15:08+00:00 Commit message text...\n
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    l = proc.stdout.read()
+    cdate = l[0:10]
+    descrip = hackfilter(l[26:-1])
+    descrip = descrip[:60]
+    proc.wait()
+    names = {}
+    proc = subprocess.Popen(('git', 'show', commit), stdout=subprocess.PIPE)
+    for l in proc.stdout:
+        if ReviewedBy.match(l):
+            # Reviewers are not contributors, skip them.
+            continue
+        m = Author.match(l)
+        if m and m.group(2) not in names:
+            names[hackfilter(m.group(2))] = hackfilter(m.group(1))
+            continue
+        m = Email.match(l)
+        # If matched, and has a domain, and not seen before.
+        if m and m.group(1).find('.') != -1 and m.group(1) not in names:
+            names[hackfilter(m.group(1))] = hackfilter(m.group(1))
+            continue
+    proc.wait()
+    return (names, cdate, descrip)
+
+#def execute(q, t):
+#    try:
+#        cusor.execute(q, t)
+#    except:
+#        print "Execute failed. SQL = |", q, '|'
+#        print "Data follows:\n", t
+
+dbconfig = {
+        'user': 'license',
+        'password': open('rwpass.txt').read().strip(),
+        'database': 'license'
+        }
+conn = mysql.connector.connect(**dbconfig)
+cursor = conn.cursor()
+userids = {}
+
+for commit in sys.argv[1:]:
+    names, cdate, descrip = parse(commit)
+    q = 'SELECT cid FROM commits WHERE commit = %s LIMIT 1'
+    cursor.execute(q, (commit,))
+    row = cursor.fetchone()
+    if row and row[0]:
+        sys.stdout.write(commit[:7] + ', ')
+        cid = row[0]
+    else:
+        sys.stdout.write(commit[:7] + '. ')
+        data = { 'commit': commit, 'date': cdate, 'descrip': descrip }
+        t = ("INSERT IGNORE INTO commits (commit, date, descrip) "
+             " VALUES (%(commit)s, %(date)s, %(descrip)s)")
+        try:
+            cursor.execute(t, data)
+        except:
+            print "FAILED\n", "|" + t + "|\n", data
+        cid = cursor.lastrowid
+    q = 'SELECT uid FROM users WHERE email = %s LIMIT 1'
+    for email in names:
+        uid = userids.get(email, None)
+        if not uid:
+            # Not already seen -- try the database
+            try:
+                cursor.execute(q, (email,))
+                row = cursor.fetchone()
+            except:
+                row = None
+            if row:
+                uid = userids[email] = row[0]
+        if not uid:
+            # Create the user
+            secret = makesecret();
+            data = { 'email': email, 'name': names[email],
+                    'reply': '-', 'secret': secret }
+            t = ("INSERT INTO users (email, name, reply, secret)"
+                 " VALUES (%(email)s, %(name)s, %(reply)s, %(secret)s)")
+            cursor.execute(t, data)
+            conn.commit()
+            cursor.execute(q, (email,))
+            row = cursor.fetchone()
+            if row:
+                uid = row[0]
+        if not uid:
+            print "Can't find or add", email
+            continue
+        data = { 'cid': cid, 'uid': uid }
+        t = ("INSERT IGNORE INTO log (cid, uid)"
+             " VALUES (%(cid)s, %(uid)s)")
+        cursor.execute(t, data)
+        conn.commit()

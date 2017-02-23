@@ -1,0 +1,25 @@
+Tools
+    approved -- Mark specified email addresses as approving
+    createdb -- Create the license approval database
+    finduser -- List specified email or names
+    devteam.py -- List of dev team members; edit this for your project
+    git-import -- Import specified commits
+    git-import-all -- Script to import all git commits
+    mailuser -- Send license mail to specified addresses (SQL patterns)
+    rmuser -- Remove specified email authors from database
+
+Passwords; create these files.  One line per each
+    adpass.txt -- HTTP password for admin functions
+    ropass.txt -- A mysql read-only password
+    rwpass.txt -- A mysql read-write password
+
+Web
+    index.html -- Main license page
+    request-approval.txt -- Email template to send requesting approval
+    style.css -- Webpage styling; deliberately minimal
+    cgi-bin/authors.py -- List of authors
+    cgi-bin/lookup.py -- Lookup an author, get list of commits
+    cgi-bin/receive-reply.py -- Handler for link sent via email
+    cgi-bin/reply.py -- Destination of send-email; form to reply
+    cgi-bin/search.py -- Search for an author
+    cgi-bin/send-email.py -- Send email to an author
