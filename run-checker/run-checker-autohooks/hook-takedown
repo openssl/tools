@@ -1,0 +1,7 @@
+#! /bin/bash
+
+here=$(cd $(dirname $0); pwd)
+rcd=$here/.run-checker-data
+
+rm -rf $rcd/new
+echo Finished on $(LANG=C date)

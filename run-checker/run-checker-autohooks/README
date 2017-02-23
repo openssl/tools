@@ -1,0 +1,50 @@
+run-checker autohooks
+=====================
+
+The purpose of these run-checker hooks is to provide a foundation for
+automatic rebuilds.  Setup is easy, just create an empty directory,
+copy or symlink run-checker.sh and these hooks into it, clone an
+openssl repo into the directory "openssl", then run run-checker.sh
+repeatedly, for example as a cron job.
+
+Example setup:
+
+    $ git clone openssl-git@git.openssl.org:bureau.git bureau
+    $ mkdir ~/run-checker
+    $ cd ~/run-checker
+    $ ln -s ../bureau/run-checker.sh \
+      	    ../bureau/run-checker-autohooks/hook-{prepare,start,end,takedown} \
+	    .
+    $ git clone openssl-git@git.openssl.org:openssl.git openssl
+
+A cronjob would look like this:
+
+    2 */2 * * * cd $HOME/run-checker && bash ./run-checker.sh
+
+
+hook-config
+-----------
+
+In addition to the hooks, one can also have a shell script called
+`hook-config` with configuration variables.  Currently understood are:
+
+- REPORT_FROM
+
+  The email address used in the report From: header.  Defaults to
+  'OpenSSL run-checker <openssl@openssl.org>'
+
+- REPORT_RECIPIENT
+
+  The email address reports will get sent to.  Defaults to
+  '<openssl-commits@openssl.org>'
+
+- SKIP_OPTS
+
+  MUST be a bash array, containing run-checker options that should be
+  skipped.  Defaults to the empty array.
+
+- ONLY_OPTS
+
+  MUST be a bash array.  If there are any elements, the elements are
+  the only run-checker options that will be built.  Defaults to the
+  empty array.
