@@ -1,0 +1,14 @@
+
+CLACHECK
+
+A cgi-bin script to verify GitHub pull requests and see that the author
+is in the CLA database.
+
+Create a GH machine account, get an OAUTH token for it.
+Create a GH webhook that gets pull requests and point it to
+this script.
+
+    ghpass.txt -- A github OAuth token
+
+    clacheck.py -- GitHub hook to check for CLA license
+
