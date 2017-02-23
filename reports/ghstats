@@ -1,0 +1,26 @@
+#! /bin/sh
+
+AUTH='-n'
+# Fetch all "
+rm -rf $1
+mkdir $1
+
+curl $AUTH -sD $1.tmp "$2/$1?state=all&per_page=100" >$1/01.js
+LAST=`grep '^Link:' $1.tmp | sed -e 's/.*page=\([0-9]*\)>.*/\1/'`
+rm -f $1.tmp
+
+echo Fetching \"$LAST\" pages
+
+CURR=2
+while test $CURR -le $LAST ; do
+    case $CURR in
+    [1-9])
+        O=$1/0$CURR.js
+        ;;
+    *)
+        O=$1/$CURR.js
+        ;;
+    esac
+    curl $AUTH -s "$2/$1?page=$CURR&state=all&per_page=100" >$O
+    CURR=`expr $CURR + 1`
+done
