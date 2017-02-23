@@ -1,0 +1,101 @@
+#!/usr/bin/perl
+
+my $args = "";
+my $filterargs = "HEAD^..";
+my $list_reviewers = 0;
+my $help = 0;
+my $haveprnum = 0;
+my $trivial = 0;
+
+my $my_email;
+
+foreach (@ARGV) {
+    if (/^[a-z]+$/) {
+        $args .= "--reviewer=$_ ";
+    } elsif (/^--reviewer=(.+)$/) {
+        $args .= "--reviewer=$1 ";
+    } elsif (/^--rmreviewers$/) {
+        $args .= "--rmreviewers ";
+    } elsif (/^--trivial$/) {
+        $args .= "--trivial ";
+    } elsif (/^--myemail=(.+)$/) {
+        $my_email = $1;
+    } elsif (/^--nopr$/) {
+	$haveprnum = 1;
+    } elsif (/^--prnum=(.+)$/) {
+        $args .= "--prnum=$1 ";
+	$haveprnum = 1;
+    } elsif (/^--commit=(.+)$/) {
+        $args .= "--commit=$1 ";
+    } elsif (/^-(\d+)$/) {
+        $filterargs = "HEAD~$1..";
+    } elsif (/^--trivial$/) {
+	$trival = 1;
+    } elsif (/^--list$/) {
+	$list_reviewers = 1;
+	last;
+    } elsif (/^--help$/ || /^-h$/) {
+	$help = 1;
+	last;
+    } else {
+        $filterargs = $_;
+    }
+}
+
+if ($list_reviewers) {
+    system("gitaddrev --list");
+    exit(0);
+}
+if ($help) {
+    usage();
+    exit(0);
+}
+
+die "Need either --prnum or --nopr flag" unless $haveprnum;
+
+if (!defined $my_email) {
+    $my_email = `git config --get user.email`;
+}
+
+$args .= "--myemail=$my_email ";
+
+system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs");
+
+sub usage {
+    print STDERR <<"EOF";
+usage: addrev args...
+
+option style arguments:
+
+--help			Print this help and exit
+--list			List the known reviewers and exit (discards all other
+			arguments)
+--reviewer=<reviewer>	A reviewer to be added on a Reviewed-by: line
+--rmreviewers		Remove all existing Reviewed-by: lines before adding
+			reviewers
+--commit=<id>		Only apply to commit <id>
+--myemail=<email>	Set email address.  Defaults to the result from
+			git configuration setting user.email.
+--trivial		Add a "CLA: trivial" to the message.
+--addcla		Add a CLA header for the author of the commit
+--nopr			Do not requre a PR number.
+--prnum=NNN             Add a reference to GitHub pull request NNN
+--clatype=<type>	Only add a CLA header of the specified type. <type> is
+			either C for Corporate or I for Individual
+--clamatch=<str>	Only add a CLA where <str> appears somewhere in the
+			description (i.e. the third column of cladb.txt)
+-<n>			Change the last <n> commits.  Defaults to 1.
+
+non-option style arguments can be:
+
+a string of lower case letters, denoting a reviewer name.
+
+anything else will be used as a commit range.
+
+Examples (all meaning the same thing):
+
+  addrev -2 steve levitte
+  addrev steve levitte HEAD^^..
+  addrev --reviewer=steve --reviewer=levitte -2
+EOF
+}

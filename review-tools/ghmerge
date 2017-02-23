@@ -1,0 +1,63 @@
+#! /bin/bash
+
+if [ ! -d .git ] ; then
+    echo Not at top-level
+    exit 1
+fi
+
+TRIVIAL=""
+if [ "$1" == "--trivial" ] ; then
+    TRIVIAL="--trivial" ; shift
+fi
+MERGE=""
+if [ "$1" == "--merge" -o "$1" == "--squash" ] ; then
+    MERGE=yes ; shift
+fi
+
+if [ $# -lt 2 ] ; then
+    echo Usage: `basename $0` '[--trivial] [--merge] prnum reviewer...'
+    exit 1
+fi
+PRNUM=$1 ; shift
+case "$PRNUM" in
+    -*)
+        echo Usage: `basename $0` '[--trivial] [--merge] prnum reviewer...'
+        exit 1
+        ;;
+esac
+
+test -z "$CLADB" && export CLADB=$HOME/openssl/bureau/cladb.txt
+
+curl -s https://api.github.com/repos/openssl/openssl/pulls/$PRNUM >/tmp/gh$$
+TEAM=$*
+set `python -c '
+import json, sys;
+print str(json.load(sys.stdin)["head"]["label"]).replace(":", " ")' </tmp/gh$$`
+rm /tmp/gh$$
+WHO=$1
+BRANCH=$2
+
+REL=`git branch | fgrep '*' | tr -d '* '`
+WORK="${WHO}-${BRANCH}"
+
+git checkout -b $WORK $REL
+git pull --rebase https://github.com/$WHO/openssl.git $BRANCH
+git rebase $REL
+echo Diff against $REL
+git diff $REL
+
+echo -n Press return to merge to $REL and build: ; read foo
+addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
+git checkout $REL
+if [ "$MERGE" = "yes" ] ; then
+    git merge --no-commit --squash $WORK
+    git commit
+else
+    git rebase $WORK
+fi
+echo Rebuilding
+remake |& tail -3
+
+echo -n Press return to push: ; read foo
+git push origin $REL
+git branch -d $WORK

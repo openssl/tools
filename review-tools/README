@@ -1,0 +1,103 @@
+=================
+addrev is a simple pair of scripts to add or edit reviewers to commits.
+
+To use add the scripts gitaddrev and addrev to your PATH and edit
+gitaddrev to contain your email address.
+
+Usage is
+
+	addrev <arguments>
+
+<arguments> can be one of:
+
+--reviewer=<name> add reviewer <name> to commit range: can be used more than
+once.
+
+--commit=<id> only apply if commit matches <id>: can be used more than once
+
+--rmreviewers remove all reviewers from commit range: useful if you screwed
+up.
+
+-<number> change the last <number> commits if not present assumes the last
+commit only.
+
+--trivial add the header "CLA: trivial" to the commits
+
+Any lower case string is assumed to be a reviewer name.
+
+Anything not matching the above is take to be a commit range.
+
+If a reviewer already exists in the log message it is deleted before it is
+added to the end of the log: this ensures a reviewer can only appear once
+in a commit.
+
+If the commiter is not the author of the commit then they are added
+automatically as a reviewer.
+
+Examples:
+
+    addrev steve
+    addrev -2 steve
+    addrev -2 steve rich
+    addrev -2 --reviewer=steve --reviewer=rich
+
+=================
+gitlabutil is a simple gitlab merge request query tool.
+
+Before you can use it you need to create a file $HOME/.gitlabtoken containing
+your gitlab token (see profile).
+
+Usage is:
+
+	gitlabutil [options]
+
+By default it prints out a summary of all open merge requests. This
+behaviour can be changed with various command line options.
+
+--state indicates the state of the requests to query, it can be "all",
+"merged", "opened" or "closed". By default only openened requests are searched.
+
+--token indicates the private token to use (see Account Settings in your
+profile). If not specified it will look for a token in $HOME/.gitlabtoken
+It is a fatal error if a token is not supplied.
+
+--desc indicates a regular expression which must match the request description
+
+--user only print requests with the given user name.
+
+[number] an optional number of the merge request (iid value as indicated in
+the UI).
+
+--text print the full description of the request.
+
+--fetch create branch from matching request using same branch name as in the
+request: there must only be a single match for this to work.
+
+--checkout is like --fetch but also changes the current branch to the name on
+the merge request.
+
+Examples.
+
+Get summary of merge request 1
+
+	gitlabutil --state=all 1
+
+Get full details of all requests made by user "foo":
+
+	gitlabutil --state=all --user=foo --text
+
+Checkout branch for query 145:
+
+	gitlabutil --checkout 145
+
+=================
+ghmerge merges (reviewed and approved!) GitHub pull requests
+
+It works on the current branch, which should be master or one of the stable
+releases.
+
+Usage:
+        ghmerge ### reviewer...
+
+The ### is the GitHub MR number.  The rest of the args are the names of
+the reviewers (passed to addrev; see above).
