@@ -21,7 +21,7 @@ print """Content-Type: text/html
   </head>
   <body>
     <h1>Send email</h1>
-
+    <p><a href="/">Main page</a></p>
     <p>"""
 
 trailer = """

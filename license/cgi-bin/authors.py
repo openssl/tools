@@ -25,6 +25,7 @@ header = """Content-Type: text/html
   </head>
   <body>
     <h1>%s</h1>
+    <p><a href="/">Main page</a></p>
 
     <p>Names appear multiple times because of multiple email addresses.</p>
 """

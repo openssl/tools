@@ -22,12 +22,12 @@ print """Content-Type: text/html
 
 <html>
   <head>
-    <title>Search results - OpenSSL License Change Agreement</title>
+    <title>Author Search results - OpenSSL License Change Agreement</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
   </head>
   <body>
-    <h1>Search results</h1>
-
+    <h1>Author Search results</h1>
+    <p><a href="/">Main page</a></p>
     <p>"""
 
 def show_log(uid, email):
@@ -74,20 +74,25 @@ def show_log(uid, email):
     return uid
 
 form = cgi.FieldStorage()
-if 'onepage' in form:
-    where = target = ''
-if 'uid' in form:
-    uid = show_log(form['uid'].value, None)
-elif 'email' in form:
-    uid = show_log(None, form['email'].value)
+if 'text' in form:
+    pattern = '%' + form['text'].value + '%'
+    conn = mysql.connector.connect(**dbconfig)
+    cursor = conn.cursor()
+    q = ("SELECT name, uid FROM users WHERE"
+        " name LIKE %s OR email LIKE %s ORDER BY name")
+    cursor.execute(q, (pattern,pattern))
+
+    print "<p class='cw'>"
+    for row in cursor:
+        name, uid = row
+        name = name.encode('ascii', errors='xmlcharrefreplace')
+        print '<a href="lookup.py?uid=%d">%s</a><br>' % (uid,name)
+        #print '<a href="lookup.py?uid=%d">' % (uid,) + name + '</a><br>'
+    print "</p>"
 else:
-    uid = None
-    print "No email specified"
+    print "No text specified"
 
 print '<p>'
-if uid != None:
-    print '<a href="/cgi-bin/send-email.py?uid=%s">' \
-            'Send agreement email</a><br>' % (uid,)
 
 print """
     <a href="/">Main page</a></p>
