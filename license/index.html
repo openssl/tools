@@ -41,11 +41,14 @@
     <p>
     <hr>
     <form action="cgi-bin/lookup.py" method="GET">
-      Search for commits with this email: <input name="email" type="TEXT">
+      Search for commits with this email
+      (exact match):
+      <input name="email" type="TEXT">
       <button action="submit">Search</button>
     </form>
     <form action="cgi-bin/search.py" method="GET">
-      Search for authors with this text in their name or email:
+      Search for authors with this text in their name or email
+      (substring match):
       <input name="text" TYPE="TEXT">
       <button action="submit">Author Search</button>
     </form>
