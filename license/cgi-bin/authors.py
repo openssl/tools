@@ -55,15 +55,28 @@ def details():
     q = ("SELECT name,uid,reply,date_replied,comment"
             " FROM users ORDER BY reply,name")
     cursor.execute(q)
+    counts = {}
     for row in cursor:
         name,uid,reply,date_replied,comment = row
         if comment is None or comment is '':
             comment = "--"
+        if date_replied == None:
+            date_replied = ''
+        counts[reply] = counts.get(reply, 0) + 1
         print ("<tr>"
                 "<td><a href='lookup.py?uid=%d'>%s</td>"
                 "<td>%s</td>"
                 "<td>%s</td>"
                 "<td>%s</td></tr>") % (uid,name,reply,date_replied,comment)
+    print "</table>"
+    print "<p>Counts by response:</p>"
+    print "<table border='1' class='cw'>"
+    print "<tr><th>Reply</th><th>Count</th></tr>"
+    total = 0
+    for k in counts:
+        print "<tr><td>%s</td><td>%d</td></tr>" % (k, counts[k])
+        total += counts[k]
+    print "<tr><td>%s</td><td>%d</td></tr>" % ("Total", total)
     print "</table>"
     print trailer
 
@@ -79,7 +92,8 @@ else:
     h1= "List of Authors"
     where = ""
 
-if 'd' in form:# and form['d'] == open('../adpass.txt').read().strip():
+dpass = open('../adpass.txt').read().strip()
+if 'd' in form and form['d'].value == dpass:
     details()
 else:
     summary(h1, where)
