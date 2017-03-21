@@ -2,10 +2,12 @@
 """mailuser [flags] args...
 
 Flags:
-    -n   No date check
-    -l   Just list who would get mail
-    -h   This help
-    -d N Only if sent more than N days ago
+    -a       all users, even if already agreed
+    -f file  File to use for message text
+    -n       No date check
+    -l       Just list who would get mail
+    -h       This help
+    -d N     Only if sent more than N days ago
 
 Arguments is a list of SQL paterns (will get wrapped in wildcards, %)
 and send them license agreement email.
@@ -22,21 +24,26 @@ dbconfig = {
         }
 conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
-raw = open("request-approval.txt").read()
 
 # Parse JCL.
 today = datetime.datetime.today().date()
 justlist = 0
 checkdate = 1
 cutoff = 2
-opts, args = getopt.getopt(sys.argv[1:], 'hnld:')
+allusers = 0
+raw = open("request-approval.txt").read()
+opts, args = getopt.getopt(sys.argv[1:], 'af:hnld:')
 for o, a in opts:
     if o == '-l':
         justlist = 1
+    elif o == '-a':
+        allusers = 1
     elif o == '-n':
         checkdate = 0
     elif o == '-d':
         cutoff = int(a)
+    elif o == '-f':
+        raw = open(a).read()
     else:
         print __doc__
         raise SystemExit
@@ -44,7 +51,10 @@ for o, a in opts:
 # Get dict of matching users
 who = {}
 for email in args:
-    q = 'SELECT email,last_asked,uid,secret FROM users WHERE email LIKE %s'
+    q = ("SELECT email,last_asked,uid,secret FROM users"
+            " WHERE email LIKE %s")
+    if not allusers:
+        q = q + " and reply <> 'y'"
     pat = '%' + email + '%'
     cursor.execute(q, (pat,))
     for row in cursor:
@@ -75,4 +85,3 @@ for email in who:
     t = 'UPDATE users SET last_asked=%s WHERE uid=%s'
     cursor.execute(t, (today, uid))
     conn.commit()
-    #print raw % d
