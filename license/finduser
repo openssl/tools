@@ -7,8 +7,8 @@ import mysql.connector
 import datetime, os, re, subprocess, sys, string, random
 
 dbconfig = {
-        'user': 'license',
-        'password': open('rwpass.txt').read().strip(),
+        'user': 'licensereader',
+        'password': open('ropass.txt').read().strip(),
         'database': 'license'
         }
 conn = mysql.connector.connect(**dbconfig)
@@ -17,11 +17,13 @@ raw = open("request-approval.txt").read()
 
 # Get dict of matching users
 for email in sys.argv[1:]:
-    q = ('SELECT uid,reply, email,name FROM users'
-            ' WHERE email LIKE %s ORDER BY uid')
+    q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
+            ' LEFT JOIN log ON log.uid = users.uid'
+            ' WHERE email like %s GROUP BY email' );
     pat = '%' + email + '%'
     cursor.execute(q, (pat,))
     for row in cursor:
-        uid,reply,email,name = row
-        if reply == None: reply = '-'
-        print uid, reply, email, name
+        uid,email,reply,name,count = row
+        if reply == None:
+            reply = '-'
+        print '%d, %s, %s, %d, "%s"' % (uid, email, reply, count, name)
