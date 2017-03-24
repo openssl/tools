@@ -1,0 +1,35 @@
+#! /usr/bin/env python
+"""Takes no arguments.  Outputs CSV of what commits people who rejected
+the license were involved in.
+"""
+
+import mysql.connector
+import datetime, os, re, subprocess, sys, string, random
+
+dbconfig = {
+        'user': 'licensereader',
+        'password': open('ropass.txt').read().strip(),
+        'database': 'license'
+        }
+conn = mysql.connector.connect(**dbconfig)
+cursor = conn.cursor()
+raw = open("request-approval.txt").read()
+
+# Get those who said no and all the commits the did
+q = ( 'SELECT log.cid,users.email FROM log'
+        ' LEFT JOIN users ON log.uid = users.uid'
+        ' WHERE users.reply = "n" ORDER BY log.cid' )
+cursor.execute(q)
+cids = []
+emails = {}
+for row in cursor:
+    cid,email = row
+    cids.append(cid)
+    emails[cid] = str(email)
+
+q = 'SELECT commit,date,descrip FROM commits WHERE cid=%s'
+for cid in cids:
+    cursor.execute(q, (cid,))
+    for row in cursor:
+        commit,date,descrip = row
+        print '%s, %s, "%s"' % (commit, emails[cid], descrip)
