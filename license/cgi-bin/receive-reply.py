@@ -16,11 +16,11 @@ print """Content-Type: text/html
 
 <html>
   <head>
-    <title>Recieve Reply - OpenSSL License Change Agreement</title>
+    <title>Receive Reply - OpenSSL License Change Agreement</title>
     <link rel="stylesheet" type="text/css" href="/style.css">
   </head>
   <body>
-    <h1>Recieve Reply</h1>
+    <h1>Receive Reply</h1>
     <p><a href="/">Main page</a></p>
     <p>"""
 
