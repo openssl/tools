@@ -3,6 +3,7 @@
 
 Flags:
     -c text...  Comment to use
+    -r          Reject not approve
     -h          This help
 
 Args is a list of email addresses.
@@ -22,10 +23,13 @@ cursor = conn.cursor()
 
 # Parse JCL
 comment = 'From CLI';
-opts, args = getopt.getopt(sys.argv[1:], "c:h")
+reply = 'y'
+opts, args = getopt.getopt(sys.argv[1:], "c:hr")
 for o,a in opts:
     if o == '-c':
         comment = a
+    elif o == '-r':
+        reply = 'n'
     else:
         print __doc__
         raise SystemExit
@@ -34,7 +38,6 @@ q = 'select uid from users where email = %s'
 update = ("UPDATE users SET date_replied=%s, reply=%s, comment=%s"
      " WHERE uid=%s")
 today = datetime.datetime.today().date()
-reply = 'y'
 
 for email in args:
     cursor.execute(q, (email,))
