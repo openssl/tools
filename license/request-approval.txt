@@ -32,6 +32,9 @@ site:
 
 If we do not hear from you, we will assume that you have no objection.
 
+We are grateful to all the contributors who have contributed to
+OpenSSL and look forward to their help and support in this effort.
+
 Thank you!
 
 -The OpenSSL Development Team
