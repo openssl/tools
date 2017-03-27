@@ -43,17 +43,24 @@ if 'comment' in form:
 
 conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
-q = "SELECT secret FROM users WHERE uid = %s"
+q = "SELECT secret,reply FROM users WHERE uid = %s"
 cursor.execute(q, (uid,))
 row = cursor.fetchone()
 if not row:
     print "No such user.  Please check the link.\n", trailer
     raise SystemExit
-if secret != row[0]:
+dbsecret, dbreply = row
+if secret != dbsecret:
     print "Password does not match.  Please check the link or\n"
     print '<a href="/cgi-bin/send-email.py?uid=%s">re-send' % (uid,)
     print "the agreement email</a>"
     print trailer
+    raise SystemExit
+if dbreply != '-':
+    print "Already replied.  If you wish to change your answer, please"
+    print "send email to"
+    print "<a href='mailto:license@openssl.org'>license@openssl.org</a>"
+    print "Describing your change."
     raise SystemExit
 
 today = datetime.datetime.today().date()
