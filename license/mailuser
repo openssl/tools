@@ -54,7 +54,7 @@ for email in args:
     q = ("SELECT email,last_asked,uid,secret FROM users"
             " WHERE email LIKE %s")
     if not allusers:
-        q = q + " and reply <> 'y'"
+        q = q + " and reply = '-'"
     pat = '%' + email + '%'
     cursor.execute(q, (pat,))
     for row in cursor:
