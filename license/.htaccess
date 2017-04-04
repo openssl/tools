@@ -2,3 +2,4 @@ Redirect 404 /adpass.txt
 Redirect 404 /ghpass.txt
 Redirect 404 /ropass.txt
 Redirect 404 /rwpass.txt
+Redirect 404 /.git
