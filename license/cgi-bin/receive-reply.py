@@ -39,7 +39,7 @@ secret = form['p'].value
 reply = form['agree'].value
 comment = ""
 if 'comment' in form:
-    comment = form['comment'].value
+    comment = form['comment'].value.replace('<', '&lt;')
 
 conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
@@ -60,7 +60,7 @@ if dbreply != '-':
     print "Already replied.  If you wish to change your answer, please"
     print "send email to"
     print "<a href='mailto:license@openssl.org'>license@openssl.org</a>"
-    print "Describing your change."
+    print "describing your change."
     raise SystemExit
 
 today = datetime.datetime.today().date()

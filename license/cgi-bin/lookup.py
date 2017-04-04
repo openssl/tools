@@ -32,27 +32,17 @@ print """Content-Type: text/html
 
     <p>"""
 
-def show_log(uid, email):
-    """Ouput HTML for all commits from  |uid| or |email|.  If uid is None
-    then look up email.  Returns the uid."""
+def show_log(email):
+    """Ouput HTML for all commits from |email|. Returns the uid."""
     conn = mysql.connector.connect(**dbconfig)
     cursor = conn.cursor()
-    if uid:
-        q = "SELECT email, reply FROM users WHERE uid = %s"
-        cursor.execute(q, (uid,))
-        row = cursor.fetchone()
-        if not row:
-            print "No commits by id %s: No such developer</p>" % (uid,)
-            return None
-        email, reply = row
-    else:
-        q = "SELECT uid, reply FROM users WHERE email = %s"
-        cursor.execute(q, (email,))
-        row = cursor.fetchone()
-        if not row:
-            print "No commits by %s: No such developer</p>" % (email,)
-            return None
-        uid, reply = row
+    q = "SELECT uid, reply FROM users WHERE email = %s"
+    cursor.execute(q, (email,))
+    row = cursor.fetchone()
+    if not row:
+        print "No commits by %s: No such developer</p>" % (email,)
+        return None
+    uid, reply = row
     q = "SELECT count(cid) FROM log WHERE uid = %s"
     cursor.execute(q, (uid,))
     row = cursor.fetchone()
@@ -75,24 +65,23 @@ def show_log(uid, email):
     print "</table></p>"
     return uid
 
-form = cgi.FieldStorage()
-if 'onepage' in form:
-    where = target = ''
-if 'uid' in form:
-    uid = show_log(form['uid'].value, None)
-elif 'email' in form:
-    uid = show_log(None, form['email'].value)
-else:
-    uid = None
-    print "No email specified"
-
-print '<p>'
-if uid != None:
-    print '<a href="/cgi-bin/send-email.py?uid=%s">' \
-            'Send agreement email</a><br>' % (uid,)
-
-print """
+trailer = """
     <a href="/">Main page</a></p>
   </body>
 </html>
 """
+
+form = cgi.FieldStorage()
+if 'onepage' in form:
+    where = target = ''
+if 'email' not in form:
+    print "No email specified\n", "<p>\n", trailer
+    raise SystemExit
+
+print '<p>'
+uid = show_log(form['email'].value.replace('<', '&lt;'))
+if uid != None:
+    print '<a href="/cgi-bin/send-email.py?uid=%s">' \
+            'Send agreement email</a><br>' % (uid,)
+
+print trailer

@@ -70,6 +70,12 @@ email, reply, last_asked, secret = row
 #    print "Dev team, not sending.\n", trailer
 #    raise SystemExit
 
+if 1:
+    # This is why we can't have nice things :(
+    print "Mail contact license@openssl.org"
+    print "People are using this to spam other folks. :("
+    raise SystemExit
+
 if last_asked and not okay_to_resend(email, last_asked):
     diff = datetime.datetime.today().date() - last_asked
     days = diff.days

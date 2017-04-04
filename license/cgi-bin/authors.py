@@ -24,7 +24,7 @@ header = """Content-Type: text/html
     <link rel="stylesheet" type="text/css" href="/style.css">
   </head>
   <body>
-    <h1>%s</h1>
+    <h1>List of Authors</h1>
     <p><a href="/">Main page</a></p>
 
     <p>Names appear multiple times because of multiple email addresses.</p>
@@ -36,9 +36,9 @@ trailer = """
 </html>
 """
 
-def summary(h1, where):
-    print header % (h1,)
-    q = "SELECT name, uid FROM users " + where + " ORDER BY name"
+def summary():
+    print header
+    q = "SELECT name, uid FROM users ORDER BY name"
     cursor.execute(q)
     print "<p class='cw'>"
     for row in cursor:
@@ -81,19 +81,9 @@ def details():
     print trailer
 
 form = cgi.FieldStorage()
-if 'r' in form:
-    if form['r'].value == 'n':
-        h1 = "List of Authors who have declined"
-        where = "WHERE reply = 'n'"
-    else:
-        h1 = "List of Authors who have agreed"
-        where = "WHERE reply = 'y'"
-else:
-    h1= "List of Authors"
-    where = ""
 
 dpass = open('../adpass.txt').read().strip()
 if 'd' in form and form['d'].value == dpass:
     details()
 else:
-    summary(h1, where)
+    summary()
