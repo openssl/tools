@@ -38,8 +38,9 @@ trailer = """
 
 def summary():
     print header
-    q = "SELECT name, uid FROM users ORDER BY name"
+    q = "SELECT name, uid FROM users WHERE reply = '-' ORDER BY name"
     cursor.execute(q)
+    print "<p>We are still seeking responses from the following:</p>"
     print "<p class='cw'>"
     for row in cursor:
         name, uid = row
