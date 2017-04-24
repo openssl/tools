@@ -9,9 +9,12 @@ TRIVIAL=""
 if [ "$1" == "--trivial" ] ; then
     TRIVIAL="--trivial" ; shift
 fi
-MERGE=""
+MERGE="yes"
 if [ "$1" == "--merge" -o "$1" == "--squash" ] ; then
     MERGE=yes ; shift
+fi
+if [ "$1" == "--nomerge" -o "$1" == "--nosquash" ] ; then
+    MERGE=no ; shift
 fi
 
 if [ $# -lt 2 ] ; then
@@ -21,7 +24,7 @@ fi
 PRNUM=$1 ; shift
 case "$PRNUM" in
     -*)
-        echo Usage: `basename $0` '[--trivial] [--merge] prnum reviewer...'
+        echo Usage: `basename $0` '[--trivial] [--[no]merge] prnum reviewer...'
         exit 1
         ;;
 esac
@@ -60,4 +63,4 @@ remake |& tail -3
 
 echo -n Press return to push: ; read foo
 git push origin $REL
-git branch -d $WORK
+git branch -D $WORK
