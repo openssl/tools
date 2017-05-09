@@ -17,3 +17,15 @@ adpass.txt
 ropass.txt
 rwpass.txt
 ghpass.txt
+
+# OpenSSL-Query
+/OpenSSL-Query/Makefile
+/OpenSSL-Query/Makefile.old
+/OpenSSL-Query/META.yml
+/OpenSSL-Query/MYMETA.*
+/OpenSSL-Query/blib
+/OpenSSL-Query/inc
+/OpenSSL-Query/pm_to_blib
+
+# Generic
+*~

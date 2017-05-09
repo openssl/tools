@@ -1,0 +1,9 @@
+lib/OpenSSL/Query.pm
+lib/OpenSSL/Query/PersonREST.pm
+lib/OpenSSL/Query/REST.pm
+lib/OpenSSL/Query/ClaREST.pm
+Makefile.PL
+MANIFEST
+META.yml
+t/query.t
+t/00-load.t
