@@ -18,6 +18,15 @@ ropass.txt
 rwpass.txt
 ghpass.txt
 
+# QueryApp
+/QueryApp/Makefile
+/QueryApp/Makefile.old
+/QueryApp/META.yml
+/QueryApp/MYMETA.*
+/QueryApp/blib
+/QueryApp/inc
+/QueryApp/pm_to_blib
+
 # OpenSSL-Query
 /OpenSSL-Query/Makefile
 /OpenSSL-Query/Makefile.old

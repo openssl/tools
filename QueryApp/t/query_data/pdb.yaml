@@ -1,0 +1,11 @@
+-
+  ids:
+  - Ray Bradbury
+  - Ray
+  - ray@ourplace.com
+  - Burn paper burn
+  memberof:
+    writers: 1950
+    scifi: 1950
+  tags:
+    author: Ray Bradbury <ray@ourplace.com>

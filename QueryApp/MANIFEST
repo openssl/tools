@@ -1,0 +1,13 @@
+bin/query.psgi
+lib/OpenSSL/Query/ClaDB.pm
+lib/OpenSSL/Query/DB.pm
+lib/OpenSSL/Query/Role/Bureau.pm
+lib/OpenSSL/Query/PersonDB.pm
+Makefile.PL
+MANIFEST
+META.yml
+public/dispatch.fcgi
+public/dispatch.cgi
+t/query.t
+t/query_data/pdb.yaml
+t/query_data/cdb.txt
