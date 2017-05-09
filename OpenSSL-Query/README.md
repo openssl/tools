@@ -8,7 +8,8 @@ whether a certain person holds a CLA, that sort of thing.
 
 OpenSSL::Query is built to be able to handle several implementations
 for access to the databases that hold the data.  The default
-implementation uses a RESTful API with JSON encoded responses.
+implementation uses a RESTful API with JSON encoded responses,
+OpenSSL::Query::REST.
 
 Requirements
 ------------
