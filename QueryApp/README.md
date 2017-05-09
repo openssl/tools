@@ -30,6 +30,7 @@ OpenSSL::Query requires these extra modules to run:
 - Moo				(debian package libmoo-perl)
 - Dancer2			(debian package libdancer2-perl)
 - Plack				(debian package libplack-perl)
+- URI::Encode			(debian package liburi-encode-perl)
 - OpenSSL::Query		(from ../OpenSSL-Query)
 
 Any other module OpenSSL::Query depends on should be part of core
