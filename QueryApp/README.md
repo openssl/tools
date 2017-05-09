@@ -12,6 +12,11 @@ couple of dispatchers for CGI and FCGI.  These are designed to be used
 directly in the checkout, but will work if copied elsewhere as well,
 as long as the OpenSSL::Query::DB module is installed.
 
+REST API
+--------
+
+RESTAPI.txt documents the details of the REST API provided by QueryApp.
+
 Requirements
 ------------
 

@@ -1,0 +1,41 @@
+QueryApp REST API
+=================
+
+Supported versions:
+
+/0 : Version 0
+
+
+Version 0 API:
+--------------
+
+/0/Person/:name
+
+    Fetches the complete set of database information on :name.
+
+/0/Person/:name/Membership
+
+    Fetches the groups (omc, omc-alumni or commit) that :name is
+    member of, with the date they became or were reinstated in the group
+
+/0/Person/:name/IsMemberOf/:group
+
+    Fetches from what date :name became or was reinstated as member
+    of :group
+
+/0/Person/:name/ValueOfTag/:tag
+
+    Fetches the value of :tag associated with :name.  This tag is
+    usually application specific.
+
+/0/Person/:name/HasCLA
+
+    Fetches the identity under which :name has a CLA, if any.
+
+/0/HasCLA/:id
+
+    Checks if there is a CLA under the precise identity :id.  This
+    differs from /0/Person/:name/HasCLA in that it demands the precise
+    identity (email address or committer id) that the CLA is registered
+    under, while /0/Person/:name/HasCLA checks for any CLA associated
+    with any of :name's identities and returns a list of what it finds.
