@@ -33,6 +33,7 @@ requires (
    'Module::Load::Conditional' => 0,
    'Class::Method::Modifiers'  => 0,
    'File::Spec'     => 0,
+   'URI::Encode'    => 0,
    Moo              => 0,
    Carp             => 0,
 );
