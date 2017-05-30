@@ -129,10 +129,14 @@ get '/Group/:group/Members' => sub {
 get '/HasCLA/:id' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
   my $id = uri_decode(route_parameters->get('id'));
-  my $response = $query->has_cla($id);
+  if ($id =~ m|^\S+\@\S+$|) {
+    my $response = $query->has_cla($id);
 
-  return [ $response ] if $response;
-  send_error('Not found', HTTP_NO_CONTENT);
+    return [ $response ] if $response;
+    send_error('Not found', HTTP_NO_CONTENT);
+  } else {
+    send_error('Malformed identity', HTTP_BAD_REQUEST);
+  }
 };
 
 # End of version 0 API.  To create a new version, start with `prefix '1';'
