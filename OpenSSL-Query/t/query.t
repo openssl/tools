@@ -11,7 +11,7 @@ use Test::More;
 use OpenSSL::Query::REST;
 use Data::Dumper;
 
-plan tests => 9;
+plan tests => 11;
 
 SKIP: {
   my $query;
@@ -45,7 +45,7 @@ SKIP: {
     plan tests => 1;
     my $res = $query->find_person_tag( 'Ray Bradbury', 'author' );
     ok( $res, "The 'author' tag for Ray Bradbury is ".( $res ? $res : "(unknown)" ) );
-    note( $res );
+    note( Dumper $res );
   };
 
   subtest 'Request of CLA status for Ray Bradbury' => sub {
@@ -53,6 +53,13 @@ SKIP: {
     my $res = $query->has_cla( 'ray@ourplace.com' );
     ok( $res, 'Ray Bradbury has CLA as ray@ourplace.com' );
     note( $res );
+  };
+
+  subtest 'Request of membership in the group "writers"' => sub {
+    plan tests => 1;
+    my @res = $query->members_of( 'writers' );
+    ok( @res, 'Finding members of "writers"' );
+    note( Dumper @res );
   };
 
   subtest 'Request of person data for Jay Luser' => sub {
@@ -85,6 +92,13 @@ SKIP: {
     my $res = $query->has_cla( 'jluser@ourplace.com' );
     ok( !$res, 'Jay Luser has no CLA' );
     note( $res );
+  };
+
+  subtest 'Request of membership in the group "couchpotatoes"' => sub {
+    plan tests => 1;
+    my @res = $query->members_of( 'couchpotatoes' );
+    ok( !@res, 'No members in "couchpotatoes"' );
+    note( @res );
   };
 
 }
