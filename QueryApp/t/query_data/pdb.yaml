@@ -9,3 +9,11 @@
     scifi: 1950
   tags:
     author: Ray Bradbury <ray@ourplace.com>
+
+-
+  ids:
+  - Selma Lagerlöf
+  - Selma
+  memberof:
+    writers: [ 1891, 1940 ]
+
