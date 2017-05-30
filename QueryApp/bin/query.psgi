@@ -110,6 +110,7 @@ get '/Person/:name/HasCLA' => sub {
 
   foreach (@{$person{ids}}) {
     next if (ref $_ eq "HASH");
+    next unless $_ =~ m|^\S+\@\S+$|;
     push @response, $_ if $query->has_cla($_);
   }
   return [ @response ] if @response;
