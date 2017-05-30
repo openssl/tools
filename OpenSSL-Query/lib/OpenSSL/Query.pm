@@ -94,6 +94,13 @@ sub is_member_of {
   $self->{person}->is_member_of(@_);
 }
 
+# Group methods
+sub members_of {
+  my $self = shift;
+
+  $self->{person}->members_of(@_);
+}
+
 # Cla methods
 sub has_cla {
   my $self = shift;
