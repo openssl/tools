@@ -32,6 +32,10 @@ Version 0 API:
 
     Fetches the identity under which :name has a CLA, if any.
 
+/0/Group/:group/Members
+
+    Fetches the list of identities belonging to the group :group.
+
 /0/HasCLA/:id
 
     Checks if there is a CLA under the precise identity :id.  This

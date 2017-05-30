@@ -115,6 +115,15 @@ get '/Person/:name/HasCLA' => sub {
   send_error('Not found', HTTP_NO_CONTENT);
 };
 
+get '/Group/:group/Members' => sub {
+  my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
+  my $group = uri_decode(route_parameters->get('group'));
+  my @response = $query->members_of($group);
+
+  return [ @response ] if @response;
+  send_error('Not found', HTTP_NO_CONTENT);
+};
+
 get '/HasCLA/:id' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
   my $id = uri_decode(route_parameters->get('id'));
