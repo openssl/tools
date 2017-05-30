@@ -21,7 +21,7 @@ SKIP: {
 						   // "http://localhost:5000") },
 	       'Creating a OpenSSL::Query object' );
 
-  print STDERR Dumper($query);
+  # print STDERR Dumper($query);
   subtest 'Request of person data for Ray Bradbury' => sub {
     plan tests => 2;
 

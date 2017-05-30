@@ -29,7 +29,7 @@ sub _build__personhandler {
 sub BUILD {
   my $self = shift;
 
-  print STDERR Dumper(@_);
+  # print STDERR Dumper(@_);
   my $ua = $self->_personhandler;
   my $resp = $ua->get($self->base_url);
   croak "Server error: ", $resp->message if $resp->is_server_error;
