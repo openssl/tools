@@ -106,12 +106,13 @@ get '/Person/:name/HasCLA' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
   my $name = uri_decode(route_parameters->get('name'));
   my %person = $query->find_person($name);
-  my $response = [];
+  my @response = ();
 
   foreach (@{$person{ids}}) {
     next if (ref $_ eq "HASH");
-    push @$response, $_ if $query->has_cla($_);
+    push @response, $_ if $query->has_cla($_);
   }
+  return [ @response ] if @response;
   send_error('Not found', HTTP_NO_CONTENT);
 };
 
