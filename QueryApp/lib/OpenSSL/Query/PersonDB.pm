@@ -89,4 +89,17 @@ sub is_member_of {
   return 0;
 }
 
+sub members_of {
+  my $self = shift;
+  my $group = shift;
+
+  my @ids = ();
+  foreach my $record (@{$self->_persondb}) {
+    if (grep { $_ eq $group } keys %{$record->{memberof}}) {
+      push @ids, [ @{$record->{ids}} ];
+    }
+  }
+  return @ids;
+}
+
 1;
