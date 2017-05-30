@@ -85,4 +85,21 @@ sub is_member_of {
   return $decoded->[0];
 }
 
+# Group methods
+sub members_of {
+  my $self = shift;
+  my $group = shift;
+
+  my $ua = $self->_personhandler;
+  my $json = $ua->get($self->base_url
+		      . '/0/Group/'
+		      . uri_encode($group, {encode_reserved => 1})
+		      . '/Members');
+  return () unless $json->code == 200;
+
+  my $decoded = decode_json $json->decoded_content;
+
+  return @$decoded;
+}
+
 1;
