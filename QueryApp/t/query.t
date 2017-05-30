@@ -90,7 +90,7 @@ subtest 'Request of person data for Jay Luser' => sub {
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
-  isnt( $res->code, 200, 'We have content' );
+  isnt( $res->code, 200, 'We have no content' );
 };
 
 subtest 'Request of membership for Jay Luser' => sub {
@@ -98,7 +98,7 @@ subtest 'Request of membership for Jay Luser' => sub {
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
-  isnt( $res->code, 200, 'We have content' );
+  isnt( $res->code, 200, 'We have no content' );
 };
 
 subtest 'Request of membership in specific group for Jay Luser' => sub {
@@ -106,7 +106,7 @@ subtest 'Request of membership in specific group for Jay Luser' => sub {
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
-  isnt( $res->code, 200, 'We have content' );
+  isnt( $res->code, 200, 'We have no content' );
 };
 
 subtest 'Request of "author" tag value for Jay Luser' => sub {
@@ -114,7 +114,7 @@ subtest 'Request of "author" tag value for Jay Luser' => sub {
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
-  isnt( $res->code, 200, 'We have content' );
+  isnt( $res->code, 200, 'We have no content' );
 };
 
 subtest 'Request of CLA status for Jay Luser' => sub {
@@ -122,7 +122,7 @@ subtest 'Request of CLA status for Jay Luser' => sub {
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
-  isnt( $res->code, 200, 'We have content' );
+  isnt( $res->code, 200, 'We have no content' );
 };
 
 subtest 'Request of membership in the group "couchpotatoes"' => sub {
