@@ -29,6 +29,7 @@ my $trivial = 0;
 	"lutz" => 'Lutz Jänicke <jaenicke@openssl.org>',
 	"jaenicke" => 'Lutz Jänicke <jaenicke@openssl.org>',
 	"emilia" => 'Emilia Käsper <emilia@openssl.org>',
+	"ekasper" => 'Emilia Käsper <emilia@openssl.org>',
 	"ben" => 'Ben Laurie <ben@openssl.org>',
 	"stevem" => 'Steve Marquess <marquess@openssl.org>',
 	"marquess" => 'Steve Marquess <marquess@openssl.org>',
@@ -40,7 +41,10 @@ my $trivial = 0;
 	"rsalz" => 'Rich Salz <rsalz@openssl.org>',
 	"geoff" => 'Geoff Thorpe <geoff@openssl.org>',
 	"richard" => 'Richard Levitte <levitte@openssl.org>',
-	"levitte" => 'Richard Levitte <levitte@openssl.org>'
+	"levitte" => 'Richard Levitte <levitte@openssl.org>',
+
+        "kaduk" => 'Ben Kaduk <kaduk@mit.edu>',
+        "pauli" => 'Paul Dale <paul.dale@oracle.com',
 );
 
 my $realname = $0;
