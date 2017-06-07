@@ -82,29 +82,26 @@ if run-hook prepare; then
     do
         expandedopts="$opt"
         warnopts="--strict-warnings"
+	optcc="clang"
         ldcmd=""
         if [ "$opt" == "enable-asan" ]; then
             # A documented requirement for enable-asan is no-shared
-            expandedopts="enable-asan no-shared"
+            expandedopts="enable-asan no-shared -DOPENSSL_SMALL_FOOTPRINT"
         elif [ "$opt" == "enable-ubsan" ]; then
 	    # We've seen it on Travis already, ubsan requires -DPEDANTIC and
 	    # -fno-sanitize=alignment, or crypto/modes will fail to build in
 	    # some circumstances.  Running on a VM seems to be one of them.
-            expandedopts="enable-ubsan -DPEDANTIC -fno-sanitize=alignment"
+            expandedopts="enable-ubsan -DPEDANTIC -DOPENSSL_SMALL_FOOTPRINT -fno-sanitize=alignment"
         elif [ "$opt" == "enable-fuzz-afl" ]; then
             warnopts=""
             optcc=afl-clang-fast 
             expandedopts="enable-fuzz-afl no-shared"
         elif [ "$opt" == "enable-fuzz-libfuzzer" ]; then
             warnopts=""
-            optcc=clang
             ldcmd=clang++
             expandedopts="enable-fuzz-libfuzzer --with-fuzzer-include=../../Fuzzer --with-fuzzer-lib=../../Fuzzer/libFuzzer -DPEDANTIC enable-asan enable-ubsan no-shared"
         elif [ "$opt" == "no-static-engine" ]; then
             expandedopts="no-static-engine no-shared"
-            optcc="clang"
-        else
-            optcc="clang"
         fi
 
         if [ -z "$opt" ]; then
