@@ -32,4 +32,4 @@ for cid in cids:
     cursor.execute(q, (cid,))
     for row in cursor:
         commit,date,descrip = row
-        print '%s, %s, "%s"' % (commit, emails[cid], descrip)
+        print '%s, %s, "%s"' % (commit[0:7], emails[cid], descrip)
