@@ -50,7 +50,7 @@ def summary():
     print trailer
 
 def details():
-    print header % ("Response Details",)
+    print header
     print "<table border='1' class='cw'>"
     print "<tr><th>Name</th><th>Reply</th><th>Date</th><th>Comment</th></tr>"
     q = ("SELECT name,uid,reply,date_replied,comment"
