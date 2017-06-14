@@ -76,13 +76,14 @@ sub new {
 
 sub _perform {
   my $self = shift;
+  my $type = shift;
   my $sub = shift;
   my $opts = shift;
 
   croak "\$opts MUST be a HASHref" unless ref($opts) eq "HASH";
 
   my @errors = ();
-  foreach (@{$self->{person}}) {
+  foreach (@{$self->{$type}}) {
     my @result = eval { $sub->($_, $opts, @_) };
     return @result unless $@;
     push @errors, $@;
@@ -95,7 +96,8 @@ sub _perform {
 sub find_person {
   my $self = shift;
 
-  $self->_perform(sub { my $obj = shift;
+  $self->_perform('person',
+		  sub { my $obj = shift;
 			my $opts = shift;
 			return $opts->{wantarray}
 			  ? ($obj->find_person(@_))
@@ -106,7 +108,8 @@ sub find_person {
 sub find_person_tag {
   my $self = shift;
 
-  $self->_perform(sub { my $obj = shift;
+  $self->_perform('person',
+		  sub { my $obj = shift;
 			my $opts = shift;
 			$obj->find_person_tag(@_) },
 		  { wantarray => wantarray }, @_);
@@ -115,7 +118,8 @@ sub find_person_tag {
 sub is_member_of {
   my $self = shift;
 
-  $self->_perform(sub { my $obj = shift;
+  $self->_perform('person',
+		  sub { my $obj = shift;
 			my $opts = shift;
 			$obj->is_member_of(@_) },
 		  { wantarray => wantarray }, @_);
@@ -125,7 +129,8 @@ sub is_member_of {
 sub members_of {
   my $self = shift;
 
-  $self->_perform(sub { my $obj = shift;
+  $self->_perform('person',
+		  sub { my $obj = shift;
 			my $opts = shift;
 			$obj->members_of(@_) },
 		  { wantarray => wantarray }, @_);
@@ -135,7 +140,8 @@ sub members_of {
 sub has_cla {
   my $self = shift;
 
-  $self->_perform(sub { my $obj = shift;
+  $self->_perform('cla',
+		  sub { my $obj = shift;
 			my $opts = shift;
 			$obj->has_cla(@_) },
 		  { wantarray => wantarray }, @_);
