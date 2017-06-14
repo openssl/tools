@@ -78,14 +78,11 @@ sub _perform {
   my $self = shift;
   my $type = shift;
   my $sub = shift;
-  my $opts = shift;
-
-  croak "\$opts MUST be a HASHref" unless ref($opts) eq "HASH";
 
   my @errors = ();
   foreach (@{$self->{$type}}) {
-    my @result = eval { $sub->($_, $opts, @_) };
-    return @result unless $@;
+    my @result = eval { $sub->($_, @_); };
+    return wantarray ? @result : $result[0] unless $@;
     push @errors, $@;
   }
 
@@ -98,11 +95,10 @@ sub find_person {
 
   $self->_perform('person',
 		  sub { my $obj = shift;
-			my $opts = shift;
-			return $opts->{wantarray}
+			return wantarray
 			  ? ($obj->find_person(@_))
 			  : $obj->find_person(@_); },
-		  { wantarray => wantarray }, @_);
+		  @_);
 }
 
 sub find_person_tag {
@@ -110,9 +106,8 @@ sub find_person_tag {
 
   $self->_perform('person',
 		  sub { my $obj = shift;
-			my $opts = shift;
-			$obj->find_person_tag(@_) },
-		  { wantarray => wantarray }, @_);
+			return $obj->find_person_tag(@_) },
+		  @_);
 }
 
 sub is_member_of {
@@ -120,9 +115,8 @@ sub is_member_of {
 
   $self->_perform('person',
 		  sub { my $obj = shift;
-			my $opts = shift;
-			$obj->is_member_of(@_) },
-		  { wantarray => wantarray }, @_);
+			return $obj->is_member_of(@_) },
+		  @_);
 }
 
 # Group methods
@@ -131,9 +125,8 @@ sub members_of {
 
   $self->_perform('person',
 		  sub { my $obj = shift;
-			my $opts = shift;
-			$obj->members_of(@_) },
-		  { wantarray => wantarray }, @_);
+			return $obj->members_of(@_) },
+		  @_);
 }
 
 # Cla methods
@@ -142,9 +135,8 @@ sub has_cla {
 
   $self->_perform('cla',
 		  sub { my $obj = shift;
-			my $opts = shift;
-			$obj->has_cla(@_) },
-		  { wantarray => wantarray }, @_);
+			return $obj->has_cla(@_) },
+		  @_);
 }
 
 1;
