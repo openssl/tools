@@ -7,7 +7,7 @@ BEGIN { $ENV{DANCER_APPHANDLER} = 'PSGI';}
 
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 15;
 use Plack::Test;
 use Plack::Util;
 use HTTP::Request::Common;
@@ -22,6 +22,14 @@ $ENV{CLADB} = $FindBin::Bin.'/query_data/cdb.txt';
 
 my $app = Plack::Util::load_psgi( $FindBin::Bin.'/../bin/query.psgi' );
 my $test = Plack::Test->create( $app );
+
+subtest 'Request of identity list' => sub {
+  my $res = $test->request( GET '/0/People' );
+  plan tests => 2;
+  ok( $res->is_success, 'Successful request' );
+  note( $res->content );
+  is( $res->code, 200, 'We have content' );
+};
 
 subtest 'A empty request' => sub {
   my $res = $test->request( GET '/' );

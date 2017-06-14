@@ -11,7 +11,7 @@ use Test::More;
 use OpenSSL::Query::REST;
 use Data::Dumper;
 
-plan tests => 11;
+plan tests => 12;
 
 SKIP: {
   my $query;
@@ -22,6 +22,14 @@ SKIP: {
 	       'Creating a OpenSSL::Query object' );
 
   # print STDERR Dumper($query);
+  subtest 'Request of identity list' => sub {
+    plan tests => 1;
+
+    my @res = $query->list_people();
+    ok( scalar @res > 0, 'We got a list' );
+    note( Dumper( [ @res ] ) );
+  };
+
   subtest 'Request of person data for Ray Bradbury' => sub {
     plan tests => 2;
 
