@@ -12,6 +12,7 @@ use strict;
 package OpenSSL::Query::PersonDB;
 
 use Carp;
+use Clone qw(clone);
 use Moo;
 use OpenSSL::Query qw(-register-person OpenSSL::Query::PersonDB -priority 0);
 
@@ -36,6 +37,17 @@ sub _build__persondb {
   }
 
   return $yaml;
+}
+
+sub list_people {
+  my $self = shift;
+
+  my @list = ();
+  foreach my $record (@{$self->_persondb}) {
+    push @list, clone($record->{ids});
+  }
+
+  return @list;
 }
 
 sub find_person {

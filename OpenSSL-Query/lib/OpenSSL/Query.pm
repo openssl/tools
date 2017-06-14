@@ -90,6 +90,15 @@ sub _perform {
 }
 
 # Person methods
+sub list_people {
+  my $self = shift;
+
+  $self->_perform('person',
+		  sub { my $obj = shift;
+			return $obj->list_people(@_) },
+		  @_);
+}
+
 sub find_person {
   my $self = shift;
 

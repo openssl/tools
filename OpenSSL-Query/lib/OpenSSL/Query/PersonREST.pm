@@ -35,6 +35,19 @@ sub _build__personhandler {
 #  croak "Server error: ", $resp->message if $resp->is_server_error;
 #}
 
+sub list_people {
+  my $self = shift;
+
+  my $ua = $self->_personhandler;
+  my $json = $ua->get($self->base_url . '/0/People/');
+  croak "Server error: ", $json->message if $json->is_server_error;
+  return () unless $json->code == 200;
+
+  my $decoded = decode_json $json->decoded_content;
+
+  return @$decoded;
+}
+
 sub find_person {
   my $self = shift;
   my $id = shift;
