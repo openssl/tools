@@ -22,18 +22,18 @@ has base_url => ( is => 'ro', default => 'https://api.openssl.org' );
 has _personhandler => ( is => 'lazy', builder => 1 );
 
 sub _build__personhandler {
-  return LWP::UserAgent->new();
+  return LWP::UserAgent->new( keep_alive => 1 );
 }
 
-# Validation
-sub BUILD {
-  my $self = shift;
-
-  # print STDERR Dumper(@_);
-  my $ua = $self->_personhandler;
-  my $resp = $ua->get($self->base_url);
-  croak "Server error: ", $resp->message if $resp->is_server_error;
-}
+## Validation
+#sub BUILD {
+#  my $self = shift;
+#
+#  # print STDERR Dumper(@_);
+#  my $ua = $self->_personhandler;
+#  my $resp = $ua->get($self->base_url);
+#  croak "Server error: ", $resp->message if $resp->is_server_error;
+#}
 
 sub find_person {
   my $self = shift;
@@ -42,6 +42,7 @@ sub find_person {
   my $ua = $self->_personhandler;
   my $json = $ua->get($self->base_url . '/0/Person/'
 			  . uri_encode($id, {encode_reserved => 1}));
+  croak "Server error: ", $json->message if $json->is_server_error;
   return () unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -60,6 +61,7 @@ sub find_person_tag {
 		      . uri_encode($id, {encode_reserved => 1})
 		      . '/ValueOfTag/'
 		      . uri_encode ($tag, {encode_reserved => 1}));
+  croak "Server error: ", $json->message if $json->is_server_error;
   return undef unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -78,6 +80,7 @@ sub is_member_of {
 		      . uri_encode($id, {encode_reserved => 1})
 		      . '/IsMemberOf/'
 		      . uri_encode ($group, {encode_reserved => 1}));
+  croak "Server error: ", $json->message if $json->is_server_error;
   return 0 unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -95,6 +98,7 @@ sub members_of {
 		      . '/0/Group/'
 		      . uri_encode($group, {encode_reserved => 1})
 		      . '/Members');
+  croak "Server error: ", $json->message if $json->is_server_error;
   return () unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;

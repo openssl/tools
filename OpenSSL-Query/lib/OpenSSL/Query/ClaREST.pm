@@ -22,18 +22,18 @@ has base_url => ( is => 'ro', default => 'https://api.openssl.org' );
 has _clahandler => ( is => 'ro', builder => 1 );
 
 sub _build__clahandler {
-  return LWP::UserAgent->new();
+  return LWP::UserAgent->new( keep_alive => 1 );
 }
 
-# Validation
-sub BUILD {
-  my $self = shift;
-
-  # print STDERR Dumper(@_);
-  my $ua = $self->_clahandler;
-  my $resp = $ua->get($self->base_url);
-  croak "Server error: ", $resp->message if $resp->is_server_error;
-}
+## Validation
+#sub BUILD {
+#  my $self = shift;
+#
+#  # print STDERR Dumper(@_);
+#  my $ua = $self->_clahandler;
+#  my $resp = $ua->get($self->base_url);
+#  croak "Server error: ", $resp->message if $resp->is_server_error;
+#}
 
 sub has_cla {
   my $self = shift;
@@ -42,6 +42,7 @@ sub has_cla {
   my $ua = $self->_clahandler;
   my $json = $ua->get($self->base_url . '/0/HasCLA/'
 		      . uri_encode($id, {encode_reserved => 1}));
+  croak "Server error: ", $json->message if $json->is_server_error;
   return $json->code == 200;
 }
 

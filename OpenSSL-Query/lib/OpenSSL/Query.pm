@@ -49,15 +49,15 @@ sub _new_type {
   my @packages =
     map { (sort keys %{$register_impl{$type}->{$_}}) }
     sort keys %{$register_impl{$type}};
-  my $obj = undef;
+  my @objs = ();
   while (@packages) {
-    $obj = (shift @packages)->new(@args);
-    last if $obj;
+    my $obj = (shift @packages)->new(@args);
+    push @objs, $obj if $obj;
   }
 
-  croak "No implementation for $type queries" unless $obj;
+  croak "No implementation for $type queries" unless @objs;
 
-  return $obj;
+  return @objs;
 }
 
 sub new {
@@ -68,44 +68,77 @@ sub new {
   bless $self, $class;
 
   foreach (('person', 'cla')) {
-    $self->{$_} = $self->_new_type($_, @args);
+    $self->{$_} = [ $self->_new_type($_, @args) ];
   }
 
   return $self;
+}
+
+sub _perform {
+  my $self = shift;
+  my $sub = shift;
+  my $opts = shift;
+
+  croak "\$opts MUST be a HASHref" unless ref($opts) eq "HASH";
+
+  my @errors = ();
+  foreach (@{$self->{person}}) {
+    my @result = eval { $sub->($_, $opts, @_) };
+    return @result unless $@;
+    push @errors, $@;
+  }
+
+  croak join("\n", @errors);
 }
 
 # Person methods
 sub find_person {
   my $self = shift;
 
-  return wantarray
-    ? ($self->{person}->find_person(@_)) : $self->{person}->find_person(@_);
+  $self->_perform(sub { my $obj = shift;
+			my $opts = shift;
+			return $opts->{wantarray}
+			  ? ($obj->find_person(@_))
+			  : $obj->find_person(@_); },
+		  { wantarray => wantarray }, @_);
 }
 
 sub find_person_tag {
   my $self = shift;
 
-  $self->{person}->find_person_tag(@_);
+  $self->_perform(sub { my $obj = shift;
+			my $opts = shift;
+			$obj->find_person_tag(@_) },
+		  { wantarray => wantarray }, @_);
 }
 
 sub is_member_of {
   my $self = shift;
 
-  $self->{person}->is_member_of(@_);
+  $self->_perform(sub { my $obj = shift;
+			my $opts = shift;
+			$obj->is_member_of(@_) },
+		  { wantarray => wantarray }, @_);
 }
 
 # Group methods
 sub members_of {
   my $self = shift;
 
-  $self->{person}->members_of(@_);
+  $self->_perform(sub { my $obj = shift;
+			my $opts = shift;
+			$obj->members_of(@_) },
+		  { wantarray => wantarray }, @_);
 }
 
 # Cla methods
 sub has_cla {
   my $self = shift;
 
-  $self->{cla}->has_cla(@_);
+  $self->_perform(sub { my $obj = shift;
+			my $opts = shift;
+			$obj->has_cla(@_) },
+		  { wantarray => wantarray }, @_);
 }
 
 1;
