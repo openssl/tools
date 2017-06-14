@@ -13,9 +13,9 @@ use Plack::Util;
 use HTTP::Request::Common;
 use FindBin;
 
-# This picks up if this is part of a checkout with OpenSSLQuery
-use if -r $FindBin::Bin.'/../../OpenSSLQuery/lib/OpenSSL/Query.pm',
-  lib => $FindBin::Bin.'/../../OpenSSLQuery/lib';
+# This picks up if this is part of a checkout with OpenSSL-Query
+use if -r $FindBin::Bin.'/../../OpenSSL-Query/lib/OpenSSL/Query.pm',
+  lib => $FindBin::Bin.'/../../OpenSSL-Query/lib';
 
 $ENV{PERSONDB} = $FindBin::Bin.'/query_data/pdb.yaml';
 $ENV{CLADB} = $FindBin::Bin.'/query_data/cdb.txt';
