@@ -9,6 +9,11 @@ Supported versions:
 Version 0 API:
 --------------
 
+/0/People
+
+    Fetches the list of known people.  Each item of this list is a
+    list of identities for each person.
+
 /0/Person/:name
 
     Fetches the complete set of database information on :name.

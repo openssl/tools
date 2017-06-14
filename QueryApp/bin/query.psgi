@@ -64,6 +64,14 @@ set bureau => '/var/cache/openssl/checkouts/bureau';
 
 prefix '/0';
 
+get '/People' => sub {
+  my $query = OpenSSL::Query->new(bureau => config->{bureau});
+  my @response = $query->list_people();
+
+  return [ @response ] if @response;
+  send_error('Not found', HTTP_NO_CONTENT);
+};
+
 get '/Person/:name' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau});
   my $name = uri_decode(route_parameters->get('name'));
