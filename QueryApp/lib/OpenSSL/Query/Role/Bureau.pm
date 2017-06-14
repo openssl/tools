@@ -8,9 +8,11 @@
 # https://www.openssl.org/source/license.html
 
 use strict;
+use warnings;
 
 package OpenSSL::Query::Role::Bureau;
 
+use Carp;
 use File::Spec::Functions;
 use Moo::Role;
 
@@ -28,7 +30,7 @@ sub _find_file {
   foreach (@paths) {
     return $_ if -r $_;
   }
-  die "$filename not found in any of ", join(", ", @paths), "\n";
+  croak "$filename not found in any of ", join(", ", @paths), "\n";
 }
 
 1;

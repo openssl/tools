@@ -10,6 +10,7 @@
 use strict;
 
 package OpenSSL::Query::PersonDB;
+
 use Carp;
 use Moo;
 use OpenSSL::Query qw(-register-person OpenSSL::Query::PersonDB -priority 0);
