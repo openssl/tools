@@ -38,6 +38,8 @@ sub _build__clahandler {
 sub has_cla {
   my $self = shift;
   my $id = shift;
+  if ($id =~ m|<(\S+\@\S+)>|) { $id = $1; }
+  croak "Malformed input ID" unless $id =~ m|^\S+(\@\S+)$|;
 
   my $ua = $self->_clahandler;
   my $json = $ua->get($self->base_url . '/0/HasCLA/'
