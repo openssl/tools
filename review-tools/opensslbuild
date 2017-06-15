@@ -1,0 +1,56 @@
+#! /bin/bash
+# Script to build openssl and run regression tests.
+# Usage:
+#       opensslbuild [-c] [-x] [config_args...]
+
+test -f ./config || {
+    echo Not at top-level
+    exit 1
+}
+
+# Parse arguments.
+configonly=no
+execonly=no
+test "$1" = "-c" && {
+    configonly=yes
+    shift
+}
+test "$1" = "-x" && {
+    execonly=yes
+    shift
+}
+
+# Set compiler
+test "$CC" = "" && CC="ccache clang-3.6"
+
+# Set basic config arguments
+CONFIGARGS="-d --strict-warnings --prefix=/usr/local/openssl"
+case "$CC" in
+*clang*)
+    CONFIGARGS="$CONFIGARGS -Qunused-arguments"
+    ;;
+esac
+
+# Set the features we want to enable
+ENABLES="enable-rc5 enable-md2 enable-ec_nistp_64_gcc_128 enable-tls1_3"
+ENABLES="$ENABLES enable-crypto-mdebug enable-crypto-mdebug-backtrace"
+
+make -s clean >/dev/null 2>&1
+./config $CONFIGARGS $ENABLES $* 2>&1
+
+echo Making update
+make -s update 2>&1
+make -s tags
+rm -f doc-nits
+grep -q doc-nits Makefile && make doc-nits
+s=$?
+test $configonly = yes && exit $s
+
+echo Making
+make -s -j20
+make -s -j20 build_tests >/dev/null
+s=$?
+test $execonly = yes && exit $s
+
+echo Making test
+make test

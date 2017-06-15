@@ -59,7 +59,7 @@ else
     git rebase $WORK
 fi
 # echo Rebuilding
-# remake |& tail -3
+# opensslbuild |& tail -3
 
 echo -n Press return to push: ; read foo
 git push origin $REL
