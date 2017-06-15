@@ -10,7 +10,7 @@ if not os.environ.has_key('GIT_DIR'):
 
 Author = re.compile("Author: (.*) <(.*)>")
 ReviewedBy = re.compile(" *Reviewed-by:")
-Email = re.compile(".*?([0-9a-z.-]+@[0-9a-z.-]+).*", re.I)
+Email = re.compile(".*?([_0-9a-z.-]+@[0-9a-z.-]+).*", re.I)
 
 # Accented/multi-byte characters we just filter out.
 Stripchars = ''.join([chr(x) for x in range(128,255)])
