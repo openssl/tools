@@ -15,7 +15,12 @@ Some of the scripts use the information REST API on https://api.openssl.org.
 If you have direct access to the databases and want to use that instead, set
 the environment variable BUREAU to the directory where they are located.
 
-=================
+The scripts
+===========
+
+addrev
+------
+
 addrev is a simple pair of scripts to add or edit reviewers to commits.
 
 To use add the scripts gitaddrev and addrev to your PATH and edit
@@ -58,7 +63,11 @@ Examples:
     addrev -2 steve rich
     addrev -2 --reviewer=steve --reviewer=rich
 
-=================
+gitlabutil
+----------
+
+NOTE: Only useful for OMC members
+
 gitlabutil is a simple gitlab merge request query tool.
 
 Before you can use it you need to create a file $HOME/.gitlabtoken containing
@@ -107,7 +116,9 @@ Checkout branch for query 145:
 
 	gitlabutil --checkout 145
 
-=================
+ghmerge
+-------
+
 ghmerge merges (reviewed and approved!) GitHub pull requests
 
 It works on the current branch, which should be master or one of the stable
@@ -120,5 +131,7 @@ The ### is the GitHub MR number.  The rest of the args are the names of
 the reviewers (passed to addrev; see above).
 
 
-=================
+pick-to-branch
+--------------
+
 pick-to-branch cherry-picks commits to branches
