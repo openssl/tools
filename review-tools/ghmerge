@@ -29,8 +29,6 @@ case "$PRNUM" in
         ;;
 esac
 
-test -z "$CLADB" && export CLADB=$HOME/openssl/bureau/cladb.txt
-
 curl -s https://api.github.com/repos/openssl/openssl/pulls/$PRNUM >/tmp/gh$$
 TEAM=$*
 set `python -c '
