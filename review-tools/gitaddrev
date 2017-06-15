@@ -9,11 +9,6 @@ use Module::Load::Conditional qw(can_load);
 can_load(modules => { OpenSSL::Query::DB => undef });
 
 my $rmrev = 0;
-my @reviewers;
-my @nocla_reviewers;
-my @unknown_reviewers;
-my $skip_reviewer;
-my $omccount = 0;
 my @commits;
 my $skip = 0;
 my $matchstr;
@@ -25,6 +20,34 @@ my $prnum = 0;
 my $trivial = 0;
 
 my $query = OpenSSL::Query->new();
+
+my @reviewers;
+my @nocla_reviewers;
+my @unknown_reviewers;
+my $skip_reviewer;
+my $omccount = 0;
+sub try_add_reviewer {
+    my $id = shift;
+    my $rc = undef;
+    my $rev = $query->find_person_tag($id, 'rev');
+    if ($rev) {
+	my $cla = $query->has_cla($rev);
+	if ($cla) {
+	    unless (grep {$_ eq $rev} @reviewers) {
+		$omccount++ if $query->is_member_of($id, 'omc');
+		push @reviewers, $rev;
+	    }
+	    $rc = $rev;
+	} else {
+	    push @nocla_reviewers, $id
+		unless grep {$_ eq $id} @nocla_reviewers;
+	}
+    } else {
+	push @unknown_reviewers, $id
+	    unless grep {$_ eq $id} @unknown_reviewers;
+    }
+    return $rc;
+}
 
 foreach (@ARGV) {
     if (/^--list$/) {
@@ -52,22 +75,7 @@ foreach (@ARGV) {
 	}
 	exit 0;
     } elsif (/^--reviewer=(.+)$/) {
-	my $rev = $query->find_person_tag($1, 'rev');
-	if ($rev) {
-	    my $cla = $query->has_cla($rev);
-	    if ($cla) {
-		unless (grep {$_ eq $rev} @reviewers) {
-		    $omccount++ if $query->is_member_of($1, 'omc');
-		    push @reviewers, $rev;
-		}
-	    } else {
-		push @nocla_reviewers, $1
-		    unless grep {$_ eq $1} @nocla_reviewers;
-	    }
-	} else {
-	    push @unknown_reviewers, $1
-		unless grep {$_ eq $1} @unknown_reviewers;
-	}
+	try_add_reviewer($1);
     } elsif (/^--prnum=(.+)$/) {
         $prnum = $1;
     } elsif (/^--commit=(.+)$/) {
@@ -76,35 +84,26 @@ foreach (@ARGV) {
     } elsif (/^--rmreviewers$/) {
         $rmrev = 1;
     } elsif (/^--myemail=(.+\@.+)$/) {
-	my $rev = $query->find_person_tag($1, 'rev');
-	if ($rev) {
-	    my $cla = $query->has_cla($rev);
-	    if ($cla) {
-		unless (grep {$_ eq $rev} @reviewers) {
-		    $omccount++ if $query->is_member_of($1, 'omc');
-		    push @reviewers, $rev;
-		}
-
-		# We can't add Reviewed-by: lines with our own name on commits
-		# we have authored ourselves.  However, we need to exist as an
-		# entry in @reviewers so the count check below won't show false
-		# positives, so instead, we set up this reviewer identity for
-		# removal before rewriting the commit message.
-		if ($ENV{GIT_AUTHOR_EMAIL} eq $1) {
-		    $skip_reviewer = $rev;
-		}
-	    } else {
-		push @nocla_reviewers, $1
-		    unless grep {$_ eq $1} @nocla_reviewers;
-	    }
-	} else {
-	    push @unknown_reviewers, $1
-		unless grep {$_ eq $1} @unknown_reviewers;
-	}
+	try_add_reviewer($1);
     } elsif (/^--trivial$/) {
         $trivial = 1;
     }
 }
+
+# If the author is a registered committer, that identity passes as a reviewer
+# too.  There is a twist, though...  see next comment
+if (my $rev = try_add_reviewer($ENV{GIT_AUTHOR_EMAIL})) {
+
+    # So here's the deal: We added the commit author because we need to keep
+    # count of the total amount of reviewers, which includes the commit author
+    # if it's a registered committer.  However, the author can "reviewed
+    # themselves", so no Reviewed-by: should be added for that identity.
+    # However, we still need to check the @reviewers count below, so the
+    # solution is to record this rev tag separately and remove it from
+    # @reviewers after the count check.
+    $skip_reviewer = $rev;
+}
+
 if (@unknown_reviewers) {
     die "Unknown reviewers: ", join(", ", @unknown_reviewers), "\n";
 }
