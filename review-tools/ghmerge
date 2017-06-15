@@ -58,8 +58,8 @@ if [ "$MERGE" = "yes" ] ; then
 else
     git rebase $WORK
 fi
-echo Rebuilding
-remake |& tail -3
+# echo Rebuilding
+# remake |& tail -3
 
 echo -n Press return to push: ; read foo
 git push origin $REL
