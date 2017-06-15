@@ -1,0 +1,31 @@
+#! /bin/bash
+# Script to fetch and rebase openssl branches
+
+test -f ./config || {
+    echo Not at top-level
+    exit 1
+}
+
+git checkout --quiet OpenSSL_1_0_2-stable ; git pull --rebase
+git checkout --quiet OpenSSL_1_1_0-stable ; git pull --rebase
+git checkout --quiet master
+git rebase -p origin/master
+
+for B in `git branch | fgrep -v '*'` ; do
+    case "$B" in
+    OpenSSL*-stable)
+        echo "        skipping $B"
+        ;;
+    *)
+        # If .skiplist exists and this branch is listed, don't rebase
+        if test -f .skiplist && grep -q "$B" .skiplist ; then
+            echo "        skipping $B"
+        else
+            git checkout --quiet $B
+            git rebase master || exit 1
+        fi
+        ;;
+    esac
+done
+
+git checkout --quiet master
