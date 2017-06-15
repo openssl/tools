@@ -80,16 +80,18 @@ foreach (@ARGV) {
 	if ($rev) {
 	    my $cla = $query->has_cla($rev);
 	    if ($cla) {
-		# If author doesn't match us add us as reviewer
-		if ($ENV{GIT_AUTHOR_EMAIL} ne $1) {
-		    unless (grep {$_ eq $rev} @reviewers) {
-			$omccount++ if $query->is_member_of($1, 'omc');
-			push @reviewers, $rev;
-		    }
-		} else {
-		    # Can't review our own commits, setup this one for removal
+		unless (grep {$_ eq $rev} @reviewers) {
+		    $omccount++ if $query->is_member_of($1, 'omc');
+		    push @reviewers, $rev;
+		}
+
+		# We can't add Reviewed-by: lines with our own name on commits
+		# we have authored ourselves.  However, we need to exist as an
+		# entry in @reviewers so the count check below won't show false
+		# positives, so instead, we set up this reviewer identity for
+		# removal before rewriting the commit message.
+		if ($ENV{GIT_AUTHOR_EMAIL} eq $1) {
 		    $skip_reviewer = $rev;
-		    $omccount-- if $query->is_member_of($1, 'omc');
 		}
 	    } else {
 		push @nocla_reviewers, $1
