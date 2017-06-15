@@ -43,6 +43,23 @@ Installation
     $ make
     $ make install
 
+Local installation
+------------
+
+For a local installation, you might want to consider using local::lib
+(debian package liblocal-lib-perl).  In that case, running Makefile.PL
+is slightly different:
+
+    $ perl -Mlocal::lib Makefile.PL
+
+Other than that, follow the instructions in "Installation" above.
+
+To get the paths right permanently, you might want to consider adding
+this in your `.bash_profile`, `.bashrc` och corresponding shell init
+script:
+
+    eval "`perl -I$HOME/perl5/lib/perl5 -Mlocal::lib`"
+
 Testing
 -------
 
