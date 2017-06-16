@@ -18,6 +18,7 @@ my $num = 0;
 my $refuse = 0;
 my $prnum = 0;
 my $trivial = 0;
+my $verbose = 0;
 
 my $query = OpenSSL::Query->new();
 
@@ -87,6 +88,8 @@ foreach (@ARGV) {
 	try_add_reviewer($1);
     } elsif (/^--trivial$/) {
         $trivial = 1;
+    } elsif (/^--verbose$/) {
+	$verbose = 1;
     }
 }
 
@@ -110,6 +113,10 @@ if (@unknown_reviewers) {
 if (@nocla_reviewers) {
     die "Reviewers without CLA: ", join(", ", @nocla_reviewers), "\n";
 }
+
+print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
+    if $verbose;
+
 if (scalar @reviewers < 2) {
     die "Too few reviewers (total must be at least 2)\n";
 }
@@ -121,7 +128,6 @@ if ($skip_reviewer) {
     @nocla_reviewers = grep { $_ ne $skip_reviewer } @nocla_reviewers;
     @unknown_reviewers = grep { $_ ne $skip_reviewer } @unknown_reviewers;
 }
-print STDERR "DEBUG: \@reviewers = ( ", join(", ", @reviewers), " )\n";
 
 if ($skip == 1) {
     my $commit_id = $ENV{GIT_COMMIT};
