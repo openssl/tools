@@ -5,7 +5,7 @@ use inc::Module::Install;
 
 name        'OpenSSL-Query';
 module_name 'OpenSSL::Query';
-version     '0.0.1';
+version     '1.0';
 abstract    '';
 author      q{Richard Levitte <levitte@openssl.org>};
 license     'apache';
@@ -16,9 +16,8 @@ tests_recursive('t');
 
 resources (
    license    => 'http://www.apache.org/licenses/LICENSE-2.0',
-   #repository => 'git://github.com/Richard Levitte/OpenSSL-query.git',
-   #repository => 'https://bitbucket.org/Richard Levitte/OpenSSL-query',
-   bugtracker => 'http://rt.cpan.org/NoAuth/Bugs.html?Dist=OpenSSL-query',
+   repository => 'https://github.com/openssl/tools.git',
+   bugtracker => 'https://github.com/openssl/tools/issues',
 );
 
 configure_requires (
