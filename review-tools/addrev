@@ -31,8 +31,6 @@ foreach (@ARGV) {
         $args .= "--commit=$1 ";
     } elsif (/^-(\d+)$/) {
         $filterargs = "HEAD~$1..";
-    } elsif (/^--trivial$/) {
-	$trival = 1;
     } elsif (/^--list$/) {
 	$list_reviewers = 1;
 	last;
