@@ -53,6 +53,6 @@ for cid in cids:
     for row in cursor:
         commit,date,descrip = row
         commit = commit[0:7]
-        descrip = descrip.replace('"', '\'')
+        descrip = descrip.replace('"', '\'').replace(',', '')
         if include == None or commit in include:
             print '%s, %s, "%s"' % (commit, emails[cid], descrip)
