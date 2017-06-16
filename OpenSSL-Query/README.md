@@ -61,6 +61,7 @@ Testing is done like this:
 However, it requires that a temporary query service is started as
 well.  This is part of QueryApp, and is started like this:
 
+    $ here=`pwd`
     $ cd ../QueryApp	# Or wherever you have it checked out
     $ PERSONDB=./t/query_data/pdb.yaml CLADB=./t/query_data/cdb.txt \
-      PERL5LIB=./lib:../OpenSSLQuery/lib plackup bin/query.psgi
+      PERL5LIB=./lib:$here/lib plackup bin/query.psgi

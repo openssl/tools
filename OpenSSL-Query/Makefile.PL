@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use inc::Module::Install;
 
-name        'OpenSSLQuery';
+name        'OpenSSL-Query';
 module_name 'OpenSSL::Query';
 version     '0.0.1';
 abstract    '';

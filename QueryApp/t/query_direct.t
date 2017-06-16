@@ -11,7 +11,7 @@ use Test::More tests => 11;
 use Data::Dumper;
 use FindBin;
 
-# This picks up if this is part of a checkout with OpenSSLQuery
+# This picks up if this is part of a checkout with OpenSSL-Query
 use if -r $FindBin::Bin.'/../../OpenSSL-Query/lib/OpenSSL/Query.pm',
   lib => $FindBin::Bin.'/../../OpenSSL-Query/lib';
 require OpenSSL::Query::DB; OpenSSL::Query::DB->import();
