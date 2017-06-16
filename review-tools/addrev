@@ -18,6 +18,8 @@ foreach (@ARGV) {
         $args .= "--rmreviewers ";
     } elsif (/^--trivial$/) {
         $args .= "--trivial ";
+    } elsif (/^--verbose$/) {
+        $args .= "--verbose ";
     } elsif (/^--myemail=(.+)$/) {
         $my_email = $1;
     } elsif (/^--nopr$/) {
@@ -70,6 +72,7 @@ option style arguments:
 --help			Print this help and exit
 --list			List the known reviewers and exit (discards all other
 			arguments)
+--verbose		Be a bit more verbose
 --reviewer=<reviewer>	A reviewer to be added on a Reviewed-by: line
 --rmreviewers		Remove all existing Reviewed-by: lines before adding
 			reviewers
