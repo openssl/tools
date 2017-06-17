@@ -10,7 +10,7 @@ my $trivial = 0;
 my $my_email;
 
 foreach (@ARGV) {
-    if (/^[a-z]+$/) {
+    if (/^[a-z][-a-z]*$/) {
         $args .= "--reviewer=$_ ";
     } elsif (/^--reviewer=(.+)$/) {
         $args .= "--reviewer=$1 ";
