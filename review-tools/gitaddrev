@@ -46,6 +46,10 @@ sub try_add_reviewer {
     } else {
 	push @unknown_reviewers, $id
 	    unless grep {$_ eq $id} @unknown_reviewers;
+	unless ($query->has_cla($id)) {
+	    push @nocla_reviewers, $id
+		unless grep {$_ eq $id} @nocla_reviewers;
+	}
     }
     return $rc;
 }
@@ -105,6 +109,25 @@ if (my $rev = try_add_reviewer($ENV{GIT_AUTHOR_EMAIL})) {
     # solution is to record this rev tag separately and remove it from
     # @reviewers after the count check.
     $skip_reviewer = $rev;
+
+} else {
+
+    # In case the author is unknown to our databases or is lacking a CLA,
+    # we need to be extra careful to check if this is supposed to be a
+    # trivial commit.
+    my $author = $ENV{GIT_AUTHOR_EMAIL};
+
+    # Note: it really should be enough to check if $author is unknown, since
+    # the databases are supposed to be consistent with each other.  However,
+    # let's be cautious and check both, in case someone has been registered
+    # as a known identity without having a CLA in place.
+    die "Commit author ",$author," has no CLA, and this is a non-trivial commit\n"
+	if !$trivial && grep { $_ eq $author } (@nocla_reviewers);
+
+    # Now that that's cleared, remove the author from anything that could cause
+    # more unnecessary errors (false positives).
+    @nocla_reviewers = grep { $_ ne $author } @nocla_reviewers;
+    @unknown_reviewers = grep { $_ ne $author } @unknown_reviewers;
 }
 
 if (@unknown_reviewers) {
