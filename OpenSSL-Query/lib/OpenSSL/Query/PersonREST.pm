@@ -14,6 +14,7 @@ use Carp;
 use Moo;
 use OpenSSL::Query qw(-register-person OpenSSL::Query::PersonREST -priority 1);
 use LWP::UserAgent;
+use HTTP::Status qw(:is);
 use URI::Encode qw(uri_encode uri_decode);
 use JSON::PP;
 use Data::Dumper;
@@ -25,22 +26,12 @@ sub _build__personhandler {
   return LWP::UserAgent->new( keep_alive => 1 );
 }
 
-## Validation
-#sub BUILD {
-#  my $self = shift;
-#
-#  # print STDERR Dumper(@_);
-#  my $ua = $self->_personhandler;
-#  my $resp = $ua->get($self->base_url);
-#  croak "Server error: ", $resp->message if $resp->is_server_error;
-#}
-
 sub list_people {
   my $self = shift;
 
   my $ua = $self->_personhandler;
   my $json = $ua->get($self->base_url . '/0/People');
-  croak "Server error: ", $json->message if $json->is_server_error;
+  croak "Server error: ", $json->message if is_server_error($json->code);
   return () unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -55,7 +46,7 @@ sub find_person {
   my $ua = $self->_personhandler;
   my $json = $ua->get($self->base_url . '/0/Person/'
 			  . uri_encode($id, {encode_reserved => 1}));
-  croak "Server error: ", $json->message if $json->is_server_error;
+  croak "Server error: ", $json->message if is_server_error($json->code);
   return () unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -74,7 +65,7 @@ sub find_person_tag {
 		      . uri_encode($id, {encode_reserved => 1})
 		      . '/ValueOfTag/'
 		      . uri_encode ($tag, {encode_reserved => 1}));
-  croak "Server error: ", $json->message if $json->is_server_error;
+  croak "Server error: ", $json->message if is_server_error($json->code);
   return undef unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -93,7 +84,7 @@ sub is_member_of {
 		      . uri_encode($id, {encode_reserved => 1})
 		      . '/IsMemberOf/'
 		      . uri_encode ($group, {encode_reserved => 1}));
-  croak "Server error: ", $json->message if $json->is_server_error;
+  croak "Server error: ", $json->message if is_server_error($json->code);
   return 0 unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;
@@ -111,7 +102,7 @@ sub members_of {
 		      . '/0/Group/'
 		      . uri_encode($group, {encode_reserved => 1})
 		      . '/Members');
-  croak "Server error: ", $json->message if $json->is_server_error;
+  croak "Server error: ", $json->message if is_server_error($json->code);
   return () unless $json->code == 200;
 
   my $decoded = decode_json $json->decoded_content;

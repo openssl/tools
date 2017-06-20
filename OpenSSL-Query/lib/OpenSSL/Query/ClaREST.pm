@@ -13,6 +13,7 @@ package OpenSSL::Query::ClaREST;
 use Carp;
 use Moo;
 use OpenSSL::Query qw(-register-cla OpenSSL::Query::ClaREST -priority 1);
+use HTTP::Status qw(:is);
 use LWP::UserAgent;
 use URI::Encode qw(uri_encode uri_decode);
 use JSON::PP;
@@ -25,16 +26,6 @@ sub _build__clahandler {
   return LWP::UserAgent->new( keep_alive => 1 );
 }
 
-## Validation
-#sub BUILD {
-#  my $self = shift;
-#
-#  # print STDERR Dumper(@_);
-#  my $ua = $self->_clahandler;
-#  my $resp = $ua->get($self->base_url);
-#  croak "Server error: ", $resp->message if $resp->is_server_error;
-#}
-
 sub has_cla {
   my $self = shift;
   my $id = shift;
@@ -44,7 +35,7 @@ sub has_cla {
   my $ua = $self->_clahandler;
   my $json = $ua->get($self->base_url . '/0/HasCLA/'
 		      . uri_encode($id, {encode_reserved => 1}));
-  croak "Server error: ", $json->message if $json->is_server_error;
+  croak "Server error: ", $json->message if is_server_error($json->code);
   return $json->code == 200;
 }
 
