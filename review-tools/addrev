@@ -78,13 +78,8 @@ option style arguments:
 --myemail=<email>	Set email address.  Defaults to the result from
 			git configuration setting user.email.
 --trivial		Add a "CLA: trivial" to the message.
---addcla		Add a CLA header for the author of the commit
 --nopr			Do not requre a PR number.
 --prnum=NNN             Add a reference to GitHub pull request NNN
---clatype=<type>	Only add a CLA header of the specified type. <type> is
-			either C for Corporate or I for Individual
---clamatch=<str>	Only add a CLA where <str> appears somewhere in the
-			description (i.e. the third column of cladb.txt)
 -<n>			Change the last <n> commits.  Defaults to 1.
 
 non-option style arguments can be:
