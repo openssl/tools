@@ -172,22 +172,26 @@ if (scalar @reviewers == 0 && $rmrev == 0) {
     die "No reviewer set!\n";
 }
 
-my $last_line_blank = 0;
-my $have_rev = 0;
+# Remove blank lines from the end of commit message
+pop @commit_message while $commit_message[$#commit_message] =~ m|^\s*$|;
+
+my $last_is_rev = 0;
 foreach (@commit_message) {
+    # Start each line with assuming it's not a reviewed-by line
+    $last_is_rev = 0;
     if (/^\(Merged from https:\/\/github\.com\/openssl\/openssl\/pull\//
 	|| /^Reviewed-by:\s*(\S.*\S)\s*$/) {
+        my $id = $1;
         next if $rmrev == 1;
-        $have_rev = 1;
-        # Skip if reviewer already in list
-        next if $1 && grep { $1 eq $_ } @reviewers;
+        $last_is_rev = 1;
+        # Remove reviewers that are already in the message from our reviewer list
+        @reviewers = grep { $_ ne $id } @reviewers if $id;
     }
     print $_,"\n";
-    $last_line_blank = ($_ =~ /^\s*$/);
 }
 if ($rmrev == 0) {
-    #Add a blank line unless the last one is already blank or a review line
-    print "\n" unless $last_line_blank || $have_rev;
+    #Add a blank line unless the last one is a review line
+    print "\n" unless $have_rev;
     foreach(@reviewers) {
 	print "Reviewed-by: $_\n";
     }
