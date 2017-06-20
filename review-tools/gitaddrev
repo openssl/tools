@@ -48,7 +48,7 @@ sub try_add_reviewer {
     } else {
 	push @unknown_reviewers, $id
 	    unless grep {$_ eq $id} @unknown_reviewers;
-	unless ($query->has_cla($id)) {
+	unless ($id =~ m|^.*\@.*$| && $query->has_cla($id)) {
 	    push @nocla_reviewers, $id
 		unless grep {$_ eq $id} @nocla_reviewers;
 	}
