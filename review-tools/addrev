@@ -77,7 +77,6 @@ option style arguments:
 --commit=<id>		Only apply to commit <id>
 --myemail=<email>	Set email address.  Defaults to the result from
 			git configuration setting user.email.
---trivial		Add a "CLA: trivial" to the message.
 --nopr			Do not requre a PR number.
 --prnum=NNN             Add a reference to GitHub pull request NNN
 -<n>			Change the last <n> commits.  Defaults to 1.

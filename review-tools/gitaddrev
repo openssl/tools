@@ -17,7 +17,6 @@ my $found = 0;
 my $num = 0;
 my $refuse = 0;
 my $prnum = 0;
-my $trivial = 0;
 my $verbose = 0;
 
 my $query = OpenSSL::Query->new();
@@ -53,6 +52,9 @@ sub try_add_reviewer {
     }
     return $rc;
 }
+
+my @commit_message = map { (my $x = $_) =~ s|\R$||; $x } <STDIN>;
+my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
 
 foreach (@ARGV) {
     if (/^--list$/) {
@@ -90,8 +92,6 @@ foreach (@ARGV) {
         $rmrev = 1;
     } elsif (/^--myemail=(.+\@.+)$/) {
 	try_add_reviewer($1);
-    } elsif (/^--trivial$/) {
-        $trivial = 1;
     } elsif (/^--verbose$/) {
 	$verbose = 1;
     }
@@ -174,7 +174,7 @@ if (scalar @reviewers == 0 && $rmrev == 0) {
 
 my $last_line_blank = 0;
 my $have_rev = 0;
-while(<STDIN>) {
+foreach (@commit_message) {
     if (/^\(Merged from https:\/\/github\.com\/openssl\/openssl\/pull\//
 	|| /^Reviewed-by:\s*(\S.*\S)\s*$/) {
         next if $rmrev == 1;
@@ -182,7 +182,7 @@ while(<STDIN>) {
         # Skip if reviewer already in list
         next if $1 && grep { $1 eq $_ } @reviewers;
     }
-    print;
+    print $_,"\n";
     $last_line_blank = ($_ =~ /^\s*$/);
 }
 if ($rmrev == 0) {
@@ -191,16 +191,7 @@ if ($rmrev == 0) {
     foreach(@reviewers) {
 	print "Reviewed-by: $_\n";
     }
-    if ($trivial) {
-        print "CLA: trivial\n";
-    }
 }
 
 print "(Merged from https://github.com/openssl/openssl/pull/$prnum)\n"
     if $prnum;
-
-my $email = $ENV{GIT_AUTHOR_EMAIL};
-
-if (!$trivial && !$query->has_cla(lc $email)) {
-    warn "\n\nWARNING: No CLA found for $email\n";
-}
