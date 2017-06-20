@@ -184,13 +184,17 @@ my $last_is_rev = 0;
 foreach (@commit_message) {
     # Start each line with assuming it's not a reviewed-by line
     $last_is_rev = 0;
-    if (/^\(Merged from https:\/\/github\.com\/openssl\/openssl\/pull\//
-	|| /^Reviewed-by:\s*(\S.*\S)\s*$/) {
+    if (/^\(Merged from https:\/\/github\.com\/openssl\/openssl\/pull\//) {
+        next if $rmrev == 1;
+        $last_is_rev = 1;
+        next;			# Because we're rewriting it below
+				# (unless --nopr was given in addrev)
+    } elsif (/^Reviewed-by:\s*(\S.*\S)\s*$/) {
         my $id = $1;
         next if $rmrev == 1;
         $last_is_rev = 1;
         # Remove reviewers that are already in the message from our reviewer list
-        @reviewers = grep { $_ ne $id } @reviewers if $id;
+        @reviewers = grep { $_ ne $id } @reviewers;
     }
     print $_,"\n";
 }
