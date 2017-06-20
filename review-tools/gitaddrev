@@ -1,12 +1,15 @@
 #!/usr/bin/perl
 
+use strict;
+use warnings;
+
 use File::Basename;
 use FindBin;
 
 use OpenSSL::Query::REST;
 use Module::Load::Conditional qw(can_load);
 
-can_load(modules => { OpenSSL::Query::DB => undef });
+can_load(modules => { 'OpenSSL::Query::DB' => undef });
 
 my $rmrev = 0;
 my @commits;
@@ -193,7 +196,7 @@ foreach (@commit_message) {
 }
 if ($rmrev == 0) {
     #Add a blank line unless the last one is a review line
-    print "\n" unless $have_rev;
+    print "\n" unless $last_is_rev;
     foreach(@reviewers) {
 	print "Reviewed-by: $_\n";
     }

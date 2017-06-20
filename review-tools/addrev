@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+use strict;
+use warnings;
+
 my $args = "";
 my $filterargs = "HEAD^..";
 my $list_reviewers = 0;
