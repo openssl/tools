@@ -137,6 +137,8 @@ if (@nocla_reviewers) {
     die "Reviewers without CLA: ", join(", ", @nocla_reviewers), "\n";
 }
 
+print STDERR "Detected trivial marker\n" if $verbose && $trivial;
+
 print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
     if $verbose;
 
