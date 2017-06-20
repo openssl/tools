@@ -56,9 +56,6 @@ sub try_add_reviewer {
     return $rc;
 }
 
-my @commit_message = map { (my $x = $_) =~ s|\R$||; $x } <STDIN>;
-my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
-
 foreach (@ARGV) {
     if (/^--list$/) {
 	my %list = ();
@@ -99,6 +96,9 @@ foreach (@ARGV) {
 	$verbose = 1;
     }
 }
+
+my @commit_message = map { (my $x = $_) =~ s|\R$||; $x } <STDIN>;
+my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
 
 # If the author is a registered committer, that identity passes as a reviewer
 # too.  There is a twist, though...  see next comment
