@@ -74,7 +74,7 @@ get '/People' => sub {
 
 get '/Person/:name' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau});
-  my $name = uri_decode(route_parameters->get('name'));
+  my $name = uri_decode(param('name'));
   my %response = $query->find_person($name);
 
   return { %response } if %response;
@@ -83,7 +83,7 @@ get '/Person/:name' => sub {
 
 get '/Person/:name/Membership' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(route_parameters->get('name'));
+  my $name = uri_decode(param('name'));
   my %response = $query->find_person($name);
 
   return $response{memberof} if %response;
@@ -92,8 +92,8 @@ get '/Person/:name/Membership' => sub {
 
 get '/Person/:name/IsMemberOf/:group' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(route_parameters->get('name'));
-  my $group = uri_decode(route_parameters->get('group'));
+  my $name = uri_decode(param('name'));
+  my $group = uri_decode(param('group'));
   my $response = $query->is_member_of($name, $group);
 
   return [ $response ] if $response;
@@ -102,8 +102,8 @@ get '/Person/:name/IsMemberOf/:group' => sub {
 
 get '/Person/:name/ValueOfTag/:tag' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(route_parameters->get('name'));
-  my $tag = uri_decode(route_parameters->get('tag'));
+  my $name = uri_decode(param('name'));
+  my $tag = uri_decode(param('tag'));
   my $response = $query->find_person_tag($name, $tag);
 
   return [ $response ] if $response;
@@ -112,7 +112,7 @@ get '/Person/:name/ValueOfTag/:tag' => sub {
 
 get '/Person/:name/HasCLA' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(route_parameters->get('name'));
+  my $name = uri_decode(param('name'));
   my %person = $query->find_person($name);
   my @response = ();
 
@@ -127,7 +127,7 @@ get '/Person/:name/HasCLA' => sub {
 
 get '/Group/:group/Members' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $group = uri_decode(route_parameters->get('group'));
+  my $group = uri_decode(param('group'));
   my @response = $query->members_of($group);
 
   return [ @response ] if @response;
@@ -136,7 +136,7 @@ get '/Group/:group/Members' => sub {
 
 get '/HasCLA/:id' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $id = uri_decode(route_parameters->get('id'));
+  my $id = uri_decode(param('id'));
   if ($id =~ m|^\S+\@\S+$|) {
     my $response = $query->has_cla($id);
 
