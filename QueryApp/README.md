@@ -22,7 +22,6 @@ Requirements
 
 OpenSSL::Query requires the following modules to build:
 
-- Module::Starter and its dependencies (debian package libmodule-starter-perl)
 - Module::Install		(debian package libmodule-install-perl)
 
 OpenSSL::Query requires these extra modules to run:
