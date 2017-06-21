@@ -23,7 +23,9 @@ has base_url => ( is => 'ro', default => 'https://api.openssl.org' );
 has _clahandler => ( is => 'ro', builder => 1 );
 
 sub _build__clahandler {
-  return LWP::UserAgent->new( keep_alive => 1 );
+  my $ua = LWP::UserAgent->new( keep_alive => 1 );
+  $ua->env_proxy;
+  return $ua;
 }
 
 sub has_cla {

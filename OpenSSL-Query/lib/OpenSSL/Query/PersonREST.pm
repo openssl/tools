@@ -23,7 +23,9 @@ has base_url => ( is => 'ro', default => 'https://api.openssl.org' );
 has _personhandler => ( is => 'lazy', builder => 1 );
 
 sub _build__personhandler {
-  return LWP::UserAgent->new( keep_alive => 1 );
+  my $ua = LWP::UserAgent->new( keep_alive => 1 );
+  $ua->env_proxy;
+  return $ua;
 }
 
 sub list_people {
