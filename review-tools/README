@@ -23,8 +23,7 @@ addrev
 
 addrev is a simple pair of scripts to add or edit reviewers to commits.
 
-To use add the scripts gitaddrev and addrev to your PATH and edit
-gitaddrev to contain your email address.
+To use add the scripts gitaddrev and addrev to your PATH.
 
 Usage is
 
