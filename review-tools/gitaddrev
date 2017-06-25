@@ -32,12 +32,13 @@ my $omccount = 0;
 sub try_add_reviewer {
     my $id = shift;
     my $rc = undef;
-    my $rev = $query->find_person_tag($id, 'rev');
+    my $id2 = $id =~ /^\@(.*)$/ ? { github => $1 } : $id;
+    my $rev = $query->find_person_tag($id2, 'rev');
     if ($rev) {
 	my $cla = $query->has_cla($rev);
 	if ($cla) {
 	    unless (grep {$_ eq $rev} @reviewers) {
-		$omccount++ if $query->is_member_of($id, 'omc');
+		$omccount++ if $query->is_member_of($id2, 'omc');
 		push @reviewers, $rev;
 	    }
 	    $rc = $rev;
@@ -48,7 +49,7 @@ sub try_add_reviewer {
     } else {
 	push @unknown_reviewers, $id
 	    unless grep {$_ eq $id} @unknown_reviewers;
-	unless ($id =~ m|^.*\@.*$| && $query->has_cla($id)) {
+	unless ($id =~ m|^.+\@.*$| && $query->has_cla($id)) {
 	    push @nocla_reviewers, $id
 		unless grep {$_ eq $id} @nocla_reviewers;
 	}
