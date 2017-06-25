@@ -65,13 +65,16 @@ foreach (@ARGV) {
 	    my $rev = $query->find_person_tag($email_id, 'rev');
 	    my $omc = $query->is_member_of($email_id, 'omc');
 	    next unless $query->has_cla($rev);
-	    my @ids = sort grep { $_ =~ m|^[a-z][-a-z]*$| } map {
-		if (ref($_) eq "HASH") {
-		    values %$_;
-		} else {
-		    $_;
-		}
-	    } @$_;
+	    my @ids =
+		sort grep { $_ =~ /^[a-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
+		map {
+		    if (ref($_) eq "HASH") {
+			my %h = %$_;
+			map { $_ eq "github" ? '@'.$h{$_} : $h{$_} } %h;
+		    } else {
+			$_;
+		    }
+		} @$_;
 	    foreach (@ids) {
 		$list{$_} = { tag => $rev, omc => $omc };
 	    }
