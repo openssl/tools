@@ -88,12 +88,15 @@ non-option style arguments can be:
 
 a string of lower case letters, denoting a reviewer name.
 
-anything else will be used as a commit range.
+a string starting with \@, denoting a reviewer's github ID.
+
+anything else will be used as a commit range.  If no commit range is given,
+HEAD^.. is assumed.
 
 Examples (all meaning the same thing):
 
   addrev -2 steve levitte
-  addrev steve levitte HEAD^^..
-  addrev --reviewer=steve --reviewer=levitte -2
+  addrev steve \@levitte HEAD^^..
+  addrev --reviewer=steve --reviewer=levitte\@openssl.org -2
 EOF
 }

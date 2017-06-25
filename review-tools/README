@@ -21,46 +21,29 @@ The scripts
 addrev
 ------
 
-addrev is a simple pair of scripts to add or edit reviewers to commits.
+addrev and gitaddrev is a simple pair of scripts to add or edit reviewers to
+commits.
 
 To use add the scripts gitaddrev and addrev to your PATH.
 
-Usage is
+Run 'addrev --help' for usage.
 
-	addrev <arguments>
-
-<arguments> can be one of:
-
---reviewer=<name> add reviewer <name> to commit range: can be used more than
-once.
-
---commit=<id> only apply if commit matches <id>: can be used more than once
-
---rmreviewers remove all reviewers from commit range: useful if you screwed
-up.
-
--<number> change the last <number> commits if not present assumes the last
-commit only.
-
---trivial add the header "CLA: trivial" to the commits
-
-Any lower case string is assumed to be a reviewer name.
-
-Anything not matching the above is take to be a commit range.
-
-If a reviewer already exists in the log message it is deleted before it is
-added to the end of the log: this ensures a reviewer can only appear once
-in a commit.
+If a reviewer already exists in the log message, it isn't added again.
 
 If the commiter is not the author of the commit then they are added
 automatically as a reviewer.
+
+Reviewer names can be given as simple known lower case names, or as github
+IDs prefixed with a @, or known email addresses if given with --reviewer.
+
+Run 'addrev --list' to ge a list of known reviewer names.
 
 Examples:
 
     addrev steve
     addrev -2 steve
-    addrev -2 steve rich
-    addrev -2 --reviewer=steve --reviewer=rich
+    addrev -2 steve @richsalz
+    addrev -2 --reviewer=steve --reviewer=rsalz@openssl.org
 
 gitlabutil
 ----------
