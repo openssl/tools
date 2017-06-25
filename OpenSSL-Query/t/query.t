@@ -11,7 +11,7 @@ use Test::More;
 use OpenSSL::Query::REST;
 use Data::Dumper;
 
-plan tests => 12;
+plan tests => 15;
 
 SKIP: {
   my $query;
@@ -42,6 +42,18 @@ SKIP: {
     note( Dumper( { %res2 } ) );
   };
 
+  subtest 'Request of person data for Ray Bradbury as full name' => sub {
+    plan tests => 2;
+
+    my $res1 = $query->find_person( { fullname => 'Ray Bradbury' } );
+    ok( $res1, 'Ray Bradbury is present' );
+    note( $res1 );
+
+    my %res2 = $query->find_person( 'Ray Bradbury' );
+    ok(scalar keys %res2 > 1, "Got Ray Bradbury's data" );
+    note( Dumper( { %res2 } ) );
+  };
+
   subtest 'Request of membership in specific group for Ray Bradbury' => sub {
     plan tests => 1;
     my $res = $query->is_member_of( 'Ray Bradbury', 'scifi' );
@@ -49,9 +61,23 @@ SKIP: {
     note( $res );
   };
 
+  subtest 'Request of membership in specific group for Ray Bradbury as full name' => sub {
+    plan tests => 1;
+    my $res = $query->is_member_of( { fullname => 'Ray Bradbury' }, 'scifi' );
+    ok( $res, "Ray Bradbury is member of scifi since ".( $res ? $res : "(unknown)" ) );
+    note( $res );
+  };
+
   subtest 'Request of "author" tag value for Ray Bradbury' => sub {
     plan tests => 1;
     my $res = $query->find_person_tag( 'Ray Bradbury', 'author' );
+    ok( $res, "The 'author' tag for Ray Bradbury is ".( $res ? $res : "(unknown)" ) );
+    note( Dumper $res );
+  };
+
+  subtest 'Request of "author" tag value for Ray Bradbury as full name' => sub {
+    plan tests => 1;
+    my $res = $query->find_person_tag( { fullname => 'Ray Bradbury' }, 'author' );
     ok( $res, "The 'author' tag for Ray Bradbury is ".( $res ? $res : "(unknown)" ) );
     note( Dumper $res );
   };
