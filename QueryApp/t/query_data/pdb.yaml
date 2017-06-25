@@ -1,6 +1,6 @@
 -
   ids:
-  - Ray Bradbury
+  - fullname: Ray Bradbury
   - Ray
   - ray@ourplace.com
   - Burn paper burn
@@ -12,7 +12,7 @@
 
 -
   ids:
-  - Selma Lagerlöf
+  - fullname: Selma Lagerlöf
   - Selma
   memberof:
     writers: [ 1891, 1940 ]

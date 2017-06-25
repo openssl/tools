@@ -7,7 +7,7 @@ BEGIN { $ENV{DANCER_APPHANDLER} = 'PSGI';}
 
 use strict;
 use warnings;
-use Test::More tests => 15;
+use Test::More tests => 19;
 use Plack::Test;
 use Plack::Util;
 use HTTP::Request::Common;
@@ -53,8 +53,24 @@ subtest 'Request of person data for Ray Bradbury' => sub {
   is( $res->code, 200, 'We have content' );
 };
 
+subtest 'Request of person data for Ray Bradbury as full name' => sub {
+  my $res = $test->request( GET '/0/Person/fullname:Ray Bradbury' );
+  plan tests => 2;
+  ok( $res->is_success, 'Successful request' );
+  note( $res->content );
+  is( $res->code, 200, 'We have content' );
+};
+
 subtest 'Request of membership for Ray Bradbury' => sub {
   my $res = $test->request( GET '/0/Person/Ray Bradbury/Membership' );
+  plan tests => 2;
+  ok( $res->is_success, 'Successful request' );
+  note( $res->content );
+  is( $res->code, 200, 'We have content' );
+};
+
+subtest 'Request of membership for Ray Bradbury as fullname' => sub {
+  my $res = $test->request( GET '/0/Person/fullname:Ray Bradbury/Membership' );
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
@@ -69,8 +85,24 @@ subtest 'Request of membership in specific group for Ray Bradbury' => sub {
   is( $res->code, 200, 'We have content' );
 };
 
+subtest 'Request of membership in specific group for Ray Bradbury as fullname' => sub {
+  my $res = $test->request( GET '/0/Person/fullname:Ray Bradbury/IsMemberOf/scifi' );
+  plan tests => 2;
+  ok( $res->is_success, 'Successful request' );
+  note( $res->content );
+  is( $res->code, 200, 'We have content' );
+};
+
 subtest 'Request of "author" tag value for Ray Bradbury' => sub {
   my $res = $test->request( GET '/0/Person/Ray Bradbury/ValueOfTag/author' );
+  plan tests => 2;
+  ok( $res->is_success, 'Successful request' );
+  note( $res->content );
+  is( $res->code, 200, 'We have content' );
+};
+
+subtest 'Request of "author" tag value for Ray Bradbury as fullname' => sub {
+  my $res = $test->request( GET '/0/Person/fullname:Ray Bradbury/ValueOfTag/author' );
   plan tests => 2;
   ok( $res->is_success, 'Successful request' );
   note( $res->content );
