@@ -41,9 +41,19 @@ sub list_people {
   return @$decoded;
 }
 
+sub _id_encode {
+  my $id = shift;
+
+  return $id if ref($id) eq "";
+  croak "Malformed input ID" if ref($id) ne "HASH" || scalar keys %$id != 1;
+
+  my $tag = (keys %$id)[0];
+  return $tag . ':' . $id->{$tag};
+}
+
 sub find_person {
   my $self = shift;
-  my $id = shift;
+  my $id = _id_encode(shift);
 
   my $ua = $self->_personhandler;
   my $json = $ua->get($self->base_url . '/0/Person/'
@@ -58,7 +68,7 @@ sub find_person {
 
 sub find_person_tag {
   my $self = shift;
-  my $id = shift;
+  my $id = _id_encode(shift);
   my $tag = shift;
 
   my $ua = $self->_personhandler;
@@ -77,7 +87,7 @@ sub find_person_tag {
 
 sub is_member_of {
   my $self = shift;
-  my $id = shift;
+  my $id = _id_encode(shift);
   my $group = shift;
 
   my $ua = $self->_personhandler;
