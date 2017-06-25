@@ -64,6 +64,14 @@ set bureau => '/var/cache/openssl/checkouts/bureau';
 
 prefix '/0';
 
+sub name_decode {
+    my $name = shift;
+    if ($name =~ m|^([^:]+):(.+)$|) {
+	return { $1 => $2 };
+    }
+    return $name;
+}
+
 get '/People' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau});
   my @response = $query->list_people();
@@ -74,7 +82,7 @@ get '/People' => sub {
 
 get '/Person/:name' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau});
-  my $name = uri_decode(param('name'));
+  my $name = name_decode(uri_decode(param('name')));
   my %response = $query->find_person($name);
 
   return { %response } if %response;
@@ -83,7 +91,7 @@ get '/Person/:name' => sub {
 
 get '/Person/:name/Membership' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(param('name'));
+  my $name = name_decode(uri_decode(param('name')));
   my %response = $query->find_person($name);
 
   return $response{memberof} if %response;
@@ -92,7 +100,7 @@ get '/Person/:name/Membership' => sub {
 
 get '/Person/:name/IsMemberOf/:group' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(param('name'));
+  my $name = name_decode(uri_decode(param('name')));
   my $group = uri_decode(param('group'));
   my $response = $query->is_member_of($name, $group);
 
@@ -102,7 +110,7 @@ get '/Person/:name/IsMemberOf/:group' => sub {
 
 get '/Person/:name/ValueOfTag/:tag' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(param('name'));
+  my $name = name_decode(uri_decode(param('name')));
   my $tag = uri_decode(param('tag'));
   my $response = $query->find_person_tag($name, $tag);
 
@@ -112,7 +120,7 @@ get '/Person/:name/ValueOfTag/:tag' => sub {
 
 get '/Person/:name/HasCLA' => sub {
   my $query = OpenSSL::Query->new(bureau => config->{bureau}, REST => 0);
-  my $name = uri_decode(param('name'));
+  my $name = name_decode(uri_decode(param('name')));
   my %person = $query->find_person($name);
   my @response = ();
 
