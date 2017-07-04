@@ -43,7 +43,20 @@ git co --quiet master || exit 1
 git co $branch || exit 1
 git cherry-pick -e -x $id
 
-echo -n 'Git push (ctrl-c to cancel): '
-read x
-git push
+while true
+do
+    echo -n "Enter YES to push or NO to abort: "
+    read x
+    x="`echo $x | tr A-Z a-z`"
+    if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]
+    then
+        break
+    fi
+done
+
+if [ "$x" = "y" -o "$x" = "yes" ]
+then
+    git push
+fi
+
 git co master
