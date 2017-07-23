@@ -95,18 +95,15 @@ def process():
         print textplain, "patch_url missing"
         return
     missing = {}
-    trivial = 0
     for line in urllib.urlopen(patch_url):
         m = Trivial.match(line)
         if m:
-            trivial = 1
-            continue
+            update_state(pr, SUCCESS, "Trivial")
+            return
         m = From.match(line)
         if m and not have_cla(m.group(1)):
             missing[m.group(1)] = 1
-    if trivial:
-        update_state(pr, SUCCESS, "Trivial")
-    elif len(missing) == 0:
+    if len(missing) == 0:
         update_status(pr, SUCCESS, 'CLA on file')
     else:
         update_status(pr, FAILURE, "CLA missing: " + str(missing.keys()))
