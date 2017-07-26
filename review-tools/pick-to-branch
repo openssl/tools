@@ -12,7 +12,7 @@ case $# in
     b=$1
     ;;
 *)
-    echo Usage $0 "[commitid] branch"
+    echo "Usage $0 [commitid] branch"
     exit 1
     ;;
 esac
@@ -36,11 +36,29 @@ m*)
     exit 1
     ;;
 esac
-exec echo id,b $id $branch
 
-echo $branch
-git co --quiet master || exit 1
-git co $branch || exit 1
+echo "id is $id"
+echo "branch is $branch"
+echo "Are these correct?"
+
+while true
+do
+    echo -n "Enter YES to continue or NO to abort: "
+    read x
+    x="`echo $x | tr A-Z a-z`"
+    if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]
+    then
+        break
+    fi
+done
+
+if [ "$x" = "n" -o "$x" = "no" ]
+then
+    exit 1
+fi
+
+git checkout --quiet master || exit 1
+git checkout $branch || exit 1
 git cherry-pick -e -x $id
 
 while true
@@ -59,4 +77,4 @@ then
     git push
 fi
 
-git co master
+git checkout master
