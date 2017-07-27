@@ -46,20 +46,21 @@ git pull --rebase https://github.com/$WHO/openssl.git $BRANCH
 git rebase $REL
 echo Diff against $REL
 git diff $REL
-if [ "$MERGE" = "yes" ] ; then
-    echo Edit commits and squash appropriately
-    git rebase -i $REL
-fi
 
 echo -n Press return to merge to $REL and build: ; read foo
 addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 git checkout $REL
-git rebase $WORK
+if [ "$MERGE" == "yes" ] ; then
+    git merge --no-commit --squash $WORK
+    AUTHOR=`git show --no-patch --pretty=format:%an <%ae> $WORK`
+    git commit --author="$AUTHOR"
+else
+    git rebase $WORK
+fi
 # echo Rebuilding
 # opensslbuild |& tail -3
 
-while true
-do
+while true ; do
     echo -n "Enter YES to push or NO to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
