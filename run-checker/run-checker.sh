@@ -77,7 +77,12 @@ if [ ! -d openssl/.git ]; then
 fi
 
 if run-hook prepare; then
-    echo "Ensure chromium clang and afl-clang-fast are on PATH"
+    for req_binary in clang afl-clang-fast; do
+        which $req_binary >/dev/null 2>&1
+        if [ "$?" != "0" ]; then
+            echo "Warning: $req_binary does not appear to be in PATH"
+        fi
+    done
     for opt in "${opts[@]}";
     do
         expandedopts="$opt"
