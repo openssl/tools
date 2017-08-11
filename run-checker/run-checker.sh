@@ -28,6 +28,11 @@ enable-crypto-mdebug enable-crypto-mdebug-backtrace no-ct no-deprecated no-des
 no-dgram no-dh no-dsa no-dso no-dynamic-engine no-ec no-ec2m no-ecdh
 no-ecdsa enable-ec_nistp_64_gcc_128 enable-egd no-engine 'no-engine no-shared'
 no-err no-filenames
+no-aria no-asan no-crypto-mdebug no-crypto-mdebug-backtrace no-devcryptoeng
+no-ec_nistp_64_gcc_128 no-egd no-external-tests no-fuzz-afl no-fuzz-libfuzzer
+no-heartbeats no-md2 no-msan no-rc5 no-sctp no-ssl no-ssl-trace no-tests
+no-tls13downgrade no-ubsan no-ui-console no-unit-test no-weak-ssl-ciphers
+no-zlib no-zlib-dynamic
 enable-fuzz-afl enable-fuzz-libfuzzer enable-heartbeats no-hw no-hw-padlock
 no-idea no-makedepend enable-md2 no-md4 no-md5 no-mdc2 no-gost no-multiblock
 no-nextprotoneg no-ocb no-ocsp no-pic no-poly1305 no-posix-io no-psk no-rc2
