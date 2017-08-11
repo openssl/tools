@@ -67,7 +67,7 @@ rkill () {
         done
     fi
     if [ "$pid" != "$notpid" ]; then
-	kill -s "$signal" "$pid"
+    kill -s "$signal" "$pid"
     fi
 }
 
@@ -82,15 +82,15 @@ if run-hook prepare; then
     do
         expandedopts="$opt"
         warnopts="--strict-warnings"
-	optcc="clang"
+        optcc="clang"
         ldcmd=""
         if [ "$opt" == "enable-asan" ]; then
             # A documented requirement for enable-asan is no-shared
             expandedopts="enable-asan no-shared -DOPENSSL_SMALL_FOOTPRINT"
         elif [ "$opt" == "enable-ubsan" ]; then
-	    # We've seen it on Travis already, ubsan requires -DPEDANTIC and
-	    # -fno-sanitize=alignment, or crypto/modes will fail to build in
-	    # some circumstances.  Running on a VM seems to be one of them.
+            # We've seen it on Travis already, ubsan requires -DPEDANTIC and
+            # -fno-sanitize=alignment, or crypto/modes will fail to build in
+            # some circumstances.  Running on a VM seems to be one of them.
             expandedopts="enable-ubsan -DPEDANTIC -DOPENSSL_SMALL_FOOTPRINT -fno-sanitize=alignment"
         elif [ "$opt" == "enable-fuzz-afl" ]; then
             warnopts=""
@@ -163,7 +163,7 @@ if run-hook prepare; then
                         # The 'exit 0' below will be executed if any preceeding
                         # command fails.
                         rkill SIGTERM $testpid $BASHPID && kill -0 $testpid \
-				|| exit 0
+                                || exit 0
                         sleep $delay
                         rkill SIGKILL $testpid $BASHPID
                     ) 2> /dev/null &
