@@ -72,7 +72,7 @@ rkill () {
         done
     fi
     if [ "$pid" != "$notpid" ]; then
-    kill -s "$signal" "$pid"
+        kill -s "$signal" "$pid"
     fi
 }
 
