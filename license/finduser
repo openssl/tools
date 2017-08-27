@@ -1,10 +1,16 @@
 #! /usr/bin/env python
-"""Arguments is a list of SQL paterns (will get wrapped in wildcards, %),
-display uid email and name
+"""finduser [flags] pattern...
+
+Flags:
+    -1   Print just email
+
+Arguments is a list of SQL paterns (will get wrapped in wildcards, %),
+by default display full information as CSV.
 """
 
 import mysql.connector
 import datetime, os, re, subprocess, sys, string, random
+import getopt
 
 dbconfig = {
         'user': 'licensereader',
@@ -15,15 +21,27 @@ conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
 raw = open("request-approval.txt").read()
 
+single = 0
+opts, args = getopt.getopt(sys.argv[1:], "1")
+for o,a in opts:
+    if o == '-1':
+        single = 1
+    else:
+        print __doc__
+        raise SystemExit
+
 # Get dict of matching users
-for email in sys.argv[1:]:
+for email in args:
     q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
             ' LEFT JOIN log ON log.uid = users.uid'
-            ' WHERE email like %s GROUP BY email' );
+            ' WHERE email like %s GROUP BY email' )
     pat = '%' + email + '%'
     cursor.execute(q, (pat,))
     for row in cursor:
         uid,email,reply,name,count = row
         if reply == None:
             reply = '-'
-        print '%d, %s, %s, %d, "%s"' % (uid, email, reply, count, name)
+        if single:
+            print email
+        else:
+            print '%d, %s, %s, %d, "%s"' % (uid, email, reply, count, name)

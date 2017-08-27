@@ -5,6 +5,7 @@ Flags:
     -c text...  Comment to use
     -r          Reject not approve
     -h          This help
+    -v          List emails as processed
 
 Args is a list of email addresses.
 """
@@ -24,12 +25,15 @@ cursor = conn.cursor()
 # Parse JCL
 comment = 'From CLI';
 reply = 'y'
-opts, args = getopt.getopt(sys.argv[1:], "c:hr")
+verbose = 0
+opts, args = getopt.getopt(sys.argv[1:], "c:hrv")
 for o,a in opts:
     if o == '-c':
         comment = a
     elif o == '-r':
         reply = 'n'
+    elif o == '-v':
+        verbose = 1
     else:
         print __doc__
         raise SystemExit
@@ -44,3 +48,5 @@ for email in args:
     for uid in cursor:
         cursor.execute(update, (today, reply, comment, uid[0]))
         conn.commit()
+        if verbose:
+            print email, uid[0]
