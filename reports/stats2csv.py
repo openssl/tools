@@ -11,6 +11,7 @@ files = glob.glob(sys.argv[1]+ "/*.js")
 files.sort()
 when = sys.argv[2]
 
+print "open, closed, duration, #, state, user"
 for f in files:
     items = json.load(open(f))
     for i in items:
