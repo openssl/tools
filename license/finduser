@@ -19,7 +19,6 @@ dbconfig = {
         }
 conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
-raw = open("request-approval.txt").read()
 
 single = 0
 opts, args = getopt.getopt(sys.argv[1:], "1")
@@ -30,11 +29,10 @@ for o,a in opts:
         print __doc__
         raise SystemExit
 
-# Get dict of matching users
+q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
+        ' LEFT JOIN log ON log.uid = users.uid'
+        ' WHERE email like %s GROUP BY email' )
 for email in args:
-    q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
-            ' LEFT JOIN log ON log.uid = users.uid'
-            ' WHERE email like %s GROUP BY email' )
     pat = '%' + email + '%'
     cursor.execute(q, (pat,))
     for row in cursor:
