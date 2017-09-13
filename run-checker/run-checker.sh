@@ -140,8 +140,8 @@ if run-hook prepare; then
                 echo "  make depend"
                 log-eval make depend >>build.log 2>&1 || exit $?
 
-                echo "  make"
-                log-eval LDCMD=$ldcmd make >>build.log 2>&1 || exit $?
+                echo "  make -j4"
+                log-eval LDCMD=$ldcmd make -j4 >>build.log 2>&1 || exit $?
 
                 # Because 'make test' may hang under certain circumstances,
                 # we have a timeout mechanism around it.
