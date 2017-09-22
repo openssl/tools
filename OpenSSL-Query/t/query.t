@@ -84,8 +84,8 @@ SKIP: {
 
   subtest 'Request of CLA status for Ray Bradbury' => sub {
     plan tests => 1;
-    my $res = $query->has_cla( 'ray@ourplace.com' );
-    ok( $res, 'Ray Bradbury has CLA as ray@ourplace.com' );
+    my $res = $query->has_cla( 'ray@Ourplace.com' );
+    ok( $res, 'Ray Bradbury has CLA as ray@Ourplace.com' );
     note( $res );
   };
 
