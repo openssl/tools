@@ -33,10 +33,14 @@ sub _build__cladb {
     next if $line =~ m|^\s*$|;
     croak "Malformed CLADB line: $line"
       unless $line =~ m|^(\S+\@\S+)\s+([ICR])\s+(.+)$|;
-    croak "Duplicate email address: $1"
-      if exists $cladb->{$1};
 
-    $cladb->{$1} = { status => $2, name => $3 };
+    my $email = lc $1;
+    my $status = $2;
+    my $name = $3;
+    croak "Duplicate email address: $email"
+      if exists $cladb->{$email};
+
+    $cladb->{$email} = { status => $status, name => $name };
   }
   close $clafh;
 
@@ -45,7 +49,7 @@ sub _build__cladb {
 
 sub has_cla {
   my $self = shift;
-  my $id = shift;
+  my $id = lc shift;
   if ($id =~ m|<(\S+\@\S+)>|) { $id = $1; }
   croak "Malformed input ID" unless $id =~ m|^\S+(\@\S+)$|;
   my $starid = '*' . $1;
