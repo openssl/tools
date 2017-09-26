@@ -25,7 +25,7 @@ for o,a in opts:
 
 q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
         ' LEFT JOIN log ON log.uid = users.uid'
-        ' WHERE reply = "-" GROUP BY email' )
+        ' WHERE reply = "-" GROUP BY email ORDER BY count(log.uid)' )
 cursor.execute(q)
 fmtstring = urlbase + '%d, %s, %d, "%s"'
 for row in cursor:
