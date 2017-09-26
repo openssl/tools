@@ -14,7 +14,7 @@ env = os.environ
 textplain = "Content-type: text/plain\n\n"
 what = env.get('HTTP_X_GITHUB_EVENT', 'ping')
 From = re.compile("^From:.*<(.*)>")
-Trivial = re.compile("^\s*cla\s*:\s*trivial", re.IGNORECASE)
+Trivial = re.compile("^\s*CLA\s*:\s*TRIVIAL", re.IGNORECASE)
 URLpattern = re.compile("https?://([^/]*)/(.*)")
 SUCCESS = 'success'
 FAILURE = 'failure'
@@ -73,7 +73,7 @@ def have_cla(name):
         if not line or line[0] == '#':
             continue
         n = line.split()
-        if len(n) and n[0] == name:
+        if len(n) and n[0] == name.lower():
             return 1
     return 0
 
@@ -98,7 +98,7 @@ def process():
     for line in urllib.urlopen(patch_url):
         m = Trivial.match(line)
         if m:
-            update_state(pr, SUCCESS, "Trivial")
+            update_status(pr, SUCCESS, "Trivial")
             return
         m = From.match(line)
         if m and not have_cla(m.group(1)):
