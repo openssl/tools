@@ -3,6 +3,7 @@
 
 Flags:
     -1   Print just email
+    -f   Also print the comment
 
 Arguments is a list of SQL paterns (will get wrapped in wildcards, %),
 by default display full information as CSV.
@@ -21,25 +22,30 @@ conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
 
 single = 0
-opts, args = getopt.getopt(sys.argv[1:], "1")
+full = 0
+opts, args = getopt.getopt(sys.argv[1:], "1f")
 for o,a in opts:
     if o == '-1':
         single = 1
+    elif o == '-f':
+        full = 1
     else:
         print __doc__
         raise SystemExit
 
-q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
+q = ('SELECT users.uid,email,reply,name,count(log.uid),comment FROM users'
         ' LEFT JOIN log ON log.uid = users.uid'
         ' WHERE email like %s GROUP BY email' )
 for email in args:
     pat = '%' + email + '%'
     cursor.execute(q, (pat,))
     for row in cursor:
-        uid,email,reply,name,count = row
+        uid,email,reply,name,count,comment = row
         if reply == None:
             reply = '-'
         if single:
             print email
         else:
             print '%d, %s, %s, %d, "%s"' % (uid, email, reply, count, name)
+            if full:
+                print '#   ', comment
