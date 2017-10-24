@@ -23,15 +23,17 @@ cursor = conn.cursor()
 
 single = 0
 full = 0
-opts, args = getopt.getopt(sys.argv[1:], "1f")
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "1f")
+except:
+    print __doc__
+    raise SystemExit
+
 for o,a in opts:
     if o == '-1':
         single = 1
     elif o == '-f':
         full = 1
-    else:
-        print __doc__
-        raise SystemExit
 
 q = ('SELECT users.uid,email,reply,name,count(log.uid),comment FROM users'
         ' LEFT JOIN log ON log.uid = users.uid'
