@@ -3,10 +3,13 @@ Tools
     createdb -- Create the license approval database
     finduser -- List specified email or names
     devteam.py -- List of dev team members; edit this for your project
+    get-followups -- Make list of people who have not replied
     git-import -- Import specified commits
     git-import-all -- Script to import all git commits
     mailuser -- Send license mail to specified addresses (SQL patterns)
+    rmcommit -- Remove a set of commits from a user's activity
     rmuser -- Remove specified email authors from database
+    whattoremove -- Commits to remove for folks who said no
 
 Passwords; create these files.  One line per each
     adpass.txt -- HTTP password for admin functions
