@@ -1,0 +1,33 @@
+#! /usr/bin/env python
+"""Remove commits from a user.
+"""
+
+import mysql.connector, os, re, subprocess, sys
+import string, random
+dbconfig = {
+        'user': 'license',
+        'password': open('rwpass.txt').read().strip(),
+        'database': 'license'
+        }
+conn = mysql.connector.connect(**dbconfig)
+cursor = conn.cursor()
+
+# Get email identifier
+cursor.execute('SELECT uid FROM users WHERE email = %s', (sys.argv[1],))
+email = None
+for c in cursor:
+    email = c[0]
+if not email:
+    print sys.argv[1], "not found"
+    raise SystemExit
+
+for cids in sys.argv[2:]:
+    pat = cids + '%'
+    cursor.execute('SELECT cid FROM commits WHERE commit LIKE %s', (pat,))
+    cid = None
+    for c in cursor:
+        cid = c[0]
+    if cid:
+        cursor.execute('DELETE FROM log WHERE uid=%s AND cid LIKE %s',
+                (email, cid))
+        conn.commit()
