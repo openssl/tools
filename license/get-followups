@@ -1,5 +1,8 @@
 #! /usr/bin/env python
-"""get-followups
+"""get-followups [flags]
+
+Flags:
+    -d      List details (commits) per user
 
 Get list of users (in CSV format) who have not been reached.
 """
@@ -8,7 +11,6 @@ import mysql.connector
 import datetime, os, re, subprocess, sys, string, random
 import getopt
 
-urlbase = 'https://license.openssl.org/cgi-bin/lookup.py?uid='
 dbconfig = {
         'user': 'licensereader',
         'password': open('ropass.txt').read().strip(),
@@ -17,17 +19,35 @@ dbconfig = {
 conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
 
-single = 0
-opts, args = getopt.getopt(sys.argv[1:], "")
-for o,a in opts:
-    print __doc__
-    raise SystemExit
+urlbase = 'https://license.openssl.org/cgi-bin/lookup.py?uid='
+fmtstring = urlbase + '%d, %s, %d, "%s"'
 
+details = 0
+opts, args = getopt.getopt(sys.argv[1:], "dh")
+for o,a in opts:
+    if o == '-d':
+        details = 1
+    else:
+        print __doc__
+        raise SystemExit
+
+rows = []
 q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
         ' LEFT JOIN log ON log.uid = users.uid'
         ' WHERE reply = "-" GROUP BY email ORDER BY count(log.uid)' )
 cursor.execute(q)
-fmtstring = urlbase + '%d, %s, %d, "%s"'
 for row in cursor:
     uid,email,reply,name,count = row
+    rows.append((uid, email, reply, name, count))
+
+q = ('SELECT commit,date,descrip FROM commits'
+        ' LEFT JOIN log ON log.cid=commits.cid WHERE log.uid=%s')
+for row in rows:
+    uid,email,reply,name,count = row
     print fmtstring % (uid, email, count, name)
+    if details and count > 0:
+        cursor.execute(q, (uid,))
+        for c in cursor:
+            commit,date,descrip = c
+            print "\t", commit[0:8],date,descrip
+        print
