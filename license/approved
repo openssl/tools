@@ -38,7 +38,7 @@ for o,a in opts:
         print __doc__
         raise SystemExit
 
-q = 'select uid from users where email = %s'
+q = 'SELECT uid FROM users WHERE email = %s'
 update = ("UPDATE users SET date_replied=%s, reply=%s, comment=%s"
      " WHERE uid=%s")
 today = datetime.datetime.today().date()
