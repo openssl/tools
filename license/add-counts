@@ -1,0 +1,32 @@
+#! /usr/bin/env perl
+# Annotate the output of "get-followups -d" to show the stats
+# of each commit.
+use strict;
+use warnings;
+
+while ( <> ) {
+    unless ( /([0-da-f]{8}) .*/ ) {
+	print;
+	next;
+    }
+    my $cid = $1;
+    my $line = $_;
+    if ( $cid eq 'd02b48c6' ) {
+	print "931 +17534 -0 ", $_;
+	next;
+    }
+    my $pattern = "$cid^..$cid";
+    my $files = 0;
+    my $adds = 0;
+    my $dels = 0;
+    open my $F, "git diff --numstat $pattern|"
+	|| die "Can't open git diff, $!\n";
+    while ( <$F> ) {
+	$files++;
+	next unless /(\d+)\s+(\d+)/;
+	$adds += int($1);
+	$dels += int($2);
+    }
+    close $F || die "Can't close git diff, $!\n";
+    print "$files +$adds -$dels $line";
+}
