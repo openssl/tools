@@ -4,6 +4,8 @@
 use strict;
 use warnings;
 
+die "Feed this the output of 'get-followups -d'\n" if -t 0;
+
 while ( <> ) {
     unless ( /([0-da-f]{8}) .*/ ) {
 	print;
@@ -11,6 +13,7 @@ while ( <> ) {
     }
     my $cid = $1;
     my $line = $_;
+    $line =~ s/^\s*//;
     if ( $cid eq 'd02b48c6' ) {
 	print "931 +17534 -0 ", $_;
 	next;
@@ -19,14 +22,20 @@ while ( <> ) {
     my $files = 0;
     my $adds = 0;
     my $dels = 0;
+    my $name = '';
     open my $F, "git diff --numstat $pattern|"
 	|| die "Can't open git diff, $!\n";
     while ( <$F> ) {
 	$files++;
-	next unless /(\d+)\s+(\d+)/;
+	next unless /(\d+)\s+(\d+)\s+(.*)/;
 	$adds += int($1);
 	$dels += int($2);
+	$name = $3 if $name eq '';
     }
     close $F || die "Can't close git diff, $!\n";
-    print "$files +$adds -$dels $line";
+    if ( $files == 1 ) {
+	print "$name +$adds -$dels $line";
+    } else {
+	print "$files +$adds -$dels $line";
+    }
 }
