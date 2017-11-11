@@ -71,7 +71,7 @@ foreach (@ARGV) {
 		map {
 		    if (ref($_) eq "HASH") {
 			my %h = %$_;
-			map { $_ eq "github" ? '@'.$h{$_} : $h{$_} } %h;
+			map { $_ eq "github" ? '@'.$h{$_} : $h{$_} } keys %h;
 		    } else {
 			$_;
 		    }
