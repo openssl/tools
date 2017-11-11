@@ -65,6 +65,7 @@ foreach (@ARGV) {
 	    my $rev = $query->find_person_tag($email_id, 'rev');
 	    my $omc = $query->is_member_of($email_id, 'omc');
 	    next unless $query->has_cla($rev);
+	    next unless $query->is_member_of($email_id, 'commit') || $omc;
 	    my @ids =
 		sort grep { $_ =~ /^[a-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
 		map {
