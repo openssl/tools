@@ -9,6 +9,7 @@ my $list_reviewers = 0;
 my $help = 0;
 my $haveprnum = 0;
 my $trivial = 0;
+my $useself = 1;
 
 my $my_email;
 
@@ -23,6 +24,8 @@ foreach (@ARGV) {
         $args .= "--trivial ";
     } elsif (/^--verbose$/) {
         $args .= "--verbose ";
+    } elsif (/^--noself$/) {
+        $useself = 0;
     } elsif (/^--myemail=(.+)$/) {
         $my_email = $1;
     } elsif (/^--nopr$/) {
@@ -56,11 +59,13 @@ if ($help) {
 
 die "Need either --prnum or --nopr flag" unless $haveprnum;
 
-if (!defined $my_email) {
-    $my_email = `git config --get user.email`;
-}
+if ($useself) {
+    if (!defined $my_email) {
+        $my_email = `git config --get user.email`;
+    }
 
-$args .= "--myemail=$my_email ";
+    $args .= "--myemail=$my_email ";
+}
 
 system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs");
 
