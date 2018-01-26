@@ -53,10 +53,10 @@ PREV=
 git checkout -b $WORK $REL
 
 function cleanup {
-	if [ "$WORK" != "$REL" ]; then
-		git checkout -q $REL
-		git branch -D $WORK
-	fi
+    if [ "$WORK" != "$REL" ]; then
+        git checkout -q $REL
+        git branch -D $WORK
+    fi
 }
 trap 'cleanup' EXIT
 
