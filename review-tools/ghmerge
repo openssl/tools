@@ -71,7 +71,7 @@ addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 git checkout $REL
 if [ "$MERGE" == "yes" ] ; then
     git merge --no-commit --squash $WORK
-    AUTHOR=`git show --no-patch --pretty=format:%an <%ae> $WORK`
+    AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
 else
     git rebase $WORK
