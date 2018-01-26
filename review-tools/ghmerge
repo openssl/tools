@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -o errexit
+
 if [ ! -d .git ] ; then
     echo Not at top-level
     exit 1
@@ -31,17 +33,34 @@ esac
 
 curl -s https://api.github.com/repos/openssl/openssl/pulls/$PRNUM >/tmp/gh$$
 TEAM=$*
-set `python -c '
+set -- `python -c '
+from __future__ import print_function
 import json, sys;
-print str(json.load(sys.stdin)["head"]["label"]).replace(":", " ")' </tmp/gh$$`
+print(str(json.load(sys.stdin)["head"]["label"]).replace(":", " "))' </tmp/gh$$`
 rm /tmp/gh$$
 WHO=$1
 BRANCH=$2
 
-REL=`git branch | fgrep '*' | tr -d '* '`
+if [ -z "$WHO" -o -z "$BRANCH" ]; then
+    echo "Don't know from which branch to fetch"
+    exit 1
+fi
+
+REL=`git rev-parse --abbrev-ref HEAD`
 WORK="${WHO}-${BRANCH}"
+PREV=
 
 git checkout -b $WORK $REL
+
+function cleanup {
+    if [ "$WORK" != "$REL" ]; then
+        git checkout -q $REL
+        git branch -D $WORK
+    fi
+}
+trap 'cleanup' EXIT
+
+
 git pull --rebase https://github.com/$WHO/openssl.git $BRANCH
 git rebase $REL
 echo Diff against $REL
@@ -52,7 +71,7 @@ addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 git checkout $REL
 if [ "$MERGE" == "yes" ] ; then
     git merge --no-commit --squash $WORK
-    AUTHOR=`git show --no-patch --pretty=format:%an <%ae> $WORK`
+    AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
 else
     git rebase $WORK
@@ -72,5 +91,3 @@ done
 if [ "$x" = "y" -o "$x" = "yes" ] ; then
     git push origin $REL
 fi
-
-git branch -D $WORK
