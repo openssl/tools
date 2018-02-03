@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# Copyright 2018 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the OpenSSL license (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+
+this_year=`date +%Y`
+some_year="[12][0-9][0-9][0-9]"
+year_range="(${some_year})(-${some_year})?"
+
+copyright_owner="The OpenSSL Project"
+copyright="Copyright .*${year_range} .*${copyright_owner}"
+
+# sed_script:
+#   for all lines that contain ${copyright} : {
+#     replace years yyyy-zzzz (or year yyyy) by yyyy-${this_year}
+#     replace repeated years yyyy-yyyy by yyyy
+#   }
+ss=/tmp/sed$$
+cat <<EOF >$ss
+/${copyright}/ {
+s|${year_range}|\1-${this_year}|
+s|(${some_year})-\1|\1|
+}
+EOF
+
+NYD=`date +%Y-01-01`
+echo Updating copryight
+git diff-tree -r --name-only `git rev-list -1 --before=$NYD HEAD`..HEAD \
+	| while read FILE ; do
+    sed -E -f /tmp/sed$$ "$FILE" >/tmp/$$
+    mv /tmp/$$ "$FILE"
+    git add "$FILE"
+done
+echo Committing change locally.
+git commit -m 'Update copyright year'
+rm -f $ss
