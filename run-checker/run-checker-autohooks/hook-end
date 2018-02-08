@@ -3,8 +3,8 @@
 here=$(cd $(dirname $0); pwd)
 rcd=$here/.run-checker-data
 
-REPORT_RECIPIENT='<openssl-commits@openssl.org>'
-REPORT_FROM='OpenSSL run-checker <openssl@openssl.org>'
+REPORT_RECIPIENT=
+REPORT_FROM=
 if [ -f $rcd/new/hook-config ]; then
     . $rcd/new/hook-config
 fi
@@ -38,47 +38,49 @@ if (
 
     # If the build failed or the status changed since last time, report
     if [ "$newstatus" == "fail" -o "$newstatus" != "$curstatus" ]; then
-        (
-            statusword=FAILED
-            if [ "$newstatus" == "pass" ]; then
-                statusword=SUCCESSFUL
-            elif [ "$curstatus" == "fail" ]; then
-                statusword="Still FAILED"
-            fi
-            echo "From: $REPORT_FROM"
-            echo "To: $REPORT_RECIPIENT"
-            echo "Subject: $statusword build of OpenSSL branch $gitbranch with options $expandedopts"
-            cat <<EOF
+	if [ -n "$REPORT_FROM" -a -n "$REPORT_RECIPIENT" ]; then
+            (
+		statusword=FAILED
+		if [ "$newstatus" == "pass" ]; then
+                    statusword=SUCCESSFUL
+		elif [ "$curstatus" == "fail" ]; then
+                    statusword="Still FAILED"
+		fi
+		echo "From: $REPORT_FROM"
+		echo "To: $REPORT_RECIPIENT"
+		echo "Subject: $statusword build of OpenSSL branch $gitbranch with options $expandedopts"
+		cat <<EOF
 
 Platform and configuration command:
 
 EOF
-            echo "\$ uname -a"
-            uname -a
-            head -1 "$newoptdir/build.log"
-            if [ -f $rcd/new/rc-force-build ]; then
-                cat <<EOF
+		echo "\$ uname -a"
+		uname -a
+		head -1 "$newoptdir/build.log"
+		if [ -f $rcd/new/rc-force-build ]; then
+                    cat <<EOF
 
 Forced build, latest commit is:
 
 EOF
-            else
-                cat <<EOF
+		else
+                    cat <<EOF
 
 Commit log since last time:
 
 EOF
-            fi
-            cat "$newoptdir/log"
-	    if [ "$newstatus" == "fail" ]; then
-		cat <<EOF
+		fi
+		cat "$newoptdir/log"
+		if [ "$newstatus" == "fail" ]; then
+		    cat <<EOF
 
 Build log ended with (last 100 lines):
 
 EOF
-		tail -100 "$newoptdir/build.log"
-	    fi
-        ) | /usr/lib/sendmail -it
+		    tail -100 "$newoptdir/build.log"
+		fi
+            ) | /usr/lib/sendmail -it
+	fi
     fi
 
     if [ -d "$curoptdir" ]; then
