@@ -9,11 +9,11 @@ repeatedly, for example as a cron job.
 
 Example setup:
 
-    $ git clone openssl-git@git.openssl.org:bureau.git bureau
+    $ git clone git://git.openssl.org/tools.git tools
     $ mkdir ~/run-checker
     $ cd ~/run-checker
-    $ ln -s ../bureau/run-checker.sh \
-      	    ../bureau/run-checker-autohooks/hook-{prepare,start,end,takedown} \
+    $ ln -s ../tools/run-checker/run-checker.sh \
+            ../tools/run-checker/run-checker-autohooks/hook-{prepare,start,end,takedown} \
 	    .
     $ git clone openssl-git@git.openssl.org:openssl.git openssl
 
