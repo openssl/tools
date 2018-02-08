@@ -30,13 +30,13 @@ In addition to the hooks, one can also have a shell script called
 
 - REPORT_FROM
 
-  The email address used in the report From: header.  Defaults to
-  'OpenSSL run-checker <openssl@openssl.org>'
+  The email address used in the report From: header.  This MUST be
+  assigned a value or reports will not be posted.
 
 - REPORT_RECIPIENT
 
-  The email address reports will get sent to.  Defaults to
-  '<openssl-commits@openssl.org>'
+  The email address reports will get sent to.  This MUST be assigned a
+  value or reports will not be posted.
 
 - SKIP_OPTS
 
