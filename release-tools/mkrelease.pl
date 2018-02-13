@@ -333,10 +333,11 @@ if ( !$no_release ) {
    Please download and check this $label release as soon as possible.
    To report a bug, open an issue on GitHub:
 
-    ttps://github.com/openssl/openssl/issues
+    https://github.com/openssl/openssl/issues
 
    Please check the release notes and mailing lists to avoid duplicate
-   reports of known issues.
+   reports of known issues. (Of course, the source is also available
+   on GitHub.)
 
    Yours,
 
