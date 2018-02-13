@@ -29,8 +29,9 @@ EOF
 
 NYD=`date +%Y-01-01`
 echo Updating copryight
-git diff-tree -r --name-only `git rev-list -1 --before=$NYD HEAD`..HEAD \
-	| while read FILE ; do
+git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD \
+	| while read STATUS FILE ; do
+    if [ "$STATUS" = 'D' ]; then continue; fi
     sed -E -f /tmp/sed$$ "$FILE" >/tmp/$$
     mv /tmp/$$ "$FILE"
     git add "$FILE"
