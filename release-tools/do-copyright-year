@@ -32,8 +32,7 @@ echo Updating copryight
 git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD \
 	| while read STATUS FILE ; do
     if [ "$STATUS" = 'D' ]; then continue; fi
-    sed -E -f /tmp/sed$$ "$FILE" >/tmp/$$
-    mv /tmp/$$ "$FILE"
+    sed -E -f /tmp/sed$$ -i "$FILE"
     git add "$FILE"
 done
 echo Committing change locally.
