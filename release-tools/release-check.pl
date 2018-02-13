@@ -112,13 +112,6 @@ sub openssl_check_version_h {
             check_str( "opensslv.h: HEX version", $hexversion, $1, \$ok );
             $hex_done = 1;
         } elsif (
-/OPENSSL_VERSION_TEXT\s+\"OpenSSL (\S*fips\S*)\s+(\([[:alpha:]]+\)\s+)?(.*)\"/
-          )
-        {
-            check_str( "opensslv.h: FIPS version", $version_fips, $1, \$ok );
-            check_str( "opensslv.h: FIPS date",    $date,         $3, \$ok );
-            $fips_done = 1;
-        } elsif (
 /OPENSSL_VERSION_TEXT\s+\"OpenSSL (\S*)\s+(\([[:alpha:]]+\)\s+)?(.*)\"/
           )
         {
@@ -126,7 +119,7 @@ sub openssl_check_version_h {
             check_str( "opensslv.h: date",    $date,    $3, \$ok );
             $version_done = 1;
         }
-        if ( $hex_done && $fips_done && $version_done ) {
+        if ( $hex_done && $version_done ) {
             close IN;
             return $ok;
         }
