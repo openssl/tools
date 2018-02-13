@@ -42,7 +42,7 @@ no-static-engine no-stdio no-threads no-ts enable-ubsan no-ui
 enable-unit-test no-whirlpool enable-weak-ssl-ciphers enable-zlib
 enable-zlib-dynamic 386 no-dtls no-tls no-ssl3 no-tls1 no-tls1_1 no-tls1_2
 no-dtls1 no-dtls1_2 no-ssl3-method no-tls1-method no-tls1_1-method
-no-tls1_2-method no-dtls1-method no-dtls1_2-method no-siphash enable-tls1_3 )
+no-tls1_2-method no-dtls1-method no-dtls1_2-method no-siphash no-tls1_3 )
 
 run-hook () {
     local hookname=$1; shift
