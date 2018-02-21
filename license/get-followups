@@ -34,7 +34,7 @@ for o,a in opts:
 rows = []
 q = ('SELECT users.uid,email,reply,name,count(log.uid) FROM users'
         ' LEFT JOIN log ON log.uid = users.uid'
-        ' WHERE reply = "-" GROUP BY email ORDER BY count(log.uid)' )
+        ' WHERE reply = "-" GROUP BY email ORDER BY count(log.uid), email' )
 cursor.execute(q)
 for row in cursor:
     uid,email,reply,name,count = row
