@@ -10,6 +10,8 @@ Tools
     rmcommit -- Remove a set of commits from a user's activity
     rmuser -- Remove specified email authors from database
     whattoremove -- Commits to remove for folks who said no
+    add-counts -- add commit data to output of get-followups
+    add-lastchance -- "last chance trying to reach" version of add-counts
 
 Passwords; create these files.  One line per each
     adpass.txt -- HTTP password for admin functions
