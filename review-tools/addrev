@@ -14,7 +14,7 @@ my $useself = 1;
 my $my_email;
 
 foreach (@ARGV) {
-    if (/^[a-z]+$/ || /^\@(?:\w|\w-\w)+$/) {
+    if (/^[a-z]+$/ || /^\@\w(?:[-\w]*\w)?$/) {
         $args .= "--reviewer=$_ ";
     } elsif (/^--reviewer=(.+)$/) {
         $args .= "--reviewer=$1 ";
