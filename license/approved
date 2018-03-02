@@ -3,6 +3,7 @@
 
 Flags:
     -c text...  Comment to use
+    -m          Use email+date as the comment
     -r          Reject not approve
     -h          This help
     -v          List emails as processed
@@ -26,7 +27,7 @@ cursor = conn.cursor()
 comment = 'From CLI';
 reply = 'y'
 verbose = 0
-opts, args = getopt.getopt(sys.argv[1:], "c:hrv")
+opts, args = getopt.getopt(sys.argv[1:], "c:hrvm")
 for o,a in opts:
     if o == '-c':
         comment = a
@@ -34,6 +35,9 @@ for o,a in opts:
         reply = 'n'
     elif o == '-v':
         verbose = 1
+    elif o == '-m':
+        comment = datetime.date.today().strftime('Email %Y-%m-%d')
+        print comment
     else:
         print __doc__
         raise SystemExit
