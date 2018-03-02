@@ -6,7 +6,8 @@ use warnings;
 
 die "Feed this the output of 'get-followups -d'\n" if -t 0;
 
-print <<'EOF';
+my $blog = 'https://www.openssl.org//blog/blog/2017/03/22/license';
+print <<EOF;
 <html>
   <head>
     <title>Help find these people</title>
@@ -14,25 +15,22 @@ print <<'EOF';
   </head>
   <body>
     <h1>Help find these people</h1>
-<p>
-We are looking for some people who have previously contributed to OpenSSL. See
-<a href="https://www.openssl.org//blog/blog/2017/03/22/license/">https://www.openssl.org/blog/blog/2017/03/22/license/</a>
-for some background.
-</p>
-If you know where to find any of the following people, please email their
-current address to
-<a href="mailto:license@openssl.org">license@openssl.org</a>,
-or ask them to get in touch.
-</p>
-<p>
-Each contributor is separated by a blank line.  The first line is the last
-known email we have (not valid), and the full name if known.  Each following
-line has the number of files changed, lines added and deleted, the commit ID
-and date, and then the commit subject line.
-</p>
-<p>
-Thank you!
-</p>
+    <p>We are looking for some people who have previously contributed
+    to OpenSSL. See <a href="$blog">$blog</a> for some background.
+    If you know where to find any of the following people, please
+    email their current address to
+    <a href="mailto:license\@openssl.org">license\@openssl.org</a>,
+    or ask them to get in touch.
+    </p>
+    <p>Each contributor is separated by a blank line.  The first
+    line is the last known email we have, and the full name if known.
+    Each following line has the number of files changed, lines added
+    and deleted, the commit ID and date, and then the commit subject line.
+    </p>
+    <p>Thank you!
+    </p>
+    <p><a href="/">Main page</a></p>
+    </p>
 EOF
 
 my $users = 0;
@@ -84,7 +82,6 @@ while ( <> ) {
 }
 print <<EOF;
 
-    </pre>
     $users contributors, $commits commits
     <p>
 
