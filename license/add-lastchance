@@ -16,7 +16,7 @@ print <<'EOF';
     <h1>Help find these people</h1>
 <p>
 We are looking for some people who have previously contributed to OpenSSL. See
-<a href="/blog/blog/2017/03/22/license/">https://www.openssl.org/blog/blog/2017/03/22/license/</a>
+<a href="https://www.openssl.org//blog/blog/2017/03/22/license/">https://www.openssl.org/blog/blog/2017/03/22/license/</a>
 for some background.
 </p>
 If you know where to find any of the following people, please email their
@@ -33,11 +33,14 @@ and date, and then the commit subject line.
 <p>
 Thank you!
 </p>
-<pre>
 EOF
 
+my $users = 0;
+my $commits = 0;
+my $base = 'https://github.com/openssl/openssl/commit';
 while ( <> ) {
     unless ( /([0-da-f]{8}) .*/ ) {
+	$users++ if /https:/;
 	s/.*uid.[0-9]+, //;
 	s/, \d, /, /;
 	s/"//g;
@@ -50,13 +53,18 @@ while ( <> ) {
 	} else {
 	    print;
 	}
+	print "<br/>\n";
 	next;
     }
+    $commits++;
     my $cid = $1;
+    chop;
     my $line = $_;
     $line =~ s/^\s*//;
+    $line =~ s/</&lt;/;
     if ( $cid eq 'd02b48c6' ) {
 	print "- +0/-0 ", $_;
+	print "<br/>\n";
 	next;
     }
     my $pattern = "$cid^..$cid";
@@ -72,11 +80,13 @@ while ( <> ) {
 	$dels += int($2);
     }
     close $F || die "Can't close git diff, $!\n";
-    print "$files +$adds -$dels $line";
+    print "&nbsp;&nbsp;&nbsp;&nbsp;$files +$adds -$dels <a href='$base/$cid'>$line</a><br/>\n";
 }
-print <<'EOF';
+print <<EOF;
 
     </pre>
+    $users contributors, $commits commits
+    <p>
 
     <a href="/">Main page</a></p>
   </body>
