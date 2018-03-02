@@ -37,7 +37,6 @@ for o,a in opts:
         verbose = 1
     elif o == '-m':
         comment = datetime.date.today().strftime('Email %Y-%m-%d')
-        print comment
     else:
         print __doc__
         raise SystemExit
