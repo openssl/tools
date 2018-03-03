@@ -1,0 +1,35 @@
+#! /usr/bin/env python
+"""get-authors
+
+Outputs text for an AUTHORS file.  No parameters.
+"""
+
+import mysql.connector
+import datetime, os, re, subprocess, sys, string, random
+import getopt
+
+dbconfig = {
+        'user': 'licensereader',
+        'password': open('ropass.txt').read().strip(),
+        'database': 'license'
+        }
+conn = mysql.connector.connect(**dbconfig)
+cursor = conn.cursor()
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "")
+except:
+    print __doc__
+    raise SystemExit
+
+for o,a in opts:
+    pass
+
+q = "SELECT name,email FROM users WHERE reply='y' OR reply='d' ORDER BY name"
+cursor.execute(q)
+for row in cursor:
+    name,email = row
+    if name == email:
+        print "<%s>" % (name,)
+    else:
+        print "%s <%s>" % (name, email)
