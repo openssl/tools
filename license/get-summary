@@ -1,0 +1,43 @@
+#! /usr/bin/env perl
+# Annotate the output of "get-followups -d" to show the summary
+# of all outstanding commits.
+use strict;
+use warnings;
+
+open my $FH, "./get-followups -d|" || die "Can't pipe, $!,";
+
+my $total = 0;
+my $tot_adds = 0;
+my $tot_files = 0;
+my $tot_dels = 0;
+while ( <$FH> ) {
+    next unless /([0-da-f]{8}) .*/;
+    my $cid = $1;
+    # Skip a big import
+    next if $cid eq 'd02b48c6';
+    my $pattern = "$cid^..$cid";
+    my $files = 0;
+    my $adds = 0;
+    my $dels = 0;
+    my $name = '';
+    $total++;
+    open my $F, "git diff --numstat $pattern|"
+	|| die "Can't open git diff, $!\n";
+    while ( <$F> ) {
+	$files++;
+	next unless /(\d+)\s+(\d+)\s+(.*)/;
+	$adds += int($1);
+	$dels += int($2);
+	$name = $3 if $name eq '';
+    }
+    $tot_files += $files;
+    $tot_adds += $adds;
+    $tot_dels += $dels;
+    close $F || die "Can't close git diff, $!\n";
+}
+print "Commits      : $total\n";
+print "Files        : $tot_files avg ", $tot_files / $total, "\n";
+print "Added lines  : $tot_adds avg ", $tot_adds / $total, "\n";
+print "Deleted lines: $tot_dels avg ", $tot_dels / $total, "\n";
+
+close $FH || die "Can't close, $!,";
