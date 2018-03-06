@@ -10,7 +10,12 @@ my $total = 0;
 my $tot_adds = 0;
 my $tot_files = 0;
 my $tot_dels = 0;
+my $authors = 0;
 while ( <$FH> ) {
+    if ( /https:/ ) {
+	$authors++;
+	next;
+    }
     next unless /([0-da-f]{8}) .*/;
     my $cid = $1;
     # Skip a big import
@@ -35,9 +40,10 @@ while ( <$FH> ) {
     $tot_dels += $dels;
     close $F || die "Can't close git diff, $!\n";
 }
-print "Commits      : $total\n";
-print "Files        : $tot_files avg ", $tot_files / $total, "\n";
-print "Added lines  : $tot_adds avg ", $tot_adds / $total, "\n";
-print "Deleted lines: $tot_dels avg ", $tot_dels / $total, "\n";
+printf "Authors      : %4d\n", $authors;
+printf "Commits      : %4d\n", $total;
+printf "Files        : %4d (%.2f average)\n", $tot_files, $tot_files / $total;
+printf "Added lines  : %4d (%.2f average)\n", $tot_adds, $tot_adds / $total;
+printf "Deleted lines: %4d (%.2f average)\n", $tot_dels, $tot_dels / $total;
 
 close $FH || die "Can't close, $!,";
