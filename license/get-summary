@@ -18,13 +18,10 @@ while ( <$FH> ) {
     }
     next unless /([0-da-f]{8}) .*/;
     my $cid = $1;
-    # Skip a big import
-    next if $cid eq 'd02b48c6';
     my $pattern = "$cid^..$cid";
     my $files = 0;
     my $adds = 0;
     my $dels = 0;
-    my $name = '';
     $total++;
     open my $F, "git diff --numstat $pattern|"
 	|| die "Can't open git diff, $!\n";
@@ -33,17 +30,18 @@ while ( <$FH> ) {
 	next unless /(\d+)\s+(\d+)\s+(.*)/;
 	$adds += int($1);
 	$dels += int($2);
-	$name = $3 if $name eq '';
     }
     $tot_files += $files;
     $tot_adds += $adds;
     $tot_dels += $dels;
     close $F || die "Can't close git diff, $!\n";
 }
+close $FH || die "Can't close, $!,";
+
 printf "Authors      : %4d\n", $authors;
 printf "Commits      : %4d\n", $total;
 printf "Files        : %4d (%.2f average)\n", $tot_files, $tot_files / $total;
 printf "Added lines  : %4d (%.2f average)\n", $tot_adds, $tot_adds / $total;
 printf "Deleted lines: %4d (%.2f average)\n", $tot_dels, $tot_dels / $total;
-
-close $FH || die "Can't close, $!,";
+my $tot = $tot_adds - $tot_dels;
+printf "Net change   : %4d (%.2f average)\n", $tot, $tot / $total;
