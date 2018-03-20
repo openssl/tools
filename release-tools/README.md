@@ -170,12 +170,13 @@ Check the download page has updated properly:
 
 Check the notes look sensible at:
 
-        https://www.openssl.org/news/news.html
+        https://www.openssl.org/news/newslog.html
 
 Also check the notes here:
 
         https://www.openssl.org/news/openssl-1.0.2-notes.html
         https://www.openssl.org/news/openssl-1.1.0-notes.html
+        https://www.openssl.org/news/openssl-1.1.1-notes.html
 
 ## Send the announcement mail
 
