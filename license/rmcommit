@@ -1,9 +1,14 @@
 #! /usr/bin/env python
-"""Remove commits from a user.
+"""Remove commits from the log.
+
+Flags:
+    -m X Just the specified commits from the user X
+
+Arguments is a list of commit prefixes.
 """
 
 import mysql.connector, os, re, subprocess, sys
-import string, random
+import getopt, string, random
 dbconfig = {
         'user': 'license',
         'password': open('rwpass.txt').read().strip(),
@@ -12,22 +17,36 @@ dbconfig = {
 conn = mysql.connector.connect(**dbconfig)
 cursor = conn.cursor()
 
-# Get email identifier
-cursor.execute('SELECT uid FROM users WHERE email = %s', (sys.argv[1],))
 email = None
-for c in cursor:
-    email = c[0]
-if not email:
-    print sys.argv[1], "not found"
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "hm:")
+except:
+    print __doc__
     raise SystemExit
+for o,a in opts:
+    if o == '-h':
+        print __doc__
+        raise SystemExit
+    elif o == '-m':
+        cursor.execute('SELECT uid FROM users WHERE email = %s', (a,))
+        for c in cursor:
+            email = c[0]
+        if not email:
+            print a, "not found"
+            raise SystemExit
 
-for cids in sys.argv[2:]:
+for cids in args:
     pat = cids + '%'
     cursor.execute('SELECT cid FROM commits WHERE commit LIKE %s', (pat,))
     cid = None
     for c in cursor:
         cid = c[0]
     if cid:
-        cursor.execute('DELETE FROM log WHERE uid=%s AND cid LIKE %s',
-                (email, cid))
+        if email:
+            cursor.execute('DELETE FROM log WHERE uid=%s AND cid=%s',
+                    (email, cid))
+        else:
+            cursor.execute('DELETE FROM log WHERE cid=%s', (cid,))
         conn.commit()
+    else:
+        print "Commit", cids, "not found"
