@@ -72,6 +72,7 @@ while ( <> ) {
     open my $F, "git diff --numstat $pattern|"
 	|| die "Can't open git diff, $!\n";
     while ( <$F> ) {
+	next if /CHANGES/;
 	$files++;
 	next unless /(\d+)\s+(\d+)\s+(.*)/;
 	$adds += int($1);
