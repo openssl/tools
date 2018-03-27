@@ -111,8 +111,12 @@ sub openssl_check_version_h {
         if (/OPENSSL_VERSION_NUMBER\s+(0x[0-9a-f]+)L/) {
             check_str( "opensslv.h: HEX version", $hexversion, $1, \$ok );
             $hex_done = 1;
-        } elsif (
-/OPENSSL_VERSION_TEXT\s+\"OpenSSL ([^-\s]+(?:-[^-\s]*)?)\s+(\([[:alpha:]]+\)\s+)?(.*)\"/
+        } elsif (/OPENSSL_VERSION_TEXT\s+\"OpenSSL\s
+		  ([^-\s]+(?!-fips)(?:-[^-\s]*)?)	# version without -fips
+		  \s+
+		  (\([[:alpha:]]+\)\s+)?		# Possible lable
+		  (.*)\"				# The rest (date)
+		 /x
           )
         {
             check_str( "opensslv.h: version", $version, $1, \$ok );
