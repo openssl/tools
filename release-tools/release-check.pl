@@ -112,7 +112,7 @@ sub openssl_check_version_h {
             check_str( "opensslv.h: HEX version", $hexversion, $1, \$ok );
             $hex_done = 1;
         } elsif (
-/OPENSSL_VERSION_TEXT\s+\"OpenSSL (\S*)\s+(\([[:alpha:]]+\)\s+)?(.*)\"/
+/OPENSSL_VERSION_TEXT\s+\"OpenSSL ([^-\s]+(?:-[^-\s]*)?)\s+(\([[:alpha:]]+\)\s+)?(.*)\"/
           )
         {
             check_str( "opensslv.h: version", $version, $1, \$ok );
