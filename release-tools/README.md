@@ -54,6 +54,9 @@ the directory where this README is):
 
         $HERE/do-copyright-year
 
+Obtain approval for these commits from the reviewer and add the reviewed-by
+headers as required.
+
 Perform the local automated release steps. This can normally be done with:
 
         perl $HERE/mkrelease.pl --reviewer=NAME
@@ -199,7 +202,7 @@ openssl user home directory, and then do the following
 
         sudo -u openssl gpg -u 8B3D79F5 --clearsign secadv_FILENAME
         sudo -u openssl mutt -s "OpenSSL Security Advisory" \
-                openssl-project openssl-users openssl-announce
+                openssl-project openssl-users openssl-announce \
                 <~openssl/secadv_FILENAME.txt.asc
 
 Approve the openssl-announce email.  Go to
