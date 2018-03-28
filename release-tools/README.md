@@ -94,7 +94,8 @@ The changes in this section should be made in your copy of the web repo.
 
 Update the news/newsflash.txt file. This normally is one or two lines. Just
 copy and paste existing announcements making minor changes for the date and
-version number as necessary.
+version number as necessary. If there is an advisory then ensure you include a
+link to it.
 
 Update the news/vulnerabilities.xml file if appropriate.
 
