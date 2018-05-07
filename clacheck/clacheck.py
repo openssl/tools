@@ -18,7 +18,7 @@ Trivial = re.compile("^\s*CLA\s*:\s*TRIVIAL", re.IGNORECASE)
 URLpattern = re.compile("https?://([^/]*)/(.*)")
 SUCCESS = 'success'
 FAILURE = 'failure'
-CLAFILE = "/var/cache/openssl/checkouts/bureau/cladb.txt" #<EDIT>
+CLAFILE = "/var/cache/openssl/checkouts/omc/cladb.txt" #<EDIT>
 
 null_actions = (
         'assigned', 'unassigned', 'labeled', 'unlabeled', 'closed',
