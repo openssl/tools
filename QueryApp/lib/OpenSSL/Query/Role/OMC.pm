@@ -17,13 +17,14 @@ use File::Spec::Functions;
 use Moo::Role;
 
 has omc => ( is => 'ro' );
+has bureau => ( is => 'ro' );	# Backward compat, omc takes precedense
 
 sub _find_file {
   my $self = shift;
   my $filename = shift;
   my $envvar = shift;
 
-  my $omc = $ENV{OMC} // $ENV{BUREAU} // $self->omc;
+  my $omc = $ENV{OMC} // $self->omc // $ENV{BUREAU} // $self->bureau;
   my @paths = ( $ENV{$envvar} // (),
 		$omc ? catfile($omc, $filename) : (),
 		catfile('.', $filename) );
