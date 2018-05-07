@@ -13,7 +13,7 @@ Environment
 
 Some of the scripts use the information REST API on https://api.openssl.org.
 If you have direct access to the databases and want to use that instead, set
-the environment variable BUREAU to the directory where they are located.
+the environment variable OMC to the directory where they are located.
 
 The scripts
 ===========

@@ -221,7 +221,7 @@ Unfreeze the repository.
         ssh openssl-git@git.openssl.org unfreeze openssl
 
 If this release includes security fixes with a CVE then you should inform
-MITRE about them. See the instructions at the top of cvepool.txt in bureau.
+MITRE about them. See the instructions at the top of cvepool.txt in omc.
 
 Check mailing lists over the next few hours for reports of any success
 or failure. If necessary fix these and in the worst case make another
