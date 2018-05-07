@@ -16,7 +16,7 @@ use Clone qw(clone);
 use Moo;
 use OpenSSL::Query qw(-register-person OpenSSL::Query::PersonDB -priority 0);
 
-with q(OpenSSL::Query::Role::Bureau);
+with q(OpenSSL::Query::Role::OMC);
 
 has personfile => ( is => 'ro', default => 'persondb.yaml' );
 has _persondb => ( is => 'lazy', builder => 1 );

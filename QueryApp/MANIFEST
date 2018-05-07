@@ -1,7 +1,7 @@
 bin/query.psgi
 lib/OpenSSL/Query/ClaDB.pm
 lib/OpenSSL/Query/DB.pm
-lib/OpenSSL/Query/Role/Bureau.pm
+lib/OpenSSL/Query/Role/OMC.pm
 lib/OpenSSL/Query/PersonDB.pm
 Makefile.PL
 MANIFEST

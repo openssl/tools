@@ -10,22 +10,22 @@
 use strict;
 use warnings;
 
-package OpenSSL::Query::Role::Bureau;
+package OpenSSL::Query::Role::OMC;
 
 use Carp;
 use File::Spec::Functions;
 use Moo::Role;
 
-has bureau => ( is => 'ro' );
+has omc => ( is => 'ro' );
 
 sub _find_file {
   my $self = shift;
   my $filename = shift;
   my $envvar = shift;
 
-  my $bureau = $ENV{BUREAU} // $self->bureau;
+  my $omc = $ENV{OMC} // $ENV{BUREAU} // $self->omc;
   my @paths = ( $ENV{$envvar} // (),
-		$bureau ? catfile($bureau, $filename) : (),
+		$omc ? catfile($omc, $filename) : (),
 		catfile('.', $filename) );
   foreach (@paths) {
     return $_ if -r $_;
