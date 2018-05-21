@@ -2,16 +2,22 @@
 
 set -o errexit
 
+WHAT=openssl
+BUILD=yes
+TRIVIAL=""
+MERGE="yes"
+
 if [ ! -d .git ] ; then
     echo Not at top-level
     exit 1
 fi
 
-TRIVIAL=""
+if [ "$1" = "--web" ] ; then
+    WHAT=web ; MERGE=yes ; BUILD=no ; shift
+fi
 if [ "$1" == "--trivial" ] ; then
     TRIVIAL="--trivial" ; shift
 fi
-MERGE="yes"
 if [ "$1" == "--merge" -o "$1" == "--squash" ] ; then
     MERGE=yes ; shift
 fi
@@ -31,7 +37,7 @@ case "$PRNUM" in
         ;;
 esac
 
-curl -s https://api.github.com/repos/openssl/openssl/pulls/$PRNUM >/tmp/gh$$
+curl -s https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM >/tmp/gh$$
 TEAM=$*
 set -- `python -c '
 from __future__ import print_function
@@ -61,7 +67,7 @@ function cleanup {
 trap 'cleanup' EXIT
 
 
-git pull --rebase https://github.com/$WHO/openssl.git $BRANCH
+git pull --rebase https://github.com/$WHO/$WHAT.git $BRANCH
 git rebase $REL
 echo Diff against $REL
 git diff $REL
