@@ -12,36 +12,49 @@ if [ ! -d .git ] ; then
     exit 1
 fi
 
-if [ "$1" = "--tools" ] ; then
-    WHAT=tools ; MERGE=yes ; BUILD=no ; shift
-fi
-if [ "$1" = "--web" ] ; then
-    WHAT=web ; MERGE=yes ; BUILD=no ; shift
-fi
-if [ "$1" == "--trivial" ] ; then
-    TRIVIAL="--trivial" ; shift
-fi
-if [ "$1" == "--merge" -o "$1" == "--squash" ] ; then
-    MERGE=yes ; shift
-fi
-if [ "$1" == "--nomerge" -o "$1" == "--nosquash" ] ; then
-    MERGE=no ; shift
-fi
+# Parse JCL.
+while true ; do
+    case "$1" in
+    --tools)
+        WHAT=tools ; MERGE=yes ; BUILD=no ; shift
+        ;;
+    --web)
+        WHAT=web ; MERGE=yes ; BUILD=no ; shift
+        ;;
+    --trivial)
+        TRIVIAL="--trivial" ; shift
+        ;;
+    --merge | --squash)
+        MERGE=yes ; shift
+        ;;
+    --nomerge | --nosquash)
+        MERGE=no ; shift
+        ;;
+    --nobuild)
+        BUILD=no ; shift
+        ;;
+    --)
+        shift
+        break
+        ;;
+    -*)
+        echo "$0: Unknown flag $1"
+        exit 1
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
 
 if [ $# -lt 2 ] ; then
-    echo Usage: `basename $0` '[--trivial] [--merge] prnum reviewer...'
+    echo "Usage: $0 [flags] prnum reviewer..."
     exit 1
 fi
 PRNUM=$1 ; shift
-case "$PRNUM" in
-    -*)
-        echo Usage: `basename $0` '[--trivial] [--[no]merge] prnum reviewer...'
-        exit 1
-        ;;
-esac
+TEAM=$*
 
 curl -s https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM >/tmp/gh$$
-TEAM=$*
 set -- `python -c '
 from __future__ import print_function
 import json, sys;
@@ -69,13 +82,13 @@ function cleanup {
 }
 trap 'cleanup' EXIT
 
-
 git pull --rebase https://github.com/$WHO/$WHAT.git $BRANCH
 git rebase $REL
+
 echo Diff against $REL
 git diff $REL
 
-echo -n Press return to merge to $REL and build: ; read foo
+echo -n Press return to merge to $REL: ; read foo
 addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 git checkout $REL
 if [ "$MERGE" == "yes" ] ; then
@@ -86,8 +99,10 @@ else
     git rebase $WORK
 fi
 
-# echo Rebuilding
-# opensslbuild |& tail -3
+if [ "$BUILD" == "yes" ] ; then
+    echo Rebuilding
+    ( opensslbuild 2>&1 ) | tail -3
+fi
 
 while true ; do
     echo -n "Enter YES to push or NO to abort: "
