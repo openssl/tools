@@ -21,6 +21,7 @@ my $num = 0;
 my $refuse = 0;
 my $prnum = 0;
 my $verbose = 0;
+my $WHAT = 'openssl';
 
 my $query = OpenSSL::Query->new();
 
@@ -99,6 +100,10 @@ foreach (@ARGV) {
 	try_add_reviewer($1);
     } elsif (/^--verbose$/) {
 	$verbose = 1;
+    } elsif (/^--web$/) {
+        $WHAT = 'web';
+    } elsif (/--tools$/) {
+        $WHAT = 'tools'
     }
 }
 
@@ -189,7 +194,7 @@ my $last_is_rev = 0;
 foreach (@commit_message) {
     # Start each line with assuming it's not a reviewed-by line
     $last_is_rev = 0;
-    if (/^\(Merged from https:\/\/github\.com\/openssl\/openssl\/pull\//) {
+    if (/^\(Merged from https:\/\/github\.com\/openssl\/$WHAT\/pull\//) {
         next if $rmrev == 1;
         $last_is_rev = 1;
         next;			# Because we're rewriting it below
@@ -211,5 +216,5 @@ if ($rmrev == 0) {
     }
 }
 
-print "(Merged from https://github.com/openssl/openssl/pull/$prnum)\n"
+print "(Merged from https://github.com/openssl/$WHAT/pull/$prnum)\n"
     if $prnum;

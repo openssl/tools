@@ -22,6 +22,10 @@ foreach (@ARGV) {
         $args .= "--rmreviewers ";
     } elsif (/^--trivial$/) {
         $args .= "--trivial ";
+    } elsif (/^--web$/) {
+        $args .= "--web ";
+    } elsif (/^--tools$/) {
+        $args .= "--tools ";
     } elsif (/^--verbose$/) {
         $args .= "--verbose ";
     } elsif (/^--noself$/) {
