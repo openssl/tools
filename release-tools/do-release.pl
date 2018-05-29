@@ -68,7 +68,7 @@ foreach (@files) {
     }
 }
 foreach (@versions) {
-    if (/^(\d+\.\d+\.\d+)[a-z]*$/) {
+    if (/^(\d+\.\d+\.\d+)[a-z]*(?:-pre\d+)$/) {
         my $serie = $1;
         push @series, $serie unless grep /^$serie/, @series;
     }
