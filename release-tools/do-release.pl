@@ -9,6 +9,8 @@
 use strict;
 use warnings;
 
+use File::Basename;
+
 my $homedir = glob("~openssl");
 my $tmpdir  = $ENV{"OPENSSL_TMP_DIR"} // $homedir . "/dist/new";
 my $olddir  = $ENV{"OPENSSL_OLD_DIR"} // $homedir . "/dist/old";
@@ -125,32 +127,27 @@ print "Directory sanity check OK\n";
 print "Starting release for OpenSSL @versions\n";
 
 if ($do_copy) {
-    foreach (@distfiles) {
-        system("cp $tmpdir/$_ $srcdir/$_");
-        die "Error copying $_ to source directory!" if $?;
-        system("cp $tmpdir/$_ $ftpdir/$_");
-        die "Error copying $_ to ftp directory!" if $?;
-    }
-    print "Copied distributions files to source and ftp directories\n";
     foreach my $serie (@series) {
+        my @glob_patterns = (
+            "openssl-$serie.tar.gz",
+            "openssl-$serie?.tar.gz",
+            "openssl-$serie-pre[0-9].tar.gz",
+            "openssl-$serie?-pre[0-9].tar.gz",
+            "openssl-$serie-pre[0-9][0-9].tar.gz",
+            "openssl-$serie?-pre[0-9][0-9].tar.gz",
+        );
         my $tomove_oldsrc = "$srcdir/old/$serie";
         my @tomove_src =
-          map {
-            my $x = $_;
-            $x =~ s|.*/||g;
-            grep( /^$x$/, @distfiles ) ? () : $x
-          }
+          map { basename ($_) }
           grep { -f $_ }
-          glob("$srcdir/openssl-$serie.tar.gz $srcdir/openssl-$serie?.tar.gz");
+          map { glob("$srcdir/$_") }
+          @glob_patterns;
         my $tomove_oldftp = "$ftpdir/old/$serie";
         my @tomove_ftp =
-          map {
-            my $x = $_;
-            $x =~ s|.*/||g;
-            grep( /^$x$/, @distfiles ) ? () : $x
-          }
+          map { basename ($_) }
           grep { -f $_ }
-          glob("$ftpdir/openssl-$serie.tar.gz $ftpdir/openssl-$serie?.tar.gz");
+          map { glob("$ftpdir/$_") }
+          @glob_patterns;
 
         mkdir $tomove_oldsrc
           or die "Couldn't mkdir $tomove_oldsrc : $!"
@@ -169,6 +166,14 @@ if ($do_copy) {
     }
     print
       "Moved old distributions files to source/old and ftp/old directories\n";
+
+    foreach (@distfiles) {
+        system("cp $tmpdir/$_ $srcdir/$_");
+        die "Error copying $_ to source directory!" if $?;
+        system("cp $tmpdir/$_ $ftpdir/$_");
+        die "Error copying $_ to ftp directory!" if $?;
+    }
+    print "Copied distributions files to source and ftp directories\n";
 }
 else {
     print "Test mode: no files copied\n";
