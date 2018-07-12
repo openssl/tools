@@ -21,7 +21,7 @@ test "$1" = "-x" && {
 }
 
 # Set compiler
-test "$CC" = "" && CC="ccache clang-3.6"
+test "$CC" = "" && export CC="ccache clang-3.6"
 
 # Set basic config arguments
 CONFIGARGS="-d --strict-warnings --prefix=/usr/local/openssl"
