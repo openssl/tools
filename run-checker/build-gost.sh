@@ -34,6 +34,8 @@ OPENSSL_PREFIX=$(pwd)/openssl/_install
 	&& make install_dev
 ) && (
     cd gost-engine
-    cmake -DOPENSSL_ROOT_DIR=$OPENSSL_PREFIX .
+    cmake -DOPENSSL_ROOT_DIR=$OPENSSL_PREFIX \
+          -DCMAKE_SHARED_LINKER_FLAGS='-Wl,--enable-new-dtags' \
+          .
     make
 )
