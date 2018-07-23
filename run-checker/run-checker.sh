@@ -34,7 +34,7 @@ no-heartbeats no-md2 no-msan no-rc5 no-sctp no-ssl no-ssl-trace no-tests
 no-tls13downgrade no-ubsan no-ui-console no-unit-test no-weak-ssl-ciphers
 no-zlib no-zlib-dynamic
 enable-fuzz-afl enable-fuzz-libfuzzer enable-heartbeats no-hw no-hw-padlock
-no-idea no-makedepend enable-md2 no-md4 no-md5 no-mdc2 no-gost no-multiblock
+no-idea no-makedepend enable-md2 no-md4 no-mdc2 no-gost no-multiblock
 no-nextprotoneg no-ocb no-ocsp no-pic no-poly1305 no-posix-io no-psk no-rc2
 no-rc4 enable-rc5 no-rdrand no-rfc3779 no-ripemd no-rmd160 no-scrypt enable-sctp
 no-seed no-shared no-sock no-srp no-srtp no-sse2 enable-ssl-trace
