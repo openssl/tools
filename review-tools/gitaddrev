@@ -31,7 +31,7 @@ my @unknown_reviewers;
 my $skip_reviewer;
 my $omccount = 0;
 sub try_add_reviewer {
-    my $id = lc(shift);
+    my $id = shift;
     my $rc = undef;
     my $id2 = $id =~ /^\@(.*)$/ ? { github => $1 } : $id;
     my $rev = $query->find_person_tag($id2, 'rev');
