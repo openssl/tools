@@ -276,7 +276,7 @@ or if you want to use the openssl-team key:
 
 Make the release tarball. You do this with:
 
-        make dist
+        make tar
 
 Create .sha1, .sha256 and .asc files manually. You can use:
 
