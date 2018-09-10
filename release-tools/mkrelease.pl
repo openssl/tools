@@ -257,7 +257,7 @@ if ( !$no_release ) {
     my $gpgann = $ENV{"OPENSSL_GPG_ANNOUNCE"}
       // "$gpg --use-agent -sta --clearsign";
     my $tarfile = "openssl-${expected_version}.tar.gz";
-    system("(./config; make $TAR dist) >../$tarfile.log 2>&1");
+    system("(./config; make $TAR tar) >../$tarfile.log 2>&1");
     die "Error generating release!" if $?;
     die "Can't find tarball!!" unless -f "../$tarfile";
 
