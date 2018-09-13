@@ -8,6 +8,7 @@ test -f ./config || {
 
 git checkout --quiet OpenSSL_1_0_2-stable ; git pull --rebase
 git checkout --quiet OpenSSL_1_1_0-stable ; git pull --rebase
+git checkout --quiet OpenSSL_1_1_1-stable ; git pull --rebase
 git checkout --quiet master
 git rebase -p origin/master
 
