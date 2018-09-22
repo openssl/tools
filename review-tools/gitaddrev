@@ -36,7 +36,7 @@ sub try_add_reviewer {
     my $id2 = $id =~ /^\@(.*)$/ ? { github => $1 } : $id;
     my $rev = $query->find_person_tag($id2, 'rev');
     if ($rev) {
-	my $cla = $query->has_cla($rev);
+	my $cla = $query->has_cla(lc $rev);
 	if ($cla) {
 	    unless (grep {$_ eq $rev} @reviewers) {
 		$omccount++ if $query->is_member_of($id2, 'omc');
@@ -50,7 +50,7 @@ sub try_add_reviewer {
     } else {
 	push @unknown_reviewers, $id
 	    unless grep {$_ eq $id} @unknown_reviewers;
-	unless ($id =~ m|^.+\@.*$| && $query->has_cla($id)) {
+	unless ($id =~ m|^.+\@.*$| && $query->has_cla(lc $id)) {
 	    push @nocla_reviewers, $id
 		unless grep {$_ eq $id} @nocla_reviewers;
 	}
@@ -65,7 +65,7 @@ foreach (@ARGV) {
 	    my $email_id = (grep { ref($_) eq "" && $_ =~ m|\@| } @$_)[0];
 	    my $rev = $query->find_person_tag($email_id, 'rev');
 	    my $omc = $query->is_member_of($email_id, 'omc');
-	    next unless $query->has_cla($rev);
+	    next unless $query->has_cla(lc $rev);
 	    next unless $query->is_member_of($email_id, 'commit') || $omc;
 	    my @ids =
 		sort grep { $_ =~ /^[a-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
