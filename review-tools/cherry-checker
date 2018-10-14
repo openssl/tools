@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+import re
+import sys
+
+left  = "master"
+right = "OpenSSL_1_1_1-stable"
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description = """Shows the commits in '{left}...{right}'
+        which are eligible for cherry-picking. A commit is considered
+        cherry-picked, if there is another commit on the "other side"
+        which introduces an equivalent patch.
+        For details, see the documentation of the '--cherry-mark' option
+        in the git-log(1) manpage.
+        """.format(left=left, right=right))
+
+    parser.add_argument(
+        '-a', '--all',
+        action = 'store_true',
+        help = "Show all commits, also those which have been cherry-picked."\
+        )
+
+    parser.add_argument(
+        '-s', '--sort',
+        action = 'store_true',
+        help = "Sort commits w.r.t. pull request number and author date."\
+        )
+
+    parser.add_argument(
+        '-r', '--remote',
+        action = 'store_true',
+        help = "Compare the remote branches instead of the local ones."\
+        )
+
+    args = parser.parse_args()
+
+    return args
+
+
+def check_openssl_git_repo():
+    """Checks whether we're inside a openssl.git downstrem repository"""
+    try:
+        if "/openssl.git" in subprocess.check_output(
+                ["git", "remote", "-v"]
+        ).decode():
+            return True;
+    except:
+        pass
+
+    return False
+
+
+def get_remote():
+    try:
+        return subprocess.check_output(
+            ["git", "config", "branch.master.remote"]
+            ).decode().trim()
+    except:
+        return "origin"
+
+
+def pick_cherries(left, right, all = False):
+    """Lists all commits from the symmetric difference of left and right
+
+    By default, all commits are omitted which have an 'equivalent' commit
+    on the other side, unless 'all' == True.
+    """
+
+    git_command = [
+        "git", "log", "--oneline", "--cherry-mark", "--left-right",
+        left + "..." + right, "--pretty=%at;%m;%h;%s"
+    ]
+
+    regex   = re.compile("|".join([
+        # The standard pull request annotation
+        "\(Merged from https://github.com/openssl/openssl/pull/([0-9]+)\)",
+        # @kroeck's special pull request annotation ;-)
+        "GH: #([0-9]+)"
+    ]))
+
+    for line in subprocess.check_output(git_command).decode().splitlines():
+
+        timestamp, branch, commit, subject = line.split(";")
+
+        if branch == '=' and not all:
+            continue
+
+        # shorten overlong subject lines
+        if len(subject) > 70:
+            subject = subject[:70] + "..."
+
+        # search commit message for pull request number
+        message = subprocess.check_output(
+            ["git", "show", "--no-patch", commit]
+        ).decode()
+
+        match = regex.search(message)
+        if match:
+            if match.group(1):
+                prnum = match.group(1)
+            else:
+                prnum = match.group(2)
+        else:
+            prnum = "????"
+
+        yield prnum, timestamp, branch, commit, subject
+
+
+
+if __name__ == '__main__':
+    args = parse_arguments()
+
+    if not check_openssl_git_repo():
+        print("cherry-checker: Not inside an openssl git repository.", file=sys.stderr)
+        sys.exit(1)
+
+
+    if args.remote:
+        remote = get_remote()
+        left  = remote+"/"+left
+        right = remote+"/"+right
+
+    commits = pick_cherries(left, right, args.all)
+
+    if args.sort:
+        commits = sorted(commits, reverse=True)
+
+    print("""These cherries are hanging on the git-tree:
+
+  <-  {left}
+  ->  {right}
+  ==  both
+
+ prnum | br |   commit   |   subject
+ ----- | -- | ---------- | -------------------------------------------""".format(
+         left = left,
+         right = right))
+
+    branch_marker = { '<': '<-', '>': '->', '=' : '==' }
+
+    try:
+        for prnum, _, branch, commit, subject in commits:
+            print(' #{:>4} | {} | {} | {} '.format(
+                prnum, branch_marker[branch], commit, subject
+            ))
+    except subprocess.CalledProcessError as e:
+        print(e, file=sys.stderr)
