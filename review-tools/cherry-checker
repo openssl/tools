@@ -76,12 +76,15 @@ def pick_cherries(left, right, all = False):
         left + "..." + right, "--pretty=%at;%m;%h;%s"
     ]
 
-    regex   = re.compile("|".join([
+    prnum_regex   = re.compile("|".join([
         # The standard pull request annotation
         "\(Merged from https://github.com/openssl/openssl/pull/([0-9]+)\)",
         # @kroeck's special pull request annotation ;-)
         "GH: #([0-9]+)"
     ]))
+
+    fixes_regex   = re.compile(
+        "Fixes[:]?\s+(#|https://github.com/openssl/openssl/pull/)([0-9]+)")
 
     for line in subprocess.check_output(git_command).decode().splitlines():
 
@@ -99,7 +102,7 @@ def pick_cherries(left, right, all = False):
             ["git", "show", "--no-patch", commit]
         ).decode()
 
-        match = regex.search(message)
+        match = prnum_regex.search(message)
         if match:
             if match.group(1):
                 prnum = match.group(1)
@@ -108,7 +111,13 @@ def pick_cherries(left, right, all = False):
         else:
             prnum = "????"
 
-        yield prnum, timestamp, branch, commit, subject
+        match = fixes_regex.search(message)
+        if match:
+            fixes = "#" + match.group(2)
+        else:
+            fixes = ""
+
+        yield prnum, fixes, timestamp, branch, commit, subject
 
 
 
@@ -136,17 +145,17 @@ if __name__ == '__main__':
   ->  {right}
   ==  both
 
- prnum | br |   commit   |   subject
- ----- | -- | ---------- | -------------------------------------------""".format(
+ prnum | fixes | br |   commit   |   subject
+ ----- | ----- | -- | ---------- | -------------------------------------------""".format(
          left = left,
          right = right))
 
     branch_marker = { '<': '<-', '>': '->', '=' : '==' }
 
     try:
-        for prnum, _, branch, commit, subject in commits:
-            print(' #{:>4} | {} | {} | {} '.format(
-                prnum, branch_marker[branch], commit, subject
+        for prnum, fixes, _, branch, commit, subject in commits:
+            print(' #{:>4} | {:>5} | {} | {} | {} '.format(
+                prnum, fixes, branch_marker[branch], commit, subject
             ))
     except subprocess.CalledProcessError as e:
         print(e, file=sys.stderr)
