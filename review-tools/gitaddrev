@@ -128,7 +128,7 @@ if (my $rev = try_add_reviewer($ENV{GIT_AUTHOR_EMAIL})) {
     # In case the author is unknown to our databases or is lacking a CLA,
     # we need to be extra careful to check if this is supposed to be a
     # trivial commit.
-    my $author = lc($ENV{GIT_AUTHOR_EMAIL});
+    my $author = $ENV{GIT_AUTHOR_EMAIL};
 
     # Note: it really should be enough to check if $author is unknown, since
     # the databases are supposed to be consistent with each other.  However,
