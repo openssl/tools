@@ -23,6 +23,8 @@ OpenSSL::Query requires these extra modules to run:
 - Class::Method::Modifiers	(debian package libclass-method-modifiers-perl)
 - Moo				(debian package libmoo-perl)
 - URI::Encode			(debian package liburi-encode-perl)
+- LWP::UserAgent
+- LWP::Protocol::https
 
 Any other module OpenSSL::Query depends on should be part of core
 perl.
