@@ -35,6 +35,8 @@ requires (
    'URI::Encode'    => 0,
    Moo              => 0,
    Carp             => 0,
+   'LWP::UserAgent' => 0,
+   'LWP::Protocol::https' =>0,
 );
 
 install_as_site;
