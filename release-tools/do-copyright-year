@@ -30,6 +30,7 @@ EOF
 NYD=`date +%Y-01-01`
 echo Updating copryight
 git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
+    grep -v '^ *D' | \
     (
 	count=0
 	sp="/-\|"
@@ -43,7 +44,6 @@ git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
 	}
 
 	while read STATUS FILE ; do
-	    if [ "$STATUS" = 'D' ]; then continue; fi
 	    (( count++ ))
 	    spin $count
 	    sed -E -f /tmp/sed$$ -i "$FILE"
