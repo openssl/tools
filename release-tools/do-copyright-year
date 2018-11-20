@@ -29,12 +29,29 @@ EOF
 
 NYD=`date +%Y-01-01`
 echo Updating copryight
-git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD \
-	| while read STATUS FILE ; do
-    if [ "$STATUS" = 'D' ]; then continue; fi
-    sed -E -f /tmp/sed$$ -i "$FILE"
-    git add "$FILE"
-done
+git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
+    (
+	count=0
+	sp="/-\|"
+	sc=0
+	spin() {
+	    printf "\r${sp:sc++:1} %s" "$@"
+	    ((sc==${#sp})) && sc=0
+	}
+	endspin() {
+	    printf "\r%s\n" "$@"
+	}
+
+	while read STATUS FILE ; do
+	    if [ "$STATUS" = 'D' ]; then continue; fi
+	    (( count++ ))
+	    spin $count
+	    sed -E -f /tmp/sed$$ -i "$FILE"
+	    git add "$FILE"
+	done
+	endspin "Files considered: $count"
+    )
+echo Files changed: $(git status --porcelain | grep '^ *M' | wc -l)
 echo Committing change locally.
 git commit -m 'Update copyright year'
 rm -f $ss
