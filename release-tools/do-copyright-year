@@ -44,6 +44,7 @@ git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
 	}
 
 	while read STATUS FILE ; do
+	    if [ -d "$FILE" ]; then continue; fi
 	    (( count++ ))
 	    spin $count
 	    sed -E -f /tmp/sed$$ -i "$FILE"
