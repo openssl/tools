@@ -1,0 +1,6 @@
+
+This collection of scripts contains statistical scripts.
+
+
+bn_rand_range.py    Generate the critical values tables for test/bn_rand_range.c
+                    There is a dependency on the scipi package.
