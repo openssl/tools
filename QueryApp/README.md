@@ -55,11 +55,24 @@ is slightly different:
 
 Other than that, follow the instructions in "Installation" above.
 
-To get the paths right permanently, you might want to consider adding
-this in your `.bash_profile`, `.bashrc` och corresponding shell init
-script:
+The local installation method works best if the `PERL5LIB` environment variable
+(among others) is set correctly in the shell profile. A comprehensive guide how
+to do it correctly can be found in the manual page (`perldoc local::lib`,
+or online at [local::lib](https://metacpan.org/pod/local::lib)).
 
-    eval "`perl -I$HOME/perl5/lib/perl5 -Mlocal::lib`"
+Essentially, it boils down to adding the following line to your shell profile
+(e.g. `.bash_profile`, `.bashrc` for bash):
+
+    eval "$(perl -I$HOME/perl5/lib/perl5 -Mlocal::lib)"
+
+The inner perl command will print roughly the following output, which then gets
+evaluated by the shell to update the environment accordingly.
+
+    PATH="/home/<user>/perl5/bin${PATH:+:${PATH}}"; export PATH;
+    PERL5LIB="/home/<user>/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+    PERL_LOCAL_LIB_ROOT="/home/<user>/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
+    PERL_MB_OPT="--install_base \"/home/<user>/perl5\""; export PERL_MB_OPT;
+    PERL_MM_OPT="INSTALL_BASE=/home/<user>/perl5"; export PERL_MM_OPT;
 
 Testing
 -------
