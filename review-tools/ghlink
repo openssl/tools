@@ -1,0 +1,282 @@
+#!/usr/bin/env perl
+#
+# Copyright 2019 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+
+#
+# ghlink - convert repository locations into GitHub links
+#
+
+use warnings;
+use strict;
+
+use File::Basename;
+use Getopt::Long;
+use Pod::Usage;
+
+my $progname=basename($0);
+
+my $repo = "https://github.com/openssl/openssl";
+my $tree = "$repo/tree";
+my $blob = "$repo/blob";
+
+my $regex_name = "[[:alpha:]._-]+[[:alnum:]._-]*";
+my $regex_revision = "[[:alnum:]._-]+";
+my $regex_path = "(?:${regex_name}/)*${regex_name}";
+my $regex_lineno = "[0-9]+";
+
+my $style = 'default';
+
+my $replace = \&link;
+
+my $markdown = 0;
+my $permanent = 0;
+my $list = 0;
+my $help = 0;
+my $man = 0;
+
+GetOptions('markdown|m'        => \$markdown,
+           'permanent|p'       => \$permanent,
+           'list|l'            => \$list,
+           'help|h'            => \$help,
+           'man'               => \$man)
+    or die "Errors in command line arguments\n";
+
+if ($help) {
+    pod2usage(-exitval => 0,
+              -verbose => 1);
+}
+if ($man) {
+    pod2usage(-exitval => 0,
+              -verbose => 2);
+}
+
+if ($markdown) {
+    $replace = \&markdown
+}
+
+
+my $remotes = `git remote -v`;
+if ($? != 0 or $remotes !~ "openssl\.git") {
+    die "Current directory does not belong to an OpenSSL git repository";
+}
+
+my $curr_branch = `git rev-parse --abbrev-ref HEAD`;
+chomp $curr_branch;
+
+my $prefix = `git rev-parse --show-prefix`;
+chomp $prefix;
+
+
+# some results are cached for efficiency reasons
+
+my %commits;
+my %urls;
+
+sub check_url {
+    my ($match, $revision, $path, $lineno) = @_;
+
+    if (!defined($revision)) {
+        $revision = $curr_branch;
+    }
+
+    my $abbrev_commit = ($permanent) ? "" : "--abbrev-commit";
+
+    if (!defined($commits{$revision})) {
+        my $c = `git rev-list $abbrev_commit -1 $revision -- 2>/dev/null`;
+        chomp $c;
+
+        if ($? != 0) {
+            $commits{$revision} = "";
+        } elsif ($permanent) {
+            # always use the commit id if --permanent was specified
+            $commits{$revision} = $c;
+        } else {
+            # if a branch name was specified, use if it exists remotely
+            # otherwise, use the commit id
+            `git ls-remote --exit-code $repo --heads refs/heads/$revision`;
+            $commits{$revision} = ($? == 0) ? $revision : $c;
+        }
+    }
+
+    $revision = $commits{$revision};
+
+    if (!$revision) {
+        return "";
+    }
+
+    my $gitpath = "$revision:$prefix$path";
+
+    if (!defined($urls{$gitpath})) {
+        # create urls only for objects in the local repository
+        `git rev-parse $gitpath 2>/dev/null`;
+        if ($? != 0) {
+            $urls{$gitpath} = "";
+        } else {
+            $urls{$gitpath} = "$blob/$revision/$prefix$path";
+        }
+    }
+
+    my $url = $urls{$gitpath};
+
+    if (!$url) {
+        return "";
+    }
+
+    return defined($lineno) ? "$url#L$lineno" : "$url";
+}
+
+sub link {
+    my ($match, $revision, $path, $lineno) = @_;
+
+    my $url = check_url($match, $revision, $path, $lineno);
+
+    if (!$url) {
+        return $match;
+    }
+
+    return $url;
+}
+
+sub markdown {
+    my ($match, $revision, $path, $lineno) = @_;
+
+    my $url = check_url($match, $revision, $path, $lineno);
+
+    if (!$url) {
+        return $match;
+    }
+
+    return "[$match]($url)";
+}
+
+my $regex = qr/(?:(${regex_revision}):)?(${regex_path}):(${regex_lineno})?:?/;
+
+if ($list) {
+    # list mode: print github links for all matched locations (and discard the rest)
+    while (<>) {
+        while (/$regex/g) {
+            my $found = $replace->($&,$1,$2,$3);
+            if ($found ne $&) {
+                print ("$found\n");
+            }
+        }
+    }
+} else {
+    # replace mode: replace all matched locations in the text with github links
+    while (<>) {
+        s/$regex/$replace->($&,$1,$2,$3)." "/eg;
+        print;
+    }
+}
+
+
+__END__
+
+=head1 NAME
+
+ghlink - convert repository locations into GitHub links
+
+=head1 SYNOPSIS
+
+  ghlink [<option>...] [<file>...]
+
+Concatenate the given file(s) to standard output, converting repository
+locations into GitHub links. If no file is given, read from stdin.
+
+
+=head1 DESCRIPTION
+
+The most common usage of ghlink is to add it as an output filter for commands which
+produce output referring to locations in the repository. A location can be of roughly
+the following form:
+
+    [<branch-or-commit>:]<path>:[<lineno>[:]]
+
+Examples of such commands are git-grep or find:
+
+  git grep [-n] [-e] <expression>  ...  |  ghlink [<option>...]
+
+  find -name <pattern> ...  |  ghlink [<option>...]
+
+Alternatively, the output of the commands can be redirected into files which then
+can be specified as commandline arguments for ghlink.
+
+  ghlink <file>...
+
+The ghlink filter recognizes the locations and converts them into links to the
+OpenSSL GitHub repository, depending on the given options. It tries hard to provide
+only valid locations. For that reason, ghlink requires to be run from within the
+working copy. It is allowed to run ghlink from subdirectories, because it takes
+its relative position into account. Branch names in the output (like from git-grep)
+are recognized, and if they are missing, the current branch is assumed. When creating
+the link, ghlink attempts to preserve the branch name, provided the branch exists on
+the remote repository too (e.g. master, OpenSSL_x_y_z-stable). If the branch does not
+exist remotely (or if the --permanent option was specified), the branch is resolved
+locally to a commit-id.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--help>
+
+Print a brief help message and exit.
+
+=item B<--man>
+
+Print the manual page and exit.
+
+=item B<--markdown> | B<-m>
+
+Convert the locations to links in markdown syntax, with the location in square brackets,
+followed by the link in parentheses.
+
+=item B<--permanent> | B<-p>
+
+Always resolve branches to (unabbreviated) commit-ids for printing the link.
+
+=item B<--list> | B<-l>
+
+List only the links of all locations found, and omit the resto of th text. This option
+is useful together with the --permanent option to create GitHub permalinks, see EXAMPLES
+section below.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<~/src/openssl$ git grep -n expression | ghlink>
+
+Search for an expression locally in the repository and browse the results directly
+on GitHub by clicking on the URLs using <ctrl>-<left-mouse> (or whatever key binding
+the terminal supports).
+
+=item B<~/src/openssl$ git grep -n expression | ghlink --markdown  [--permanent]>
+
+Produces output optimized for posting the result on GitHub as an issue or
+pull request comment. The locations show up as markdown links in the
+original grep output format.
+
+=item B<~/src/openssl$ git grep -n expression | ghlink --permanent --list>
+
+Produces output optimized for posting the result on GitHub as an issue or
+pull request comment. The locations show up as permalink text boxes, which
+is the reason why --list was output only the permalinks and omit the text.
+
+=item B<~/src/openssl$ ghlink --markdown {gdb.log,asan.log,tsan.log,...}>
+
+The ghlink tool also works nicely with call stacks produced by gdb, AddressSanitizer,
+or ThreadSanitizer and facilitates viewing the stack frames directly in the source.
+It can either be applied directly as output filter or subsequently on the saved
+log files.
+
+=back
+
+=cut
