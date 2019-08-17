@@ -154,10 +154,12 @@ sub markdown {
     return "[$match]($url)";
 }
 
+my $regex = qr/(?:(${regex_revision}):)?(${regex_path}):(${regex_lineno})?:?/;
+
 if ($list) {
     # list mode: print github links for all matched locations (and discard the rest)
     while (<>) {
-        while (/(?:(${regex_revision}):)?(${regex_path}):(${regex_lineno})?:?/g) {
+        while (/$regex/g) {
             my $found = $replace->($&,$1,$2,$3);
             if ($found ne $&) {
                 print ("$found\n");
@@ -167,7 +169,7 @@ if ($list) {
 } else {
     # replace mode: replace all matched locations in the text with github links
     while (<>) {
-        s/(?:(${regex_revision}):)?(${regex_path}):(${regex_lineno})?:?/$replace->($&,$1,$2,$3)." "/eg;
+        s/$regex/$replace->($&,$1,$2,$3)." "/eg;
         print;
     }
 }
