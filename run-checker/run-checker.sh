@@ -106,7 +106,7 @@ if run-hook prepare; then
         elif [ "$opt" == "enable-fuzz-afl" ]; then
             warnopts=""
             optcc=afl-clang-fast 
-            expandedopts="enable-fuzz-afl no-shared"
+            expandedopts="enable-fuzz-afl no-shared no-module"
         elif [ "$opt" == "enable-fuzz-libfuzzer" ]; then
             warnopts=""
             ldcmd=clang++
