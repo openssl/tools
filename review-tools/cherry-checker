@@ -88,7 +88,7 @@ def pick_cherries(left, right, all = False):
 
     for line in subprocess.check_output(git_command).decode().splitlines():
 
-        timestamp, branch, commit, subject = line.split(";")
+        timestamp, branch, commit, subject = line.split(";", maxsplit=3)
 
         if branch == '=' and not all:
             continue
