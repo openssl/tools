@@ -145,8 +145,8 @@ if __name__ == '__main__':
   ->  {right}
   ==  both
 
- prnum | fixes | br |   commit   |   subject
- ----- | ----- | -- | ---------- | -------------------------------------------""".format(
+ prnum  | fixes  | br |   commit   |   subject
+------- | ------ | -- | ---------- | -------------------------------------------""".format(
          left = left,
          right = right))
 
@@ -154,8 +154,8 @@ if __name__ == '__main__':
 
     try:
         for prnum, fixes, _, branch, commit, subject in commits:
-            print(' #{:>4} | {:>5} | {} | {} | {} '.format(
-                prnum, fixes, branch_marker[branch], commit, subject
+            print(' {:>6} | {:>6} | {} | {} | {} '.format(
+                '#'+prnum, fixes, branch_marker[branch], commit, subject
             ))
     except subprocess.CalledProcessError as e:
         print(e, file=sys.stderr)
