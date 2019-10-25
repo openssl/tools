@@ -20,6 +20,8 @@ SUCCESS = 'success'
 FAILURE = 'failure'
 CLAFILE = "/var/cache/openssl/checkouts/omc/cladb.txt" #<EDIT>
 
+CLA_LABEL = 'hold: cla required'
+
 null_actions = (
         'assigned', 'unassigned', 'labeled', 'unlabeled', 'closed',
         'review_requested', 'review_request_removed',
@@ -55,14 +57,14 @@ def update_status(pr, state, description):
     conn.getresponse().read()
     host,url = url_split(pr['issue_url'])
     if state == SUCCESS:
-        url = url + '/labels/need-cla'
+        url = url + '/labels/' + urllib.quote(CLA_LABEL)
         print 'Delete', url
         conn.request('DELETE', url, None, headers)
     elif state == FAILURE:
         url = url + '/labels'
         print 'Add need-cla', url
         conn.set_debuglevel(99)
-        conn.request('POST', url, '[ "need-cla" ]', headers)
+        conn.request('POST', url, '[ "{}" ]'.format(CLA_LABEL), headers)
     reply = conn.getresponse().read()
     print "--\n", reply
 
