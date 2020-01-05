@@ -29,7 +29,7 @@ my @reviewers;
 my @nocla_reviewers;
 my @unknown_reviewers;
 my $skip_reviewer;
-my $omccount = 0;
+my $otccount = 0;
 sub try_add_reviewer {
     my $id = shift;
     my $rc = undef;
@@ -39,7 +39,7 @@ sub try_add_reviewer {
 	my $cla = $query->has_cla(lc $rev);
 	if ($cla) {
 	    unless (grep {$_ eq $rev} @reviewers) {
-		$omccount++ if $query->is_member_of($id2, 'omc');
+		$otccount++ if $query->is_member_of($id2, 'otc');
 		push @reviewers, $rev;
 	    }
 	    $rc = $rev;
@@ -64,9 +64,9 @@ foreach (@ARGV) {
 	foreach ($query->list_people()) {
 	    my $email_id = (grep { ref($_) eq "" && $_ =~ m|\@| } @$_)[0];
 	    my $rev = $query->find_person_tag($email_id, 'rev');
-	    my $omc = $query->is_member_of($email_id, 'omc');
+	    my $otc = $query->is_member_of($email_id, 'otc');
 	    next unless $query->has_cla(lc $rev);
-	    next unless $query->is_member_of($email_id, 'commit') || $omc;
+	    next unless $query->is_member_of($email_id, 'commit') || $otc;
 	    my @ids =
 		sort grep { $_ =~ /^[a-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
 		map {
@@ -78,13 +78,13 @@ foreach (@ARGV) {
 		    }
 		} @$_;
 	    foreach (@ids) {
-		$list{$_} = { tag => $rev, omc => $omc };
+		$list{$_} = { tag => $rev, otc => $otc };
 	    }
 	}
 	foreach (sort { my $res = $list{$a}->{tag} cmp $list{$b}->{tag};
 			$res != 0 ? $res : ($a cmp $b) } keys %list) {
 	    printf "%-15s %-6s (%s)\n",
-		$_, $list{$_}->{omc} ? "[OMC]" : "", $list{$_}->{tag};
+		$_, $list{$_}->{otc} ? "[OTC]" : "", $list{$_}->{tag};
 	}
 	exit 0;
     } elsif (/^--reviewer=(.+)$/) {
@@ -158,8 +158,8 @@ print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
 if (scalar @reviewers < 2) {
     die "Too few reviewers (total must be at least 2)\n";
 }
-if ($omccount < 1) {
-    die "At least one of the reviewers must be an OMC member\n";
+if ($otccount < 1) {
+    die "At least one of the reviewers must be an OTC member\n";
 }
 if ($skip_reviewer) {
     @reviewers = grep { $_ ne $skip_reviewer } @reviewers;
