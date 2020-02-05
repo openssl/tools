@@ -95,6 +95,8 @@ if run-hook prepare; then
         warnopts="--strict-warnings"
         optcc="clang"
         ldcmd=""
+        gost_engine="$OPENSSL_GOST_ENGINE_SO"
+
         if [ "$opt" == "enable-asan" ]; then
             # A documented requirement for enable-asan is no-shared
             expandedopts="enable-asan no-shared -DOPENSSL_SMALL_FOOTPRINT"
@@ -113,6 +115,10 @@ if run-hook prepare; then
             expandedopts="enable-fuzz-libfuzzer --with-fuzzer-include=../../Fuzzer --with-fuzzer-lib=../../Fuzzer/libFuzzer -DPEDANTIC enable-asan enable-ubsan no-shared"
         elif [ "$opt" == "no-static-engine" ]; then
             expandedopts="no-static-engine no-shared"
+        elif [ "$opt" == "no-deprecated" ]; then
+            #The gost engine uses some deprecated symbols so we don't use it
+            #in a no-deprecated build
+            gost_engine=""
         fi
 
         if [ -z "$opt" ]; then
@@ -180,7 +186,7 @@ if run-hook prepare; then
                     ) 2> /dev/null &
 
                     echo "  make test"
-                    log-exec make test>>build.log 2>&1
+                    OPENSSL_GOST_ENGINE_SO="$gost_engine" log-exec make test>>build.log 2>&1
                 )
             ); then
                 echo "  PASS"
