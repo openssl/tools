@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# requires python 3.7+
 #
 # Do we have any open PR's that have label "Approval: done"
 # that are over 24 hours without any other comments?
