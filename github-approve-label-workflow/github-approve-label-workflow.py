@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 #
 # Do we have any open PR's that have label "Approval: done"
 # that are over 24 hours without any other comments?
@@ -17,15 +18,11 @@ from optparse import OptionParser
 
 api_url = "https://api.github.com/repos/openssl/openssl"
 
-
 def convertdate(date):
     # python fromisoformat needs a TZ in hours/minutes
     return datetime.fromisoformat(date.replace('Z', '+00:00'))
 
-
 # Get all the open pull requests, filtering by approval: done label
-#
-
 
 def getpullrequests():
     url = api_url + "/pulls?per_page=100&page=1"  # defaults to open
@@ -49,12 +46,9 @@ def getpullrequests():
         print("failed", repos['message'])
     return prs
 
-
 # Change the labels on an issue from approval: done to approval: ready to merge
-#
 
-
-def movelabelreadytodone(issue):
+def movelabeldonetoready(issue):
     url = api_url + "/issues/" + str(issue) + "/labels/approval:%20done"
     res = requests.delete(url, headers=headers)
     if (res.status_code != 200):
@@ -66,10 +60,7 @@ def movelabelreadytodone(issue):
     if (res.status_code != 200):
         print("Error adding label", res.status_code, res.content)
 
-
 # Check through an issue and see if it's a candidate for moving
-#
-
 
 def checkpr(pr):
     url = api_url + "/issues/" + str(pr) + "/timeline?per_page=100&page=1"
@@ -139,15 +130,14 @@ def checkpr(pr):
 
     if (options.commit):
         print("Moving issue ", pr, " to approval: ready to merge")
-        movelabelreadytodone(pr)
+        movelabeldonetoready(pr)
     else:
         print("use --commit to actually change the labels")
     return (
         "this issue was candidate to move to approval: ready to merge hours:" +
         str(int(hourssinceapproval)))
 
-
-# main!
+# main
 
 parser = OptionParser()
 parser.add_option("-d","--debug",action="store_true",help="be noisy",dest="debug")
