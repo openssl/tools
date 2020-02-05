@@ -36,5 +36,8 @@ ghpass.txt
 /OpenSSL-Query/inc
 /OpenSSL-Query/pm_to_blib
 
+# in case someone forgets and commits their token
+github-approve-label-workflow/token.txt
+
 # Generic
 *~
