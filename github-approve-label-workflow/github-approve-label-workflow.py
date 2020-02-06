@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# requires python 3.7+
+# requires python 3
 #
 # Do we have any open PR's that have label "Approval: done"
 # that are over 24 hours without any other comments?
@@ -20,8 +20,7 @@ from optparse import OptionParser
 api_url = "https://api.github.com/repos/openssl/openssl"
 
 def convertdate(date):
-    # python fromisoformat needs a TZ in hours/minutes
-    return datetime.fromisoformat(date.replace('Z', '+00:00'))
+    return datetime.strptime(date.replace('Z',"+0000"), "%Y-%m-%dT%H:%M:%S%z")
 
 # Get all the open pull requests, filtering by approval: done label
 
