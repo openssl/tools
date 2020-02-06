@@ -16,3 +16,5 @@ python github-approve-label-workflow --debug --token token.txt
 or to also actually change any labels
 
 python github-approve-label-workflow --debug --token token.txt --commit
+
+Requires Python 3
