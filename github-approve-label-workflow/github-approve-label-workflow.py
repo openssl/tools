@@ -59,6 +59,13 @@ def movelabeldonetoready(issue):
     res = requests.post(url, data=json.dumps(newlabel), headers=headers)
     if (res.status_code != 200):
         print("Error adding label", res.status_code, res.content)
+        return
+    newcomment = {"body":"This issue is ready to merge"}
+    url = api_url + "/issues/" + str(issue) + "/comments"
+    res = requests.post(url, data=json.dumps(newcomment), headers=headers)
+    if (res.status_code != 201):
+        print("Error adding comment", res.status_code, res.content)
+        return
 
 # Check through an issue and see if it's a candidate for moving
 
