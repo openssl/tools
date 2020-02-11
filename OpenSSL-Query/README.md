@@ -32,9 +32,8 @@ perl.
 Installation
 ------------
 
-    $ perl Makefile.PL
-    $ make
-    $ make install
+    perl Makefile.PL
+    make && make install
 
 Local installation
 ------------
@@ -43,7 +42,7 @@ For a local installation, you might want to consider using local::lib
 (debian package liblocal-lib-perl).  In that case, running Makefile.PL
 is slightly different:
 
-    $ perl -Mlocal::lib Makefile.PL
+    perl -Mlocal::lib Makefile.PL
 
 Other than that, follow the instructions in "Installation" above.
 
@@ -58,12 +57,12 @@ Testing
 
 Testing is done like this:
 
-    $ make test
+    make test
 
 However, it requires that a temporary query service is started as
 well.  This is part of QueryApp, and is started like this:
 
-    $ here=`pwd`
-    $ cd ../QueryApp	# Or wherever you have it checked out
-    $ PERSONDB=./t/query_data/pdb.yaml CLADB=./t/query_data/cdb.txt \
-      PERL5LIB=./lib:$here/lib plackup bin/query.psgi
+    here=`pwd`                # the directory OpenSSL-Query/
+    cd ../QueryApp            # Or wherever you have it checked out
+    PERSONDB=./t/query_data/pdb.yaml CLADB=./t/query_data/cdb.txt \
+    PERL5LIB=./lib:$here/lib plackup bin/query.psgi
