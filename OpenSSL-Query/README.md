@@ -59,8 +59,10 @@ Testing is done like this:
 
     make test
 
-However, it requires that a temporary query service is started as
-well.  This is part of QueryApp, and is started like this:
+However, it requires the additional Perl module Dancer2 and
+plackup (debian packages libdancer2-perl and libplack-perl)
+and that a temporary query service is started as well.
+This is part of QueryApp, and is started like this:
 
     here=`pwd`                # the directory OpenSSL-Query/
     cd ../QueryApp            # Or wherever you have it checked out
