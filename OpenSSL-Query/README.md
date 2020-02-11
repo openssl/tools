@@ -64,7 +64,7 @@ plackup (debian packages libdancer2-perl and libplack-perl)
 and that a temporary query service is started as well.
 This is part of QueryApp, and is started like this:
 
-    here=`pwd`        # the directory OpenSSL-Query/
-    cd ../QueryApp	# Or wherever you have it checked out
+    here=`pwd`                # the directory OpenSSL-Query/
+    cd ../QueryApp            # Or wherever you have it checked out
     PERSONDB=./t/query_data/pdb.yaml CLADB=./t/query_data/cdb.txt \
     PERL5LIB=./lib:$here/lib plackup bin/query.psgi
