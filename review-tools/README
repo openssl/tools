@@ -38,6 +38,10 @@ IDs prefixed with a @, or known email addresses if given with --reviewer.
 
 Run 'addrev --list' to ge a list of known reviewer names.
 
+The tool accesses databases on www.openssl.org via HTTPS.
+The environment variables 'https_proxy' and 'no_proxy' can be used.
+The transfer may take many seconds, in particular with the '--list' option.
+
 Examples:
 
     addrev steve
