@@ -101,16 +101,37 @@ Checkout branch for query 145:
 ghmerge
 -------
 
-ghmerge merges (reviewed and approved!) GitHub pull requests
+ghmerge calls addrev and pushes (reviewed and approved!) GitHub pull requests.
+It includes several safety precautions and questions such as showing the diff,
+showing the resulting commit messages, and (by default) rebuilding everything.
 
-It works on the current branch, which should be master or one of the stable
-releases.
+It works on the current branch, which should be 'master' or one of the stable
+releases. For the branch to be merged a suitable remote must be available.
 
-Usage:
-        ghmerge ### reviewer...
+The tool accesses external databases via HTTPS (e.g., on api.github.com).
+The environment variables 'https_proxy' and 'no_proxy' can be used.
 
-The ### is the GitHub MR number.  The rest of the args are the names of
-the reviewers (passed to addrev; see above).
+Example usage patterns:
+        ghmerge <prnum> <reviewers>...
+        ghmerge --tools --nomerge <prnum> <reviewer>...
+
+Available options are:
+
+--nomerge         Use 'git rebase -i --autosquash'.
+                  This is the default.
+--autosquash      An alias to '--nomerge'.
+--merge           Use 'git merge --no-commit --squash'.
+--squash          An alias to '--merge'.
+--nobuild         Do not use 'opensslbuild'.
+                  Else it is invoked with $CC defaulting to "ccache gcc".
+--tools           Select the 'tools' repository rather than 'openssl'.
+                  This implies '--merge' and '--nobuild'.
+--web             Select the 'web' repository rather than 'openssl'.
+                  This implies '--merge' and '--nobuild'.
+--trivial         Pass '--trivial' to the invocation of 'addrev'.
+
+The <prnum> is the GitHub PR number.  The rest of the args are the names
+of the reviewers. All this info will be passed to addrev; see above.
 
 
 pick-to-branch
