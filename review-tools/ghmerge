@@ -5,7 +5,8 @@ set -o errexit
 WHAT=openssl
 BUILD=yes
 TRIVIAL=""
-MERGE="yes"
+INTERACTIVE=yes
+[ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
 
 if [ ! -d .git ] ; then
     echo Not at top-level
@@ -16,19 +17,16 @@ fi
 while true ; do
     case "$1" in
     --tools)
-        WHAT=tools ; MERGE=yes ; BUILD=no ; shift
+        WHAT=tools ; BUILD=no ; shift
         ;;
     --web)
-        WHAT=web ; MERGE=yes ; BUILD=no ; shift
+        WHAT=web ; BUILD=no ; shift
         ;;
     --trivial)
         TRIVIAL="--trivial" ; shift
         ;;
-    --merge | --squash)
-        MERGE=yes ; shift
-        ;;
-    --nomerge | --nosquash)
-        MERGE=no ; shift
+    --squash
+        INTERACTIVE=no ; shift
         ;;
     --nobuild)
         BUILD=no ; shift
@@ -54,14 +52,21 @@ fi
 PRNUM=$1 ; shift
 TEAM=$*
 
-curl -s https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM >/tmp/gh$$
+PR_URL=https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM
+if ! wget --quiet $PR_URL -O /tmp/gh$$; then
+    echo "Error getting $PR_URL"
+    exit 1
+fi
 set -- `python -c '
 from __future__ import print_function
 import json, sys;
-print(str(json.load(sys.stdin)["head"]["label"]).replace(":", " "))' </tmp/gh$$`
-rm /tmp/gh$$
+input = json.load(sys.stdin)
+print(str(input["head"]["label"]).replace(":", " "),
+      str(input["head"]["repo"]["ssh_url"]))'        </tmp/gh$$`
 WHO=$1
 BRANCH=$2
+REPO=$3
+rm /tmp/gh$$
 
 if [ -z "$WHO" -o -z "$BRANCH" ]; then
     echo "Don't know from which branch to fetch"
@@ -71,6 +76,9 @@ fi
 REL=`git rev-parse --abbrev-ref HEAD`
 WORK="${WHO}-${BRANCH}"
 PREV=
+
+echo pulling latest $REL
+git pull
 
 git checkout -b $WORK $REL
 
@@ -82,30 +90,41 @@ function cleanup {
 }
 trap 'cleanup' EXIT
 
-git pull --rebase https://github.com/$WHO/$WHAT.git $BRANCH
+# append new commits from $REPO/$BRANCH
+git pull --rebase $REPO $BRANCH
+echo rebasing on $REL
 git rebase $REL
 
 echo Diff against $REL
 git diff $REL
 
-echo -n Press return to merge to $REL: ; read foo
+if [ "$INTERACTIVE" == "yes" ] ; then
+    echo -n "Press return to interactively rebase --autosquash on $REL: "; read foo
+    git rebase -i --autosquash $REL
+fi
+
 addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
+echo Log since $REL
+git log $REL..
+
 git checkout $REL
-if [ "$MERGE" == "yes" ] ; then
-    git merge --no-commit --squash $WORK
+if [ "$INTERACTIVE" != "yes" ] ; then
+    echo -n "Press return to non-interactively merge --squash to $REL: "; read foo
+    git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
 else
-    git rebase $WORK
+    echo -n "Press return to merge to $REL: "; read foo
+    git merge --ff-only $WORK
 fi
 
 if [ "$BUILD" == "yes" ] ; then
-    echo Rebuilding
-    ( opensslbuild 2>&1 ) | tail -3
+    echo Rebuilding...
+    ( CC="$CC" opensslbuild 2>&1 ) | tail -3
 fi
 
 while true ; do
-    echo -n "Enter YES to push or NO to abort: "
+    echo -n "Enter 'yes' to push to origin/$REL or 'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ] ; then
@@ -114,5 +133,5 @@ while true ; do
 done
 
 if [ "$x" = "y" -o "$x" = "yes" ] ; then
-    git push origin $REL
+    git push -v origin $REL
 fi

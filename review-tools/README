@@ -117,21 +117,18 @@ The environment variables 'https_proxy' and 'no_proxy' can be used.
 
 Example usage patterns:
         ghmerge <prnum> <reviewers>...
-        ghmerge --tools --nomerge <prnum> <reviewer>...
+        ghmerge --tools --squash <prnum> <reviewer>...
 
 Available options are:
 
---nomerge         Use 'git rebase -i --autosquash'.
-                  This is the default.
---autosquash      An alias to '--nomerge'.
---merge           Use 'git merge --no-commit --squash'.
---squash          An alias to '--merge'.
+--squash          Use non-interactive 'git merge --ff-only --squash'.
+                  The default is interactive 'git rebase -i --autosquash'.
 --nobuild         Do not use 'opensslbuild'.
                   Else it is invoked with $CC defaulting to "ccache gcc".
 --tools           Select the 'tools' repository rather than 'openssl'.
-                  This implies '--merge' and '--nobuild'.
+                  This implies '--nobuild'.
 --web             Select the 'web' repository rather than 'openssl'.
-                  This implies '--merge' and '--nobuild'.
+                  This implies '--nobuild'.
 --trivial         Pass '--trivial' to the invocation of 'addrev'.
 
 The <prnum> is the GitHub PR number.  The rest of the args are the names
