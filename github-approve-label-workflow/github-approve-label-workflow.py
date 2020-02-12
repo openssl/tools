@@ -67,6 +67,16 @@ def movelabeldonetoready(issue):
         print("Error adding comment", res.status_code, res.content)
         return
 
+# Add a comment to ping committers if issue is urgent
+
+def addcommentourgent(issue):
+    newcomment = {"body":"@openssl/committers note this pull request has had the urgent label applied"}
+    url = api_url + "/issues/" + str(issue) + "/comments"
+    res = requests.post(url, data=json.dumps(newcomment), headers=headers)
+    if (res.status_code != 201):
+        print("Error adding comment", res.status_code, res.content)
+        return
+
 # Check through an issue and see if it's a candidate for moving
 
 def checkpr(pr):
@@ -80,6 +90,7 @@ def checkpr(pr):
     comments = []
     approvallabel = {}
     readytomerge = 0
+    sha = ""
 
     for event in repos:
         try:
@@ -89,6 +100,7 @@ def checkpr(pr):
                     print("debug: commented at ",
                           convertdate(event["updated_at"]))
             if (event['event'] == "committed"):
+                sha = event["sha"]
                 comments.append(convertdate(event["author"]["date"]))
                 if debug:
                     print("debug: created at ",
@@ -118,6 +130,13 @@ def checkpr(pr):
         return ("issue already has label approval: ready to merge")
     if 'approval: done' not in approvallabel:
         return ("issue did not get label approval: done")
+    if 'urgent' in approvallabel:
+        labelurgent = approvallabel['urgent']
+        if (labelurgent and max(comments) <= labelurgent):
+            print("issue is urgent and has had no comments so needs a comment")
+            if (options.commit):
+                addcommentourgent(pr)
+
     approvedone = approvallabel['approval: done']
 
     if max(comments) > approvedone:
@@ -134,6 +153,16 @@ def checkpr(pr):
     if (hourssinceapproval < 24):
         return ("not yet 24 hours since labelled approval:done hours:" +
                 str(int(hourssinceapproval)))
+
+    # Final check before changing the label, did CI pass?
+
+    url = api_url + "/commits/" + sha + "/status"
+    res = requests.get(url, headers=headers)
+    if (res.status_code != 200):
+        return("PR has unknown CI status")
+    ci = res.json()
+    if ci['state'] != "success":
+        return("PR has CI failures")
 
     if (options.commit):
         print("Moving issue ", pr, " to approval: ready to merge")
@@ -154,6 +183,8 @@ parser.add_option("-c","--commit",action="store_true",help="actually change the 
 if (options.token):
     fp = open(options.token, "r")
     git_token = fp.readline().strip('\n')
+    if not " " in git_token:
+       git_token = "token "+git_token
 else:
     git_token = ""  # blank token is fine, but you can't change labels and you hit API rate limiting
 debug = options.debug
