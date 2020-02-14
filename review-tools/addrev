@@ -61,7 +61,7 @@ if ($help) {
     exit(0);
 }
 
-die "Need either --prnum or --nopr flag" unless $haveprnum;
+die "Need either --prnum=NNN or --nopr flag" unless $haveprnum;
 
 if ($useself) {
     if (!defined $my_email) {
