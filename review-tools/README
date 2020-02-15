@@ -11,7 +11,10 @@ the QueryApp libraries as well.
 Environment
 ===========
 
-Some of the scripts use the information REST API on https://api.openssl.org.
+Some of the scripts use the information REST API on https://api.openssl.org
+or on https://api.github.com.
+The environment variables 'https_proxy' and 'no_proxy' can be used.
+
 If you have direct access to the databases and want to use that instead, set
 the environment variable OMC to the directory where they are located.
 
@@ -38,8 +41,7 @@ IDs prefixed with a @, or known email addresses if given with --reviewer.
 
 Run 'addrev --list' to ge a list of known reviewer names.
 
-The tool accesses databases on www.openssl.org via HTTPS.
-The environment variables 'https_proxy' and 'no_proxy' can be used.
+The tool accesses databases on api.openssl.org via HTTPS.
 The transfer may take many seconds, in particular with the '--list' option.
 
 Examples:
@@ -112,7 +114,7 @@ showing the resulting commit messages, and (by default) rebuilding everything.
 It works on the current branch, which should be 'master' or one of the stable
 releases. For the branch to be merged a suitable remote must be available.
 
-The tool accesses external databases via HTTPS (e.g., on api.github.com).
+The tool accesses external databases on api.github.com via HTTPS.
 The environment variables 'https_proxy' and 'no_proxy' can be used.
 
 Example usage patterns:
