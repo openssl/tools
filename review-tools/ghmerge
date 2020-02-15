@@ -100,7 +100,7 @@ git diff $REL
 
 if [ "$INTERACTIVE" == "yes" ] ; then
     # echo -n "Press Enter to interactively rebase --autosquash on $REL: "; read foo
-    git rebase -i --autosquash $REL
+    git rebase -i --autosquash $REL || (git rebase --abort; exit 1)
 fi
 
 addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
