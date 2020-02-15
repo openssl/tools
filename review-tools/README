@@ -121,17 +121,19 @@ Example usage patterns:
         ghmerge <prnum> <reviewers>...
         ghmerge --tools --squash <prnum> <reviewer>...
 
+The default commit post-processing operaton is 'git rebase -i --autosquash'.
+
 Available options are:
 
---squash          Use non-interactive 'git merge --ff-only --squash'.
-                  The default is interactive 'git rebase -i --autosquash'.
---nobuild         Do not use 'opensslbuild'.
-                  Else it is invoked with $CC defaulting to "ccache gcc".
---tools           Select the 'tools' repository rather than 'openssl'.
-                  This implies '--nobuild'.
---web             Select the 'web' repository rather than 'openssl'.
-                  This implies '--nobuild'.
---trivial         Pass '--trivial' to the invocation of 'addrev'.
+--noautosquash  Use default interactive post-processing but without '--autosquash'.
+--squash        Use non-interactive post-processing 'git merge --ff-only --squash'.
+--nobuild       Do not use 'opensslbuild'.
+                Else it is invoked with $CC defaulting to "ccache gcc".
+--tools         Select the 'tools' repository rather than 'openssl'.
+                This implies '--nobuild'.
+--web           Select the 'web' repository rather than 'openssl'.
+                This implies '--nobuild'.
+--trivial       Pass '--trivial' to the invocation of 'addrev'.
 
 The <prnum> is the GitHub PR number.  The rest of the args are the names
 of the reviewers. All this info will be passed to addrev; see above.

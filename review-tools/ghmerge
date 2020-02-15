@@ -6,6 +6,7 @@ WHAT=openssl
 BUILD=yes
 TRIVIAL=""
 INTERACTIVE=yes
+AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
 
 if [ ! -d .git ] ; then
@@ -24,6 +25,9 @@ while true ; do
         ;;
     --trivial)
         TRIVIAL="--trivial" ; shift
+        ;;
+    --noautosquash)
+        AUTOSQUASH="" ; shift
         ;;
     --squash)
         INTERACTIVE=no ; shift
@@ -99,8 +103,8 @@ echo Diff against $REL
 git diff $REL
 
 if [ "$INTERACTIVE" == "yes" ] ; then
-    # echo -n "Press Enter to interactively rebase --autosquash on $REL: "; read foo
-    git rebase -i --autosquash $REL || (git rebase --abort; exit 1)
+    # echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REL: "; read foo
+    git rebase -i $AUTOSQUASH $REL || (git rebase --abort; exit 1)
 fi
 
 addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
