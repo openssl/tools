@@ -8,6 +8,7 @@ TRIVIAL=""
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
+REMOTE=origin
 
 if [ ! -d .git ] ; then
     echo Not at top-level
@@ -34,6 +35,13 @@ while true ; do
         ;;
     --nobuild)
         BUILD=no ; shift
+        ;;
+    --remote)
+        if [ $# -lt 2 ] ; then
+            echo "Missing argument of '$1'"
+            exit 1
+        fi
+        shift; REMOTE=$1; shift
         ;;
     --)
         shift
@@ -81,8 +89,8 @@ REL=`git rev-parse --abbrev-ref HEAD`
 WORK="${WHO}-${BRANCH}"
 PREV=
 
-echo pulling latest $REL
-git pull
+echo -n "Press Enter to fetch and pull the latest $REL from $REMOTE: "; read foo
+git pull $REMOTE $REL
 
 git checkout -b $WORK $REL
 
@@ -128,7 +136,7 @@ if [ "$BUILD" == "yes" ] ; then
 fi
 
 while true ; do
-    echo -n "Enter 'yes' to push to origin/$REL or 'no' to abort: "
+    echo -n "Enter 'yes' to push to $REMOTE/$REL or 'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ] ; then
@@ -137,5 +145,5 @@ while true ; do
 done
 
 if [ "$x" = "y" -o "$x" = "yes" ] ; then
-    git push -v origin $REL
+    git push -v $REMOTE $REL
 fi

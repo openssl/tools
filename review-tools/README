@@ -113,7 +113,14 @@ It includes several safety precautions and questions such as showing the diff,
 showing the resulting commit messages, and (by default) rebuilding everything.
 
 It works on the current branch, which should be 'master' or one of the stable
-releases. For the branch to be merged a suitable remote must be available.
+releases. For pushing the remote 'origin' is used by default.
+So typically before calling 'ghmerge' one would have done the following:
+
+	git remote -v
+origin	openssl-git@git.openssl.org:openssl.git (fetch)
+origin	openssl-git@git.openssl.org:openssl.git (push)
+	git fetch origin
+	git checkout master
 
 The tool accesses external databases on api.openssl.org and api.github.com.
 The environment variables 'https_proxy' and 'no_proxy' can be used.
@@ -130,6 +137,8 @@ Available options are:
 --squash        Use non-interactive post-processing 'git merge --ff-only --squash'.
 --nobuild       Do not use 'opensslbuild'.
                 Else it is invoked with $CC defaulting to "ccache gcc".
+--remote        Select the git remote of the branch to pull from and push to.
+                Default is 'origin'.
 --tools         Select the 'tools' repository rather than 'openssl'.
                 This implies '--nobuild'.
 --web           Select the 'web' repository rather than 'openssl'.
