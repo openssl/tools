@@ -47,10 +47,10 @@ The transfer may take many seconds, in particular with the '--list' option.
 
 Examples:
 
-    addrev steve
-    addrev -2 steve
-    addrev -2 steve @richsalz
-    addrev -2 --reviewer=steve --reviewer=rsalz@openssl.org
+    addrev --prnum=1234 steve
+    addrev 1234 -2 steve
+    addrev 1234 -2 steve @richsalz
+    addrev 1234 -2 --reviewer=steve --reviewer=rsalz@openssl.org
 
 gitlabutil
 ----------
