@@ -113,7 +113,7 @@ It includes several safety precautions and questions such as showing the diff,
 showing the resulting commit messages, and (by default) rebuilding everything.
 
 It works on the current branch, which should be 'master' or one of the stable
-releases. For pushing the remote 'origin' is used by default.
+releases. The default remote is the first one matching 'git.openssl.org.*(push)'.
 So typically before calling 'ghmerge' one would have done the following:
 
 	git remote -v
@@ -138,7 +138,7 @@ Available options are:
 --nobuild       Do not use 'opensslbuild'.
                 Else it is invoked with $CC defaulting to "ccache gcc".
 --remote        Select the git remote of the branch to pull from and push to.
-                Default is 'origin'.
+                Default is the first remote matching 'git.openssl.org.*(push)'.
 --tools         Select the 'tools' repository rather than 'openssl'.
                 This implies '--nobuild'.
 --web           Select the 'web' repository rather than 'openssl'.

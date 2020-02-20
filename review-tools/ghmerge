@@ -8,7 +8,7 @@ TRIVIAL=""
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
-REMOTE=origin
+REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1`
 
 if [ ! -d .git ] ; then
     echo Not at top-level
@@ -89,7 +89,7 @@ REL=`git rev-parse --abbrev-ref HEAD`
 WORK="${WHO}-${BRANCH}"
 PREV=
 
-echo -n "Press Enter to fetch and pull the latest $REL from $REMOTE: "; read foo
+echo -n "Press Enter to pull the latest $REL from $REMOTE: "; read foo
 git pull $REMOTE $REL
 
 git checkout -b $WORK $REL
