@@ -92,20 +92,21 @@ PREV=
 echo -n "Press Enter to pull the latest $REL from $REMOTE: "; read foo
 git pull $REMOTE $REL
 
-git checkout -b $WORK $REL
-
 function cleanup {
     if [ "$WORK" != "$REL" ]; then
         git checkout -q $REL
         git branch -D $WORK
+        git reset --hard $REMOTE/$REL
     fi
 }
 trap 'cleanup' EXIT
 
+git checkout -b $WORK $REL
+
 # append new commits from $REPO/$BRANCH
 git pull --rebase $REPO $BRANCH
 echo rebasing on $REL
-git rebase $REL
+git rebase $REL || (git rebase --abort; exit 1)
 
 echo Diff against $REL
 git diff $REL
@@ -113,9 +114,9 @@ git diff $REL
 if [ "$INTERACTIVE" == "yes" ] ; then
     # echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REL: "; read foo
     git rebase -i $AUTOSQUASH $REL || (git rebase --abort; exit 1)
+    addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 fi
 
-addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 echo Log since $REL
 git log $REL..
 
@@ -125,10 +126,14 @@ if [ "$INTERACTIVE" != "yes" ] ; then
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
+    addrev $TRIVIAL --prnum=$PRNUM $TEAM $REMOTE/${REL}..
 else
     # echo -n "Press Enter to merge to $REL: "; read foo
     git merge --ff-only $WORK
 fi
+
+echo New log since $REMOTE/$REL
+git log $REMOTE/$REL..
 
 if [ "$BUILD" == "yes" ] ; then
     echo Rebuilding...
