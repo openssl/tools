@@ -71,7 +71,9 @@ if ($useself) {
     $args .= "--myemail=$my_email ";
 }
 
-system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs");
+my $err = "/tmp/addrev$$";
+system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs || (echo addrev failed; exit 1)");
+die if $?;
 
 sub usage {
     print STDERR <<"EOF";
