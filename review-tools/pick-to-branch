@@ -43,7 +43,7 @@ echo "Are these correct?"
 
 while true
 do
-    echo -n "Enter YES to continue or NO to abort: "
+    echo -n "Enter 'yes' to continue or 'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]
@@ -63,7 +63,7 @@ git cherry-pick -e -x $id
 
 while true
 do
-    echo -n "Enter YES to push or NO to abort: "
+    echo -n "Enter 'yes' to push or 'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]

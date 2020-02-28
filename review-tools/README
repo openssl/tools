@@ -11,7 +11,10 @@ the QueryApp libraries as well.
 Environment
 ===========
 
-Some of the scripts use the information REST API on https://api.openssl.org.
+Some of the scripts use the information REST API on https://api.openssl.org
+while ghmerge also uses https://api.github.com.
+The environment variables 'https_proxy' and 'no_proxy' can be used.
+
 If you have direct access to the databases and want to use that instead, set
 the environment variable OMC to the directory where they are located.
 
@@ -38,12 +41,16 @@ IDs prefixed with a @, or known email addresses if given with --reviewer.
 
 Run 'addrev --list' to ge a list of known reviewer names.
 
+The tool accesses databases on api.openssl.org.
+The environment variables 'https_proxy' and 'no_proxy' can be used.
+The transfer may take many seconds, in particular with the '--list' option.
+
 Examples:
 
-    addrev steve
-    addrev -2 steve
-    addrev -2 steve @richsalz
-    addrev -2 --reviewer=steve --reviewer=rsalz@openssl.org
+    addrev --prnum=1234 steve
+    addrev 1234 -2 steve
+    addrev 1234 -2 steve @richsalz
+    addrev 1234 -2 --reviewer=steve --reviewer=rsalz@openssl.org
 
 gitlabutil
 ----------
@@ -101,16 +108,45 @@ Checkout branch for query 145:
 ghmerge
 -------
 
-ghmerge merges (reviewed and approved!) GitHub pull requests
+ghmerge calls addrev and pushes (reviewed and approved!) GitHub pull requests.
+It includes several safety precautions and questions such as showing the diff,
+showing the resulting commit messages, and (by default) rebuilding everything.
 
-It works on the current branch, which should be master or one of the stable
-releases.
+It works on the current branch, which should be 'master' or one of the stable
+releases. The default remote is the first one matching 'git.openssl.org.*(push)'.
+So typically before calling 'ghmerge' one would have done the following:
 
-Usage:
-        ghmerge ### reviewer...
+	git remote -v
+origin	openssl-git@git.openssl.org:openssl.git (fetch)
+origin	openssl-git@git.openssl.org:openssl.git (push)
+	git fetch origin
+	git checkout master
 
-The ### is the GitHub MR number.  The rest of the args are the names of
-the reviewers (passed to addrev; see above).
+The tool accesses external databases on api.openssl.org and api.github.com.
+The environment variables 'https_proxy' and 'no_proxy' can be used.
+
+Example usage patterns:
+        ghmerge <prnum> <reviewers>...
+        ghmerge --tools --squash <prnum> <reviewer>...
+
+The default commit post-processing operaton is 'git rebase -i --autosquash'.
+
+Available options are:
+
+--noautosquash  Use default interactive post-processing but without '--autosquash'.
+--squash        Use non-interactive post-processing 'git merge --ff-only --squash'.
+--nobuild       Do not use 'opensslbuild'.
+                Else it is invoked with $CC defaulting to "ccache gcc".
+--remote        Select the git remote of the branch to pull from and push to.
+                Default is the first remote matching 'git.openssl.org.*(push)'.
+--tools         Select the 'tools' repository rather than 'openssl'.
+                This implies '--nobuild'.
+--web           Select the 'web' repository rather than 'openssl'.
+                This implies '--nobuild'.
+--trivial       Pass '--trivial' to the invocation of 'addrev'.
+
+The <prnum> is the GitHub PR number.  The rest of the args are the names
+of the reviewers. All this info will be passed to addrev; see above.
 
 
 pick-to-branch

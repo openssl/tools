@@ -34,8 +34,8 @@ foreach (@ARGV) {
         $my_email = $1;
     } elsif (/^--nopr$/) {
 	$haveprnum = 1;
-    } elsif (/^--prnum=(.+)$/) {
-        $args .= "--prnum=$1 ";
+    } elsif (/^(--prnum=)?(\d+)$/) {
+        $args .= "--prnum=$2 ";
 	$haveprnum = 1;
     } elsif (/^--commit=(.+)$/) {
         $args .= "--commit=$1 ";
@@ -61,7 +61,7 @@ if ($help) {
     exit(0);
 }
 
-die "Need either --prnum or --nopr flag" unless $haveprnum;
+die "Need either [--prnum=]NNN or --nopr flag" unless $haveprnum;
 
 if ($useself) {
     if (!defined $my_email) {
@@ -71,7 +71,9 @@ if ($useself) {
     $args .= "--myemail=$my_email ";
 }
 
-system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs");
+my $err = "/tmp/addrev$$";
+system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs || (echo addrev failed; exit 1)");
+die if $?;
 
 sub usage {
     print STDERR <<"EOF";
@@ -90,7 +92,7 @@ option style arguments:
 --myemail=<email>	Set email address.  Defaults to the result from
 			git configuration setting user.email.
 --nopr			Do not requre a PR number.
---prnum=NNN             Add a reference to GitHub pull request NNN
+[--prnum=]NNN           Add a reference to GitHub pull request NNN
 -<n>			Change the last <n> commits.  Defaults to 1.
 
 non-option style arguments can be:
