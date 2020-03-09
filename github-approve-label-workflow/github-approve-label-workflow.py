@@ -142,13 +142,6 @@ def checkpr(pr):
 
     approvedone = approvallabel['approval: done']
 
-    if max(comments) > approvedone:
-        if len(opensslmachinecomments) and (max(opensslmachinecomments) > approvedone):
-            return ("issue had comments after approval but we have already added a comment about this")
-        if (options.commit):
-            addcomment(pr, "24 hours has passed since 'approval: done' was set, but as this PR has been updated in that time the label 'approval: ready to merge' is not being automatically set.  Please review the updates and set the label manually.")
-        return ("issue had comments after approval: done label was given, made a comment")
-
     now = datetime.now(timezone.utc)
     hourssinceapproval = (now - approvedone).total_seconds() / 3600
     if debug:
@@ -160,6 +153,13 @@ def checkpr(pr):
     if (hourssinceapproval < 24):
         return ("not yet 24 hours since labelled approval:done hours:" +
                 str(int(hourssinceapproval)))
+
+    if max(comments) > approvedone:
+        if len(opensslmachinecomments) and (max(opensslmachinecomments) > approvedone):
+            return ("issue had comments after approval but we have already added a comment about this")
+        if (options.commit):
+            addcomment(pr, "24 hours has passed since 'approval: done' was set, but as this PR has been updated in that time the label 'approval: ready to merge' is not being automatically set.  Please review the updates and set the label manually.")
+        return ("issue had comments after approval: done label was given, made a comment")
 
     # Final check before changing the label, did CI pass?
 
