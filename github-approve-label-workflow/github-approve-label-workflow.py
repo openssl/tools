@@ -67,15 +67,14 @@ def movelabeldonetoready(issue):
         print("Error adding comment", res.status_code, res.content)
         return
 
-# Add a comment to ping committers if issue is urgent
+# Add a comment to PR
 
-def addcommentourgent(issue):
-    newcomment = {"body":"@openssl/committers note this pull request has had the urgent label applied"}
+def addcomment(issue, text):
+    newcomment = {"body":text}
     url = api_url + "/issues/" + str(issue) + "/comments"
     res = requests.post(url, data=json.dumps(newcomment), headers=headers)
     if (res.status_code != 201):
         print("Error adding comment", res.status_code, res.content)
-        return
 
 # Check through an issue and see if it's a candidate for moving
 
@@ -88,6 +87,7 @@ def checkpr(pr):
         repos.extend(res.json())
 
     comments = []
+    opensslmachinecomments = []
     approvallabel = {}
     readytomerge = 0
     sha = ""
@@ -95,7 +95,10 @@ def checkpr(pr):
     for event in repos:
         try:
             if (event['event'] == "commented"):
-                comments.append(convertdate(event["updated_at"]))
+                if "openssl-machine" in event['actor']['login']:
+                    opensslmachinecomments.append(convertdate(event["updated_at"]))
+                else:
+                    comments.append(convertdate(event["updated_at"]))
                 if debug:
                     print("debug: commented at ",
                           convertdate(event["updated_at"]))
@@ -135,12 +138,16 @@ def checkpr(pr):
         if (labelurgent and max(comments) <= labelurgent):
             print("issue is urgent and has had no comments so needs a comment")
             if (options.commit):
-                addcommentourgent(pr)
+                addcomment(pr, "@openssl/committers note this pull request has had the urgent label applied")
 
     approvedone = approvallabel['approval: done']
 
     if max(comments) > approvedone:
-        return ("issue had comments after approval: done label was given")
+        if len(opensslmachinecomments) and (max(opensslmachinecomments) > approvedone):
+            return ("issue had comments after approval but we have already added a comment about this")
+        if (options.commit):
+            addcomment(pr, "24 hours has passed since 'approval: done' was set, but as this PR has been updated in that time the label 'approval: ready to merge' is not being automatically set.  Please review the updates and set the label manually.")
+        return ("issue had comments after approval: done label was given, made a comment")
 
     now = datetime.now(timezone.utc)
     hourssinceapproval = (now - approvedone).total_seconds() / 3600
@@ -162,7 +169,11 @@ def checkpr(pr):
         return("PR has unknown CI status")
     ci = res.json()
     if ci['state'] != "success":
-        return("PR has CI failures")
+        if len(opensslmachinecomments) and (max(opensslmachinecomments) > approvedone):
+            return ("issue has CI failure but we have already added a comment about this")
+        if (options.commit):
+            addcomment(pr, "24 hours has passed since 'approval: done' was set, but this PR has failing CI tests.  Once the tests pass it will get moved to 'approval: ready to merge' automatically, alternatively please review and set the label manually.")
+        return("PR has CI failure, made a comment")
 
     if (options.commit):
         print("Moving issue ", pr, " to approval: ready to merge")
@@ -200,3 +211,4 @@ prs = getpullrequests()
 print("There were", len(prs), "open PRs with approval:done ")
 for pr in prs:
     print(pr, checkpr(pr))
+
