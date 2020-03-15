@@ -29,19 +29,46 @@ For example:
 
 ## Making the tarball and announcements
 
+### Prepare the worktrees
+
 This section generates the tarball and announcements locally.  It makes
 no changes which cannot be easily undone.  You will have to repeat this
 section for each version being released, so it is often easier to have
-separate copies:
+separate copies. The most effective way to do it is to have a single
+working copy with several linked worktrees, one for each release branch.
 
-        git clone openssl-git@git.openssl.org:openssl.git rel-102
-        cd rel-102
-        git branch --track OpenSSL_1_0_2-stable origin/OpenSSL_1_0_2-stable
-        git checkout OpenSSL_1_0_2-stable
+        # clone a fresh working copy (only one for all worktrees)
+        git clone openssl-git@git.openssl.org:openssl.git
+        cd openssl
+
+        # add a linked worktree (one for every release branch)
+        git worktree add ../openssl-1.1.1 OpenSSL_1_1_1-stable
+        cd ../openssl-1.1.1
+
+If you are only releasing a single version, there is no need to have a
+separate linked worktree. Just checkout the release branch in the working
+copy when cloning:
+
+        git clone -b OpenSSL_1_1_1-stable openssl-git@git.openssl.org:openssl.git
+
+### Prepare the PATH variable
+
+To simplify the release process, add the release-tools path (the directory
+containing this README) to the PATH variable, to make the release tools
+(`do-copyright-year, `mkrelease.pl`) available to the shell. For example,
+if the release tools are located at $HOME/openssl/tools/release-tools, then
+
+        export PATH=$HOME/openssl/tools/release-tools:$PATH
+
+### For every release branch
+
+The following procedure needs to be carried out for every release branch.
+
+        cd ../openssl-1.1.1
 
 Make sure that the CHANGES and NEWS files have been updated and reviewed.
-NEWS should contain a summary of any changes for the release, and for a
-security release is (often just a list of the CVEs addressed. You should also
+NEWS should contain a summary of any changes for the release. For a security
+release this is often just a list of the CVEs addressed. You should also
 update NEWS in the master branch to include details of all releases. Just
 update the NEWS bullet points - do not change the release date, keep it as
 **under development**.
@@ -49,24 +76,23 @@ update the NEWS bullet points - do not change the release date, keep it as
 Add any security fixes to the tree. Commit them but *do not push*.
 
 Make sure that the copyrights are updated.  This script will update
-the copyright markers and commit the changes (where $HERE stands for
-the directory where this README is):
+the copyright markers and commit the changes:
 
-        $HERE/do-copyright-year
+        do-copyright-year
 
 Obtain approval for these commits from the reviewer and add the reviewed-by
 headers as required.
 
 Perform the local automated release steps. This can normally be done with:
 
-        perl $HERE/mkrelease.pl --reviewer=NAME
+        mkrelease.pl --reviewer=NAME
 
 Alternatively, to use the openssl-team PGP key:
 
         export OPENSSL_GPG_KEYID=8B3D79F5
-        perl $HERE/mkrelease.pl --reviewer=NAME
+        mkrelease.pl --reviewer=NAME
 
-See $HERE/MKRELEASE.md for details of the options to mkrelease.pl.
+See [MKRELEASE](MKRELEASE.md) for details of the options to `mkrelease.pl`.
 This will leave a handful of files in the parent directory of where
 you extracted the release.
 See below for details of how to do perform this step manually if you want
@@ -81,7 +107,7 @@ the announcment file. *Do not push* changes to the public repo at this stage.
 Both the person doing the release and the reviewer should sanity-check the
 release at this point. Checks to consider include the following:
 
-- Builds and make test passes on multiple plaforms - Linux, Windows, etc.
+- Builds and make test passes on multiple platforms - Linux, Windows, etc.
 - Builds from tarball
 
 Send the auto-generated commits to the reviewer and await their +1.
@@ -92,14 +118,14 @@ multiple versions.
 
 The changes in this section should be made in your copy of the web repo.
 
-Update the news/newsflash.txt file. This normally is one or two lines. Just
+Update the `news/newsflash.txt` file. This normally is one or two lines. Just
 copy and paste existing announcements making minor changes for the date and
 version number as necessary. If there is an advisory then ensure you include a
 link to it.
 
-Update the news/vulnerabilities.xml file if appropriate.
+Update the `news/vulnerabilities.xml` file if appropriate.
 
-If there is a Security Advisory then copy it into the news/secadv directory.
+If there is a Security Advisory then copy it into the `news/secadv` directory.
 
 Commit your changes, but *do not push* them to the website.
 
@@ -109,13 +135,13 @@ Commit your changes, but *do not push* them to the website.
 largely irreversible. If you are performing a dry run then DO NOT
 perform any steps in this section.
 
-Check that release has been uploaded properly. The release tarballs and
-associated files should be in ~openssl/dist/new.  They should be owned by the
+Check that the release has been uploaded properly. The release tarballs and
+associated files should be in `~openssl/dist/new`.  They should be owned by the
 openssl userid and world-readable.
 
 Copy the tarballs to appropriate directories. This can be
-done using the do-release.pl script.  See MKRELEASE.md for a description of
-the options. For example:
+done using the `do-release.pl` script.  See [MKRELEASE](MKRELEASE.md) for a
+description of the options. For example:
 
         sudo -u openssl perl ~openssl/do-release.pl --copy --move
 
