@@ -223,6 +223,9 @@ Unfreeze the repository.
 If this release includes security fixes with a CVE then you should inform
 MITRE about them. See the instructions at the top of cvepool.txt in omc.
 
+Close the github advisory without pushing to github and remove the private
+github fork if there was one.
+
 Check mailing lists over the next few hours for reports of any success
 or failure. If necessary fix these and in the worst case make another
 release.
