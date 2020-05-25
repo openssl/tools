@@ -2,6 +2,7 @@
 
 set -o errexit
 
+VERBOSE=""
 WHAT=openssl
 BUILD=yes
 TRIVIAL=""
@@ -9,6 +10,10 @@ INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
 REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1`
+if [ "$REMOTE" = "" ] ; then
+    echo Cannot find remote git.openssl.org
+    exit 1
+fi
 
 if [ ! -d .git ] ; then
     echo Not at top-level
@@ -18,6 +23,9 @@ fi
 # Parse JCL.
 while true ; do
     case "$1" in
+    --verbose)
+        VERBOSE="--verbose" ; shift
+        ;;
     --tools)
         WHAT=tools ; BUILD=no ; shift
         ;;
@@ -114,7 +122,7 @@ git diff $REL
 if [ "$INTERACTIVE" == "yes" ] ; then
     # echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REL: "; read foo
     git rebase -i $AUTOSQUASH $REL || (git rebase --abort; exit 1)
-    addrev $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
+    addrev $VERBOSE $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 fi
 
 echo Log since $REL
@@ -126,7 +134,7 @@ if [ "$INTERACTIVE" != "yes" ] ; then
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
-    addrev $TRIVIAL --prnum=$PRNUM $TEAM $REMOTE/${REL}..
+    addrev $VERBOSE $TRIVIAL --prnum=$PRNUM $TEAM $REMOTE/${REL}..
 else
     # echo -n "Press Enter to merge to $REL: "; read foo
     git merge --ff-only $WORK
