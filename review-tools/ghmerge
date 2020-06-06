@@ -97,14 +97,14 @@ REL=`git rev-parse --abbrev-ref HEAD`
 WORK="${WHO}-${BRANCH}"
 PREV=
 
-echo -n "Press Enter to pull the latest $REL from $REMOTE: "; read foo
+echo -n "Press Enter to pull the latest branch '$REL' from $REMOTE: "; read foo
 git pull $REMOTE $REL
 
 function cleanup {
     if [ "$WORK" != "$REL" ]; then
         git checkout -q $REL
         git branch -D $WORK
-        git reset --hard $REMOTE/$REL
+        git reset --hard $REMOTE/$REL # prune any leftover commits added locally
     fi
 }
 trap 'cleanup' EXIT
@@ -113,14 +113,14 @@ git checkout -b $WORK $REL
 
 # append new commits from $REPO/$BRANCH
 git pull --rebase $REPO $BRANCH
-echo rebasing on $REL
+echo rebasing $BRANCH on $REL
 git rebase $REL || (git rebase --abort; exit 1)
 
 echo Diff against $REL
 git diff $REL
 
 if [ "$INTERACTIVE" == "yes" ] ; then
-    # echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REL: "; read foo
+    echo -n "Press Enter to interactively rebase $AUTOSQUASH $BRANCH on $REL: "; read foo
     git rebase -i $AUTOSQUASH $REL || (git rebase --abort; exit 1)
     addrev $VERBOSE $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
 fi
@@ -130,7 +130,7 @@ git log $REL..
 
 git checkout $REL
 if [ "$INTERACTIVE" != "yes" ] ; then
-    echo -n "Press Enter to non-interactively merge --squash to $REL: "; read foo
+    echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REL: "; read foo
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
