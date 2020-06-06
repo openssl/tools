@@ -46,11 +46,11 @@ grep -q doc-nits Makefile && make doc-nits
 s=$?
 test $configonly = yes && exit $s
 
-echo Making
+echo Making build
 make -s -j20
 make -s -j20 build_tests >/dev/null
 s=$?
 test $execonly = yes && exit $s
 
 echo Making test
-make test
+make -j4 test
