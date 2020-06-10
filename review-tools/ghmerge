@@ -2,10 +2,8 @@
 
 set -o errexit
 
-VERBOSE=""
 WHAT=openssl
 BUILD=yes
-TRIVIAL=""
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
@@ -20,20 +18,15 @@ if [ ! -d .git ] ; then
     exit 1
 fi
 
+ADDREVOPTS=""
 # Parse JCL.
 while true ; do
     case "$1" in
-    --verbose)
-        VERBOSE="--verbose" ; shift
-        ;;
     --tools)
         WHAT=tools ; BUILD=no ; shift
         ;;
     --web)
         WHAT=web ; BUILD=no ; shift
-        ;;
-    --trivial)
-        TRIVIAL="--trivial" ; shift
         ;;
     --noautosquash)
         AUTOSQUASH="" ; shift
@@ -55,9 +48,10 @@ while true ; do
         shift
         break
         ;;
-    -*)
-        echo "$0: Unknown flag $1"
-        exit 1
+    -*) # e.g., --verbose, --trivial, --myemail=...
+        ADDREVOPTS="$ADDREVOPTS $1"
+        shift
+        break
         ;;
     *)
         break
@@ -66,7 +60,7 @@ while true ; do
 done
 
 if [ $# -lt 2 ] ; then
-    echo "Usage: $0 [flags] prnum reviewer..."
+    echo "Usage: $0 [flags, including addrev flags] prnum reviewer..."
     exit 1
 fi
 PRNUM=$1 ; shift
@@ -122,7 +116,7 @@ git diff $REL
 if [ "$INTERACTIVE" == "yes" ] ; then
     echo -n "Press Enter to interactively rebase $AUTOSQUASH $BRANCH on $REL: "; read foo
     git rebase -i $AUTOSQUASH $REL || (git rebase --abort; exit 1)
-    addrev $VERBOSE $TRIVIAL --prnum=$PRNUM $TEAM ${REL}..
+    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM ${REL}..
 fi
 
 echo Log since $REL
@@ -134,7 +128,7 @@ if [ "$INTERACTIVE" != "yes" ] ; then
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
-    addrev $VERBOSE $TRIVIAL --prnum=$PRNUM $TEAM $REMOTE/${REL}..
+    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/${REL}..
 else
     # echo -n "Press Enter to merge to $REL: "; read foo
     git merge --ff-only $WORK
