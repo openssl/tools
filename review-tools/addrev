@@ -85,15 +85,16 @@ option style arguments:
 --list			List the known reviewers and exit (discards all other
 			arguments)
 --verbose		Be a bit more verbose
+--trivial		Do not require a CLA
 --reviewer=<reviewer>	A reviewer to be added on a Reviewed-by: line
 --rmreviewers		Remove all existing Reviewed-by: lines before adding
 			reviewers
 --commit=<id>		Only apply to commit <id>
 --myemail=<email>	Set email address.  Defaults to the result from
-			git configuration setting user.email.
---nopr			Do not requre a PR number.
+			git configuration setting user.email
+--nopr			Do not require a PR number
 [--prnum=]NNN           Add a reference to GitHub pull request NNN
--<n>			Change the last <n> commits.  Defaults to 1.
+-<n>			Change the last <n> commits.  Defaults to 1
 
 non-option style arguments can be:
 
