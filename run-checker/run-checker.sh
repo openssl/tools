@@ -185,8 +185,9 @@ if run-hook prepare; then
                         rkill SIGKILL $testpid $BASHPID
                     ) 2> /dev/null &
 
+                    # If not set to another value, default to 4 test jobs
                     echo "  make test"
-                    OPENSSL_GOST_ENGINE_SO="$gost_engine" log-exec make test>>build.log 2>&1
+                    HARNESS_JOBS=${HARNESS_JOBS:-4} OPENSSL_GOST_ENGINE_SO="$gost_engine" log-exec make test >>build.log 2>&1
                 )
             ); then
                 echo "  PASS"
