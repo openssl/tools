@@ -102,11 +102,11 @@ else
     echo -n "Press Enter to checkout $REL: "; read foo
     git checkout $REL
 fi
-WORK="${WHO}-${BRANCH}"
-
 
 echo -n "Press Enter to pull the latest $REMOTE/$REL: "; read foo
 git pull $REMOTE || (git rebase --abort; exit 1)
+
+WORK="copy-of-${WHO}-${BRANCH}"
 
 function cleanup {
     rv=$?
