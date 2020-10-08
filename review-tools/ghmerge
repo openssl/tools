@@ -1,5 +1,12 @@
 #! /bin/bash
 
+function usage_exit {
+    echo "Usage: $0 <options including prnum and reviewer(s)>"
+    echo "    or $0 [<options>] -- <prnum> <reviewer>..."
+    echo "Options may include addrev options and gitaddrev filter args."
+    exit 9
+}
+
 set -o errexit
 
 WHAT=openssl
@@ -40,14 +47,14 @@ while [ $# -ne 0 ]; do
     --remote)
         if [ $# -lt 2 ] ; then
             echo "Missing argument of '$1'"
-            exit 1
+            usage_exit
         fi
         shift; REMOTE=$1; shift
         ;;
     --ref)
         if [ $# -lt 2 ] ; then
             echo "Missing argument of '$1'"
-            exit 1
+            usage_exit
         fi
         shift; REL=$1; shift
         ;;
@@ -92,8 +99,7 @@ if [ "$REMOTE" = "" ] ; then
 fi
 
 if [ "$PRNUM" = "" -o "$TEAM" = "" ] ; then
-    echo "Usage: $0 [flags, including addrev options] prnum reviewer..."
-    exit 1
+    usage_exit
 fi
 
 PR_URL=https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM
