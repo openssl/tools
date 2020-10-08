@@ -3,12 +3,12 @@
 set -o errexit
 
 WHAT=openssl
-BUILD=yes
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
-[ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
 REMOTE=""
 REL=""
+BUILD=yes
+[ -z ${CC+x} ] && CC="ccache gcc" # opensslbuild will otherwise use "ccache clang-3.6"
 
 if [ ! -d .git ] ; then
     echo Not at a top-level git directory
