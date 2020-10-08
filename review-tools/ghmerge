@@ -9,12 +9,12 @@ AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
 REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1`
 if [ "$REMOTE" = "" ] ; then
-    echo Cannot find remote git.openssl.org
+    echo Cannot find git remote with URL including 'git.openssl.org'
     exit 1
 fi
 
 if [ ! -d .git ] ; then
-    echo Not at top-level
+    echo Not at a top-level git directory
     exit 1
 fi
 
@@ -58,9 +58,10 @@ while true ; do
         ;;
     esac
 done
+ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
 if [ $# -lt 2 ] ; then
-    echo "Usage: $0 [flags, including addrev flags] prnum reviewer..."
+    echo "Usage: $0 [flags, including addrev options] prnum reviewer..."
     exit 1
 fi
 PRNUM=$1 ; shift
@@ -82,8 +83,8 @@ BRANCH=$2
 REPO=$3
 rm /tmp/gh$$
 
-if [ -z "$WHO" -o -z "$BRANCH" ]; then
-    echo "Don't know from which branch to fetch"
+if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
+    echo "Could not determine from $PR_URL which branch of whom to fetch from where"
     exit 1
 fi
 
@@ -97,7 +98,7 @@ git pull $REMOTE $REL
 function cleanup {
     if [ "$WORK" != "$REL" ]; then
         git checkout -q $REL
-        git branch -D $WORK
+        git branch -qD $WORK
         git reset --hard $REMOTE/$REL # prune any leftover commits added locally
     fi
 }
@@ -114,8 +115,9 @@ echo Diff against $REL
 git diff $REL
 
 if [ "$INTERACTIVE" == "yes" ] ; then
-    echo -n "Press Enter to interactively rebase $AUTOSQUASH $BRANCH on $REL: "; read foo
+    echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REL: "; read foo
     git rebase -i $AUTOSQUASH $REL || (git rebase --abort; exit 1)
+    echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM ${REL}.."
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM ${REL}..
 fi
 
@@ -143,7 +145,7 @@ if [ "$BUILD" == "yes" ] ; then
 fi
 
 while true ; do
-    echo -n "Enter 'yes' to push to $REMOTE/$REL or 'no' to abort: "
+    echo -n "Enter 'y'/'yes' to push to $REMOTE/$REL or 'n'/'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ] ; then
