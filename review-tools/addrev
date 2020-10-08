@@ -14,8 +14,14 @@ my $useself = 1;
 my $my_email;
 
 foreach (@ARGV) {
-    if (/^[a-z]+$/ || /^\@\w(?:[-\w]*\w)?$/) {
+    if (/^\@.+$/) {
         $args .= "--reviewer=$_ ";
+    } elsif (/^[-\w]+$/) {
+        if (/^[0-9a-f]{7,}+/) {
+            $filterargs = "$_";
+        } else {
+            $args .= "--reviewer=$_ ";
+        }
     } elsif (/^--reviewer=(.+)$/) {
         $args .= "--reviewer=$1 ";
     } elsif (/^--rmreviewers$/) {
@@ -98,7 +104,7 @@ option style arguments:
 
 non-option style arguments can be:
 
-a string of lower case letters, denoting a reviewer name.
+a string of alphanumeric or '-' characters, denoting a reviewer name.
 
 a string starting with \@, denoting a reviewer's github ID.
 
