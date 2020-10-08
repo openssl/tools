@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 my $args = "";
-my $filterargs = "HEAD^..";
+my $filterargs = "";
 my $list_reviewers = 0;
 my $help = 0;
 my $haveprnum = 0;
@@ -18,7 +18,8 @@ foreach (@ARGV) {
         $args .= "--reviewer=$_ ";
     } elsif (/^[-\w]+$/) {
         if (/^[0-9a-f]{7,}+/) {
-            $filterargs = "$_";
+            print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
+            $filterargs = $_;
         } else {
             $args .= "--reviewer=$_ ";
         }
@@ -46,6 +47,7 @@ foreach (@ARGV) {
     } elsif (/^--commit=(.+)$/) {
         $args .= "--commit=$1 ";
     } elsif (/^-(\d+)$/) {
+        print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
         $filterargs = "HEAD~$1..";
     } elsif (/^--list$/) {
 	$list_reviewers = 1;
@@ -54,9 +56,11 @@ foreach (@ARGV) {
 	$help = 1;
 	last;
     } else {
+        print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
         $filterargs = $_;
     }
 }
+$filterargs = "HEAD^.." if $filterargs eq "";
 
 if ($list_reviewers) {
     system("gitaddrev --list");
