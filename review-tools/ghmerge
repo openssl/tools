@@ -10,6 +10,7 @@ function usage_exit {
 set -o errexit
 
 WHAT=openssl
+PICK=no
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 REMOTE=""
@@ -34,6 +35,9 @@ while [ $# -ne 0 ]; do
         ;;
     --web)
         WHAT=web ; BUILD=no ; shift
+        ;;
+    --cherry-pick)
+        PICK=yes ; shift
         ;;
     --noautosquash)
         AUTOSQUASH="" ; shift
@@ -151,8 +155,13 @@ trap 'cleanup' EXIT
 git checkout -b $WORK $REL
 
 # append new commits from $REPO/$BRANCH
-echo Rebasing $REPO/$BRANCH on $REL...
-git pull --rebase $REPO $BRANCH || (git rebase --abort; exit 1)
+if [ "$PICK" != "yes" ]; then
+    echo Rebasing $REPO/$BRANCH on $REL...
+    git pull --rebase $REPO $BRANCH || (git rebase --abort; exit 1)
+else
+    echo Cherry-picking $REPO/$BRANCH to $REL...
+    git fetch $REPO $BRANCH && git cherry-pick FETCH_HEAD
+fi
 
 echo Diff against $REL
 git diff $REL
