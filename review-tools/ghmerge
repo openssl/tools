@@ -19,9 +19,12 @@ if [ ! -d .git ] ; then
     exit 1
 fi
 
+PRNUM=
+TEAM=""
 ADDREVOPTS=""
 # Parse JCL.
-while true ; do
+shopt -s extglob
+while [ $# -ne 0 ]; do
     case "$1" in
     --tools)
         WHAT=tools ; BUILD=no ; shift
@@ -53,27 +56,43 @@ while true ; do
         shift; REL=$1; shift
         ;;
     --)
-        shift
+        if [ $# -lt 3 ] ; then
+            echo "Missing <prnum> <reviewer>... after '--'"
+            usage_exit
+        fi
+        shift; PRNUM=$1 ; shift
+        TEAM="$TEAM $*"
         break
         ;;
     -*) # e.g., --verbose, --trivial, --myemail=...
         ADDREVOPTS="$ADDREVOPTS $1"
         shift
-        break
         ;;
-    *)
-        break
+    +([[:digit:]]) ) # e.g., 1453
+        PRNUM=$1; shift
+        ;;
+    @*) # e.g., @t8m
+        TEAM="$TEAM $1"; shift
+        ;;
+    +([[:alnum:]-]) ) # e.g., levitte
+        if [[ $1 =~ ^[0-9a-f]{7,}+$ ]]; then # e.g., edd05b7
+            ADDREVOPTS="$ADDREVOPTS $1"
+        else
+            TEAM="$TEAM $1"
+        fi
+        shift
+        ;;
+    *) # e.g., edd05b7^^^^..19692bb2c32
+        ADDREVOPTS="$ADDREVOPTS $1"; shift
         ;;
     esac
 done
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
-if [ $# -lt 2 ] ; then
+if [ "$PRNUM" = "" -o "$TEAM" = "" ] ; then
     echo "Usage: $0 [flags, including addrev options] prnum reviewer..."
     exit 1
 fi
-PRNUM=$1 ; shift
-TEAM=$*
 
 PR_URL=https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM
 if ! wget --quiet $PR_URL -O /tmp/gh$$; then
