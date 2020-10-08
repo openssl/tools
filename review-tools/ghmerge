@@ -90,7 +90,6 @@ fi
 
 REL=`git rev-parse --abbrev-ref HEAD`
 WORK="${WHO}-${BRANCH}"
-PREV=
 
 echo -n "Press Enter to pull the latest branch '$REL' from $REMOTE: "; read foo
 git pull $REMOTE $REL
