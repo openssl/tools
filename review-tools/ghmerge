@@ -7,11 +7,7 @@ BUILD=yes
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 [ -z ${CC+x} ] && CC="ccache gcc" # the default otherwise is "ccache clang-3.6"
-REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1`
-if [ "$REMOTE" = "" ] ; then
-    echo Cannot find git remote with URL including 'git.openssl.org'
-    exit 1
-fi
+REMOTE=""
 REL=""
 
 if [ ! -d .git ] ; then
@@ -88,6 +84,12 @@ while [ $# -ne 0 ]; do
     esac
 done
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
+
+[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1`
+if [ "$REMOTE" = "" ] ; then
+    echo Cannot find git remote with URL including 'git.openssl.org'
+    exit 1
+fi
 
 if [ "$PRNUM" = "" -o "$TEAM" = "" ] ; then
     echo "Usage: $0 [flags, including addrev options] prnum reviewer..."
