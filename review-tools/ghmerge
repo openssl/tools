@@ -179,7 +179,7 @@ git log $REMOTE/$REL..
 
 if [ "$BUILD" == "yes" ] ; then
     echo Rebuilding...
-    ( CC="$CC" opensslbuild 2>&1 ) | tail -3
+    CC="$CC" opensslbuild >/dev/null # any STDERR output will be shown
 fi
 
 while true ; do
