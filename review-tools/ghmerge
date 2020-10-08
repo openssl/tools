@@ -12,6 +12,7 @@ if [ "$REMOTE" = "" ] ; then
     echo Cannot find git remote with URL including 'git.openssl.org'
     exit 1
 fi
+REL=""
 
 if [ ! -d .git ] ; then
     echo Not at a top-level git directory
@@ -43,6 +44,13 @@ while true ; do
             exit 1
         fi
         shift; REMOTE=$1; shift
+        ;;
+    --ref)
+        if [ $# -lt 2 ] ; then
+            echo "Missing argument of '$1'"
+            exit 1
+        fi
+        shift; REL=$1; shift
         ;;
     --)
         shift
@@ -88,11 +96,17 @@ if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
     exit 1
 fi
 
-REL=`git rev-parse --abbrev-ref HEAD`
+if [ "$REL" = "" ]; then
+    REL=`git rev-parse --abbrev-ref HEAD` # usually will be 'HEAD' or e.g., OpenSSL_1_1_1-stable
+else
+    echo -n "Press Enter to checkout $REL: "; read foo
+    git checkout $REL
+fi
 WORK="${WHO}-${BRANCH}"
 
-echo -n "Press Enter to pull the latest branch '$REL' from $REMOTE: "; read foo
-git pull $REMOTE $REL
+
+echo -n "Press Enter to pull the latest $REMOTE/$REL: "; read foo
+git pull $REMOTE || (git rebase --abort; exit 1)
 
 function cleanup {
     rv=$?
