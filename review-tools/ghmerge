@@ -151,9 +151,8 @@ trap 'cleanup' EXIT
 git checkout -b $WORK $REL
 
 # append new commits from $REPO/$BRANCH
-git pull --rebase $REPO $BRANCH
-echo rebasing $BRANCH on $REL
-git rebase $REL || (git rebase --abort; exit 1)
+echo Rebasing $REPO/$BRANCH on $REL...
+git pull --rebase $REPO $BRANCH || (git rebase --abort; exit 1)
 
 echo Diff against $REL
 git diff $REL
