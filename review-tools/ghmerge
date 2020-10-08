@@ -96,11 +96,15 @@ echo -n "Press Enter to pull the latest branch '$REL' from $REMOTE: "; read foo
 git pull $REMOTE $REL
 
 function cleanup {
+    rv=$?
+    echo # new line
+    [ $rv -ne 0 ] && echo -e "\nghmerge failed"
     if [ "$WORK" != "$REL" ]; then
+        echo Restoring local $REL
         git checkout -q $REL
-        git branch -qD $WORK
-        git reset --hard $REMOTE/$REL # prune any leftover commits added locally
+        git branch -qD $WORK 2>/dev/null
     fi
+    git reset --hard $REMOTE/$REL # prune any leftover commits added locally
 }
 trap 'cleanup' EXIT
 
