@@ -1,5 +1,10 @@
 # Documentation on the mkrelease.pl script
 
+**NOTE**: this script is unsuitable for OpenSSL 3.0 and on.  Instead, use
+the `dev/release.sh` script found in the source.  That script has a built
+in manual; `dev/release.sh --help` gives a quick usage summary, while
+`dev/release.sh --manual` displays a man-page.
+
 This file provides an overview of the mkrelease.pl script, and how to
 configure some of its parameters (by setting environment variables).
 It is normally run by following the process in README.md and should be
