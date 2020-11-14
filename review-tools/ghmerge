@@ -1,9 +1,27 @@
 #! /bin/bash
 
 function usage_exit {
-    echo "Usage: $0 <options including prnum and reviewer(s)>"
-    echo "    or $0 [<options>] -- <prnum> <reviewer>..."
-    echo "Options may include addrev options and gitaddrev filter args."
+    >&2 echo "Usage: ghmerge <options including prnum and reviewer(s)>
+    or ghmerge [<options>] -- <prnum> <reviewer>...
+Options may include addrev options and gitaddrev filter args.
+
+Option style arguments:
+
+--help              Print this help and exit
+--tools             Merge a tools PR (rather than openssl PR)
+--web               Merge a web PR (rather than openssl PR)
+--remote <remote>   Merge with given repo (rather than implicit upstream)
+--ref <branch>      Merge with given branch (rather than impliict master)
+--cherry-pick       Use cherry-pick (rather than pull --rebase)
+--squash            Squash new commits non-interactively (allows editing msg)
+--noautosquash      Do not automatically squash fixups in interactive rebase
+--nobuild           Do not call 'openssbuild' before merging
+
+Examples:
+
+  ghmerge 12345 mattcaswell
+  ghmerge 12345 paulidale t8m --nobuild --myemail=dev@ddvo.net
+  ghmerge edd05b7^^^^..19692bb2c32 --squash -- 12345 levitte"
     exit 9
 }
 
@@ -30,6 +48,9 @@ ADDREVOPTS=""
 shopt -s extglob
 while [ $# -ne 0 ]; do
     case "$1" in
+    --help)
+        usage_exit
+        ;;
     --tools)
         WHAT=tools ; BUILD=no ; shift
         ;;
