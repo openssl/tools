@@ -9,11 +9,12 @@ reviewer and additional tester.
 # Table of contents
 
 -   [Prerequisites](#prerequisites)
-    -   [Check your access](#check-your-access)
-    -   [PGP / GnuPG key](#pgp-gnupg-key)
+    -   [Software](#software)
     -   [Repositories](#repositories)
+    -   [PGP / GnuPG key](#pgp-gnupg-key)
+    -   [SSH access](#check-your-access)
     -   [A method for reviewing](#a-way-to-reviewing)
--   [Pre-publishing tasks](#pre-publishing-tasks) [once for each version being released]
+-   [Pre-publishing tasks](#pre-publishing-tasks)
     -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
     -   [Make sure that the source is up to date](#make-sure-that-the-source-is-up-to-date)
@@ -32,24 +33,17 @@ reviewer and additional tester.
 
 # Prerequisites
 
-## Check your access
+## Software
 
-To perform a release, you must have appropriate access to OpenSSL's
-development host, dev.openssl.org.  To test this, try to log in with
-ssh:
+Apart from the basic operating system utilities, you must have the following
+programs in you `$PATH`:
 
-    ssh dev.openssl.org
+- openssl
+- ssh
+- gpg
+- git
 
-You must also check that you can perform tasks as the user 'openssl'
-on dev.openssl.org.  When you have successfully logged in, test your
-access to that user with sudo:
-
-    sudo -u openssl id
-
-## PGP / GnuPG key
-
-You must have a PGP / GnuPG key, and its fingerprint should be present
-in the file `doc/fingerprints.txt` in the OpenSSL source.
+(note: this may not be a complete list)
 
 ## Repositories
 
@@ -66,6 +60,26 @@ You must have access to the following repositories:
 -   `openssl-git@git.openssl.org:tools.git`
 
     This contains certain common tools
+
+## PGP / GnuPG key
+
+You must have a PGP / GnuPG key, and its fingerprint should be present
+in the file `doc/fingerprints.txt` in the source of the immediately prior
+OpenSSL release.
+
+## SSH access
+
+To perform a release, you must have appropriate access to OpenSSL's
+development host, dev.openssl.org.  To test this, try to log in with
+ssh:
+
+    ssh dev.openssl.org
+
+You must also check that you can perform tasks as the user 'openssl'
+on dev.openssl.org.  When you have successfully logged in, test your
+access to that user with sudo:
+
+    sudo -u openssl id
 
 ## A method for reviewing
 
@@ -87,7 +101,7 @@ or figure out how review shall be done.
 
 # Pre-publishing tasks
 
-All the actions in this section need to be repeated for each OpenSSL
+Some of the actions in this section need to be repeated for each OpenSSL
 version released.
 
 ## Freeze the source repository
@@ -123,7 +137,7 @@ You will need to checkout at least three working trees:
 ## Make sure that the source is up to date
 
 The person doing the release and the reviewer should both sanity-check
-the source to be released at this point.  Checks to consider includes
+the source to be released at this point.  Checks to consider include
 building and verify that make test passes on multiple plaforms - Linux,
 Windows, etc.
 
@@ -131,13 +145,12 @@ For each source checkout, make sure that the CHANGES.md / CHANGES and
 NEWS.md / NEWS files have been updated and reviewed.
 
 NEWS.md / NEWS should contain a summary of any changes for the release,
-and for a security release is (often just a list of the CVEs addressed.
+and for a security release is (often just a list of the CVEs addressed).
 You should also update NEWS in the master branch to include details of
 all releases.  Just update the NEWS bullet points - do not change the
 release date, keep it as **under development**.
 
-Add any security fixes to the tree.  Commit them but *do not push to any
-public repository*.
+Add any security fixes to the tree and commit them.
 
 Make sure that the copyrights are updated.  This script will update
 the copyright markers and commit the changes (where $TOOLS stands for
@@ -147,10 +160,12 @@ the openssl-tools.git checkout directory):
 
 Obtain approval for these commits from the reviewer and add the
 reviewed-by headers as required.
-If you have added security fixes, you must seek approval through
-extraordinary means as agreed with the reviewer.  This may involve
-pushing to a non-public repository you both have access to, or emailing
-patches, or ...
+
+*Do not push* changes to the public repo at this stage.
+(the public repo being `openssl-git@git.openssl.org:openssl.git`)
+
+*Do* send the auto-generated commits to the reviewer and await their
+approval.
 
 ## Generate the tarball and announcement text
 
@@ -228,7 +243,7 @@ Commit your changes, but *do not push* them to the website repo at this stage.
 irreversible.  If you are performing a dry run then DO NOT perform any steps
 in this section.
 
-Check that release has been uploaded properly.  The release tarballs and
+Check that the release has been uploaded properly.  The release tarballs and
 associated files should be in ~openssl/dist/new.  They should be owned by
 the openssl userid and world-readable.
 
