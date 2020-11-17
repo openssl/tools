@@ -114,7 +114,7 @@ associated files should be in ~openssl/dist/new.  They should be owned by the
 openssl userid and world-readable.
 
 Copy the tarballs to appropriate directories. This can be
-done using the do-release.pl script.  See MKRELEASE.md for a description of
+done using the do-release.pl script.  See DO-RELEASE.md for a description of
 the options. For example:
 
         sudo -u openssl perl ~openssl/do-release.pl --copy --move
