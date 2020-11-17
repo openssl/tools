@@ -10,8 +10,8 @@ It does the following:
    locations: currently /v/openssl/www/source and /v/openssl/ftp/source
 2. Move OpenSSL release files from holding area to ~openssl/dist/old By
    doing this the script wont try and make a release again with old files.
-3. Mail the release message. This is sent to openssl-dev openssl-users and
-   openssl-announce (it needs to be approved in openssl-announce). The
+3. Mail the release message. This is sent to openssl-project openssl-users
+   and openssl-announce (it needs to be approved in openssl-announce). The
    subject line is `OpenSSL version xxx released`.
 
 ## do-release options
