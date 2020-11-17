@@ -71,11 +71,16 @@ You must have access to the following repositories:
 
 For reviewing to take place, the release person and the reviewer need a
 way to share changes that are being applied.  Most commonly, that's done
-as PRs through Github.  However, if undisclosed security fixes are being
-applied, some other more private repository must be used.
-Worst case scenario, there have been times where the review process has
-been conducted by sending patches (made with `git format-patch`) by email
-and receiving approval as a reply.
+as PRs (for normal releases) or security advisories (for undisclosed
+security fixes) through Github.
+
+Security advisories are created using the Github Security tab, and
+will generate a private branch, ready to be pushed to.  For more
+information on creating new security advisories, please read
+<https://docs.github.com/en/free-pro-team@latest/github/managing-security-vulnerabilities/creating-a-security-advisory>
+
+The release person and the reviewer are allowed to use other means to
+share the commits to be reviewed if they desire.
 
 The release person and the reviewer must have a conversation to confirm
 or figure out how review shall be done.
@@ -168,8 +173,8 @@ match in the .md5, .sha1, .sha256, and review the announcment file.
 *Do not push* changes to the public repo at this stage.
 (the public repo being `openssl-git@git.openssl.org:openssl.git`)
 
-*Do* push to the repository that's used for review, or email the commit
-patches to the reviewer, and wait for approval.
+*Do* send the auto-generated commits to the reviewer and await their
+approval.
 
 ### OpenSSL 3.0 and on
 
@@ -215,8 +220,7 @@ If there is a Security Advisory then copy it into the news/secadv directory.
 Commit your changes, but *do not push* them to the website repo at this stage.
 (the public repo being `openssl-git@git.openssl.org:openssl-web.git`)
 
-*Do* push to the repository that's used for review, or email the commit
-patches to the reviewer, and wait for approval.
+*Do* send the commits to the reviewer and await their approval.
 
 # Publish the release
 
@@ -339,6 +343,9 @@ Check the mailing list messages have arrived.
 
 If this release includes security fixes with a CVE then you should inform
 MITRE about them.  See the instructions at the top of cvepool.txt in omc.
+
+Close the github advisory without pushing to github and remove the private
+github fork if there was one.
 
 ## Keep in touch
 
