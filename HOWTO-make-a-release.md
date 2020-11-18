@@ -88,9 +88,13 @@ way to share changes that are being applied.  Most commonly, that's done
 as PRs (for normal releases) or security advisories (for undisclosed
 security fixes) through Github.
 
-Security advisories are created using the Github Security tab, and
-will generate a private branch, ready to be pushed to.  For more
-information on creating new security advisories, please read
+Security advisories are created using the Github Security tab, and will
+generate a private repository, to which you can add collaborators (the
+reviewer, for instance), and use to fix the issue via pull requests.
+For more information, please read Github's [creating a security advisory],
+including the "Next Steps" at the end of that page.
+
+[creating a security advisory]:
 <https://docs.github.com/en/free-pro-team@latest/github/managing-security-vulnerabilities/creating-a-security-advisory>
 
 The release person and the reviewer are allowed to use other means to
