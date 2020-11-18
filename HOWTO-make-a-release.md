@@ -17,7 +17,7 @@ reviewer and additional tester.
 -   [Pre-publishing tasks](#pre-publishing-tasks)
     -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
-    -   [Make sure that the source is up to date](#make-sure-that-the-source-is-up-to-date)
+    -   [Make sure that the openssl source is up to date](#make-sure-that-the-openssl-source-is-up-to-date)
     -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text) [do not push]
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
         -   [OpenSSL before 3.0](#openssl-before-3.0)
@@ -125,16 +125,20 @@ You will need to checkout at least three working trees:
 
         git clone openssl-git@git.openssl.org:openssl-tools.git tools
 
--   At least one for the release to be done.  You may have to repeat
-    the release tasks that follow more than once, so it's often easier
-    to have separate copies for each release branch:
+    The resulting directory will be referred to as `$TOOLS`
 
-        git clone openssl-git@git.openssl.org:openssl.git rel-111
-        cd rel-111
-        git branch --track OpenSSL_1_1_1-stable origin/OpenSSL_1_1_1-stable
-        git checkout OpenSSL_1_1_1-stable
+-   At least one for openssl source
 
-## Make sure that the source is up to date
+        git clone openssl-git@git.openssl.org:openssl.git
+
+    If you're doing multiple releases in one go, there are many ways to deal
+    with it.  One possibility, available since git 2.5, is to use `git
+    worktree`:
+
+        (cd openssl;
+         git worktree add ../openssl-1.1.1 OpenSSL_1_1_1-stable)
+
+## Make sure that the openssl source is up to date
 
 The person doing the release and the reviewer should both sanity-check
 the source to be released at this point.  Checks to consider include
