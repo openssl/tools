@@ -16,7 +16,7 @@ my $my_email;
 foreach (@ARGV) {
     if (/^\@.+$/) {
         $args .= "--reviewer=$_ ";
-    } elsif (/^[-\w]+$/) {
+    } elsif (/^\w[-\w]+$/) {
         if (/^[0-9a-f]{7,}+/) {
             print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
             $filterargs = $_;
