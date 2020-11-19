@@ -10,8 +10,8 @@ Option style arguments:
 --help              Print this help and exit
 --tools             Merge a tools PR (rather than openssl PR)
 --web               Merge a web PR (rather than openssl PR)
---remote <remote>   Merge with given repo (rather than implicit upstream)
---ref <branch>      Merge with given branch (rather than impliict master)
+--remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
+--ref <branch>      Branch to merge with (rather than current branch), usually 'master'
 --cherry-pick       Use cherry-pick (rather than pull --rebase)
 --squash            Squash new commits non-interactively (allows editing msg)
 --noautosquash      Do not automatically squash fixups in interactive rebase
@@ -21,7 +21,8 @@ Examples:
 
   ghmerge 12345 mattcaswell
   ghmerge 12345 paulidale t8m --nobuild --myemail=dev@ddvo.net
-  ghmerge edd05b7^^^^..19692bb2c32 --squash -- 12345 levitte"
+  ghmerge edd05b7^^^^..19692bb2c32 --squash -- 12345 levitte
+  ghmerge 12345 slontis --ref OpenSSL_1_1_1-stable"
     exit 9
 }
 
@@ -117,7 +118,7 @@ while [ $# -ne 0 ]; do
 done
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
-[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1`
+[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
 if [ "$REMOTE" = "" ] ; then
     echo Cannot find git remote with URL including 'git.openssl.org'
     exit 1
@@ -149,7 +150,7 @@ if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
 fi
 
 if [ "$REF" = "" ]; then
-    REF=`git rev-parse --abbrev-ref HEAD` # usually will be 'HEAD' or e.g., OpenSSL_1_1_1-stable
+    REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master' or, e.g., 'OpenSSL_1_1_1-stable'
 else
     echo -n "Press Enter to checkout $REF: "; read foo
     git checkout $REF
