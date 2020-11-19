@@ -153,10 +153,9 @@ For each source checkout, make sure that the CHANGES.md / CHANGES and
 NEWS.md / NEWS files have been updated and reviewed.
 
 NEWS.md / NEWS should contain a summary of any changes for the release,
-and for a security release is (often just a list of the CVEs addressed).
-You should also update NEWS in the master branch to include details of
-all releases.  Just update the NEWS bullet points - do not change the
-release date, keep it as **under development**.
+and for a security release is.  You should also update NEWS in the master
+branch to include details of all releases.  Just update the NEWS bullet
+points - do not change the release date, keep it as **under development**.
 
 Add any security fixes to the tree and commit them.
 
