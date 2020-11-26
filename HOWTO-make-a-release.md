@@ -273,11 +273,11 @@ future reference.
 
 Verify that the tarballs are available via FTP:
 
-        ftp://ftp.openssl.org/source/
+    ftp://ftp.openssl.org/source/
 
 And that they are ready for the website:
 
-        ls /var/www/openssl/source
+    ls /var/www/openssl/source
 
 *For OpenSSL 3.0 and on*, push your local changes to the main source repo
 as instructed by `dev/release.sh`.  You may want to sanity check the pushes
@@ -305,7 +305,7 @@ but if you see a problem, try the following steps on `dev.openssl.org`:
 
     cd /var/www/openssl
     sudo -u openssl -H make relupd
-    sudo -u openssl ./bin/purge-one-hour
+    sudo -u openssl -H ./bin/purge-one-hour
 
 Wait for a while for the Akamai flush to work (normally within a few minutes).
 Have a look at the website and news announcement at:
@@ -340,16 +340,16 @@ text files away from the staging directory after they have been sent.  This
 is done as follows (with VERSION replaced with the version of OpenSSL to
 announce):
 
-        sudo -u openssl \
-            mv ~openssl/dist/new/openssl-VERSION.txt.asc ~openssl/dist/old
+    sudo -u openssl \
+        mv ~openssl/dist/new/openssl-VERSION.txt.asc ~openssl/dist/old
 
 Send out the Security Advisory if there is one.  Copy the file to the
 openssl user home directory, and then do the following:
 
-        sudo -u openssl gpg -u 8B3D79F5 --clearsign secadv_FILENAME
-        sudo -u openssl mutt -s "OpenSSL Security Advisory" \
-                openssl-project openssl-users openssl-announce \
-                <~openssl/secadv_FILENAME.txt.asc
+    sudo -u openssl gpg --clearsign secadv_FILENAME
+    sudo -u openssl mutt -s "OpenSSL Security Advisory" \
+            openssl-project openssl-users openssl-announce \
+            <~openssl/secadv_FILENAME.txt.asc
 
 Approve the openssl-announce email.  Go to
 <https://mta.openssl.org/mailman/admindb/openssl-announce>
