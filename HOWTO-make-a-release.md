@@ -18,7 +18,7 @@ reviewer and additional tester.
     -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
     -   [Make sure that the openssl source is up to date](#make-sure-that-the-openssl-source-is-up-to-date)
-    -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text) [do not push]
+    -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
         -   [OpenSSL before 3.0](#openssl-before-3.0)
     -   [Update the website locally](#update-the-website-locally) [do not push]
@@ -168,11 +168,12 @@ the openssl-tools.git checkout directory):
 Obtain approval for these commits from the reviewer and add the
 reviewed-by headers as required.
 
-*Do not push* changes to the public repo at this stage.
-(the public repo being `openssl-git@git.openssl.org:openssl.git`)
-
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
+
+*Do not push* changes to the main source repo at this stage, if this is a
+secturity release.
+(the main source repo being `openssl-git@git.openssl.org:openssl.git`)
 
 ## Generate the tarball and announcement text
 
@@ -192,11 +193,12 @@ Check the commits that were added, using for example `git log`.  Check the
 signed announcement .asc file.  Check that the tarball length and hashes
 match in the .md5, .sha1, .sha256, and review the announcment file.
 
-*Do not push* changes to the public repo at this stage.
-(the public repo being `openssl-git@git.openssl.org:openssl.git`)
-
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
+
+*Do not push* changes to the main source repo at this stage, if this is a
+secturity release.
+(the main source repo being `openssl-git@git.openssl.org:openssl.git`)
 
 ### OpenSSL 3.0 and on
 
@@ -239,10 +241,10 @@ Update the news/vulnerabilities.xml file if appropriate.
 
 If there is a Security Advisory then copy it into the news/secadv directory.
 
-Commit your changes, but *do not push* them to the website repo at this stage.
-(the public repo being `openssl-git@git.openssl.org:openssl-web.git`)
-
 *Do* send the commits to the reviewer and await their approval.
+
+Commit your changes, but *do not push* them to the website repo at this stage.
+(the website repo being `openssl-git@git.openssl.org:openssl-web.git`)
 
 # Publish the release
 
@@ -277,14 +279,14 @@ And that they are ready for the website:
 
         ls /var/www/openssl/source
 
-*For OpenSSL 3.0 and on*, push your local changes to the public source repo
+*For OpenSSL 3.0 and on*, push your local changes to the main source repo
 as instructed by `dev/release.sh`.  You may want to sanity check the pushes
 by inserting the `-n` (dry-run) option.
 
-*For OpenSSL before 3.0*, simply push your local changes to the public
-source repo, and please do remember to push the release tags as well, which
-is done separately with the `--tags` option.  You may want to sanity check
-the pushes by inserting the `-n` (dry-run) option.
+*For OpenSSL before 3.0*, simply push your local changes to the main source
+repo, and please do remember to push the release tags as well, which is done
+separately with the `--tags` option.  You may want to sanity check the
+pushes by inserting the `-n` (dry-run) option.
 
 ## Updating the website
 
