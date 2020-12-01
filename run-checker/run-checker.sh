@@ -99,12 +99,12 @@ if run-hook prepare; then
 
         if [ "$opt" == "enable-asan" ]; then
             # A documented requirement for enable-asan is no-shared
-            expandedopts="enable-asan no-shared -DOPENSSL_SMALL_FOOTPRINT"
+            expandedopts="enable-asan no-shared no-asm -DOPENSSL_SMALL_FOOTPRINT"
         elif [ "$opt" == "enable-ubsan" ]; then
             # We've seen it on Travis already, ubsan requires -DPEDANTIC and
             # -fno-sanitize=alignment, or crypto/modes will fail to build in
             # some circumstances.  Running on a VM seems to be one of them.
-            expandedopts="enable-ubsan -DPEDANTIC -DOPENSSL_SMALL_FOOTPRINT -fno-sanitize=alignment"
+            expandedopts="enable-ubsan no-asm -DPEDANTIC -DOPENSSL_SMALL_FOOTPRINT -fno-sanitize=alignment"
         elif [ "$opt" == "enable-fuzz-afl" ]; then
             warnopts=""
             optcc=afl-clang-fast 
