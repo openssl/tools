@@ -157,7 +157,7 @@ else
 fi
 
 echo -n "Press Enter to pull the latest $REMOTE/$REF: "; read foo
-git pull $REMOTE || (git rebase --abort; exit 1)
+git pull $REMOTE $REF || (git rebase --abort; exit 1)
 
 WORK="copy-of-${WHO}-${BRANCH}"
 
