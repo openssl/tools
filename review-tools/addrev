@@ -14,7 +14,10 @@ my $useself = 1;
 my $my_email;
 
 foreach (@ARGV) {
-    if (/^\@.+$/) {
+    if (/^(--prnum=)?(\d{1,6}+)$/) {
+        $args .= "--prnum=$2 ";
+	$haveprnum = 1;
+    } elsif (/^\@.+$/) {
         $args .= "--reviewer=$_ ";
     } elsif (/^\w[-\w]*$/) {
         if (/^[0-9a-f]{7,}+/) {
@@ -40,9 +43,6 @@ foreach (@ARGV) {
     } elsif (/^--myemail=(.+)$/) {
         $my_email = $1;
     } elsif (/^--nopr$/) {
-	$haveprnum = 1;
-    } elsif (/^(--prnum=)?(\d+)$/) {
-        $args .= "--prnum=$2 ";
 	$haveprnum = 1;
     } elsif (/^--commit=(.+)$/) {
         $args .= "--commit=$1 ";
@@ -117,8 +117,8 @@ HEAD^.. is assumed.
 
 Examples (all meaning the same thing):
 
-  addrev -2 steve levitte
-  addrev steve \@levitte HEAD^^..
-  addrev --reviewer=steve --reviewer=levitte\@openssl.org -2
+  addrev 12345 -2 steve levitte
+  addrev --prnum=12345 steve \@levitte HEAD^^..
+  addrev 12345 --reviewer=steve --reviewer=levitte\@openssl.org -2
 EOF
 }
