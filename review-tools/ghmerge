@@ -28,7 +28,7 @@ Examples:
 
 set -o errexit
 
-WHAT=openssl
+WHAT=""
 PICK=no
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
@@ -116,6 +116,12 @@ while [ $# -ne 0 ]; do
         ;;
     esac
 done
+
+if [ "$WHAT" = "" ] ; then
+    WHAT="openssl"
+else
+    ADDREVOPTS="$ADDREVOPTS --$WHAT"
+fi
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
 [ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
