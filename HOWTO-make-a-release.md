@@ -172,8 +172,7 @@ reviewed-by headers as required.
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
 
-*Do not push* changes to the main source repo at this stage, if this is a
-secturity release.
+*Do not push* changes to the main source repo at this stage.
 (the main source repo being `openssl-git@git.openssl.org:openssl.git`)
 
 ## Generate the tarball and announcement text
@@ -197,8 +196,7 @@ match in the .md5, .sha1, .sha256, and review the announcment file.
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
 
-*Do not push* changes to the main source repo at this stage, if this is a
-secturity release.
+*Do not push* changes to the main source repo at this stage.
 (the main source repo being `openssl-git@git.openssl.org:openssl.git`)
 
 ### OpenSSL 3.0 and on
