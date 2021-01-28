@@ -91,7 +91,7 @@ security fixes) through Github.
 
 Security advisories are created using the Github Security tab, and will
 generate a private repository, to which you can add collaborators (the
-reviewer, for instance), and use to fix the issue via pull requests.
+reviewer, for instance), and use it to fix the issue via pull requests.
 For more information, please read Github's [creating a security advisory],
 including the "Next Steps" at the end of that page.
 
@@ -102,7 +102,7 @@ The release person and the reviewer are allowed to use other means to
 share the commits to be reviewed if they desire.
 
 The release person and the reviewer must have a conversation to confirm
-or figure out how review shall be done.
+or figure out how the review shall be done.
 
 # Pre-publishing tasks
 
@@ -375,8 +375,6 @@ Advisory by email as the openssl user, and the remove it:
 Approve the openssl-announce email.  Go to
 <https://mta.openssl.org/mailman/admindb/openssl-announce>
 and approve the messages.
-The administration password needed for approval is held in /opt/mailman/README
-on mta.openssl.org
 
 Check the mailing list messages have arrived.
 
