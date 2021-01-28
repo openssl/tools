@@ -343,13 +343,29 @@ announce):
     sudo -u openssl \
         mv ~openssl/dist/new/openssl-VERSION.txt.asc ~openssl/dist/old
 
-Send out the Security Advisory if there is one.  Copy the file to the
-openssl user home directory, and then do the following:
+## Send out the Security Advisory (if there is one)
 
-    sudo -u openssl gpg --clearsign secadv_FILENAME
+*The secadv file mentioned in this section is the Security Advisory
+that you copied into the web repo, up in the section
+[Update the website locally](#update-the-website-locally)*
+ 
+*This section is only applicable if this is a security release*
+
+Start with signing the Security Advisory as yourself:
+
+    gpg --clearsign secadv_FILENAME.txt
+
+Then copy the result to the temporary directory on dev.openssl.org:
+
+    scp secadv_FILENAME.txt.asc dev.openssl.org:/tmp
+
+To finish, log in on dev.openssl.org and send the signed Security
+Advisory by email as the openssl user, and the remove it:
+
     sudo -u openssl mutt -s "OpenSSL Security Advisory" \
             openssl-project openssl-users openssl-announce \
-            <~openssl/secadv_FILENAME.txt.asc
+            </tmp/secadv_FILENAME.txt.asc
+    rm /tmp/secadv_FILENAME.txt.asc
 
 Approve the openssl-announce email.  Go to
 <https://mta.openssl.org/mailman/admindb/openssl-announce>
