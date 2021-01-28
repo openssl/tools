@@ -26,6 +26,7 @@ reviewer and additional tester.
 -   [Post-publishing tasks](#post-publishing-tasks)
     -   [Check the website](#check-the-website)
     -   [Send the announcement mail](#send-the-announcement-mail)
+    -   [Send out the Security Advisory](#send-out-the-security-advisory)
     -   [Unfreeze the source repository](#unfreeze-the-source-repository)
     -   [Security fixes](#security-fixes)
     -   [Keep in touch](#keep-in-touch)
@@ -343,7 +344,7 @@ announce):
     sudo -u openssl \
         mv ~openssl/dist/new/openssl-VERSION.txt.asc ~openssl/dist/old
 
-## Send out the Security Advisory (if there is one)
+## Send out the Security Advisory
 
 *The secadv file mentioned in this section is the Security Advisory
 that you copied into the web repo, up in the section
