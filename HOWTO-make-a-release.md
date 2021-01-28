@@ -342,6 +342,10 @@ is done as follows (with VERSION replaced with the version of OpenSSL to
 announce):
 
     sudo -u openssl \
+        mutt -s "OpenSSL version VERSION published" \
+            openssl-project openssl-users openssl-announce \
+            < /home/openssl/dist/new/openssl-VERSION.txt.asc
+    sudo -u openssl \
         mv ~openssl/dist/new/openssl-VERSION.txt.asc ~openssl/dist/old
 
 ## Send out the Security Advisory
