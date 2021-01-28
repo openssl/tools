@@ -127,7 +127,7 @@ You will need to checkout at least three working trees:
 
 -   one for extra tools
 
-        git clone openssl-git@git.openssl.org:openssl-tools.git tools
+        git clone openssl-git@git.openssl.org:tools.git tools
 
     The resulting directory will be referred to as `$TOOLS`
 
