@@ -1,10 +1,10 @@
 # HOW TO MAKE A RELEASE
 
-This file documents how to make an OpenSSL release.  Please fix any
-errors you find while doing, or just after, your next release!
+This file documents how to make an OpenSSL release.  Please fix any errors
+you find while doing, or just after, your next release!
 
-Releases are done by one person, with a second person acting as the
-reviewer and additional tester.
+Releases are done by one person, with a second person acting as the reviewer
+and additional tester.
 
 # Table of contents
 
@@ -64,30 +64,29 @@ You must have access to the following repositories:
 
 ## PGP / GnuPG key
 
-You must have a PGP / GnuPG key, and its fingerprint should be present
-in the file `doc/fingerprints.txt` in the source of the immediately prior
+You must have a PGP / GnuPG key, and its fingerprint should be present in
+the file `doc/fingerprints.txt` in the source of the immediately prior
 OpenSSL release.
 
 ## SSH access
 
 To perform a release, you must have appropriate access to OpenSSL's
-development host, dev.openssl.org.  To test this, try to log in with
-ssh:
+development host, dev.openssl.org.  To test this, try to log in with ssh:
 
     ssh dev.openssl.org
 
-You must also check that you can perform tasks as the user 'openssl'
-on dev.openssl.org.  When you have successfully logged in, test your
-access to that user with sudo:
+You must also check that you can perform tasks as the user 'openssl' on
+dev.openssl.org.  When you have successfully logged in, test your access to
+that user with sudo:
 
     sudo -u openssl id
 
 ## A method for reviewing
 
-For reviewing to take place, the release person and the reviewer need a
-way to share changes that are being applied.  Most commonly, that's done
-as PRs (for normal releases) or security advisories (for undisclosed
-security fixes) through Github.
+For reviewing to take place, the release person and the reviewer need a way
+to share changes that are being applied.  Most commonly, that's done as PRs
+(for normal releases) or security advisories (for undisclosed security
+fixes) through Github.
 
 Security advisories are created using the Github Security tab, and will
 generate a private repository, to which you can add collaborators (the
@@ -98,11 +97,11 @@ including the "Next Steps" at the end of that page.
 [creating a security advisory]:
 <https://docs.github.com/en/free-pro-team@latest/github/managing-security-vulnerabilities/creating-a-security-advisory>
 
-The release person and the reviewer are allowed to use other means to
-share the commits to be reviewed if they desire.
+The release person and the reviewer are allowed to use other means to share
+the commits to be reviewed if they desire.
 
-The release person and the reviewer must have a conversation to confirm
-or figure out how the review shall be done.
+The release person and the reviewer must have a conversation to confirm or
+figure out how the review shall be done.
 
 # Pre-publishing tasks
 
@@ -111,10 +110,10 @@ version released.
 
 ## Freeze the source repository
 
-The day before the release, freeze the main repository.  This locks
-out everyone but the named user, who is doing the release, from doing
-any pushes.  Someone other than the person doing the release should
-run the command.  For example:
+The day before the release, freeze the main repository.  This locks out
+everyone but the named user, who is doing the release, from doing any
+pushes.  Someone other than the person doing the release should run the
+command.  For example:
 
     ssh openssl-git@git.openssl.org freeze openssl NAME
 
@@ -145,29 +144,33 @@ You will need to checkout at least three working trees:
 
 ## Make sure that the openssl source is up to date
 
-The person doing the release and the reviewer should both sanity-check
-the source to be released at this point.  Checks to consider include
-building and verify that make test passes on multiple plaforms - Linux,
-Windows, etc.
+The person doing the release and the reviewer should both sanity-check the
+source to be released at this point.  Checks to consider include building
+and verifying that make test passes on multiple plaforms - Linux, Windows,
+etc.
 
-For each source checkout, make sure that the CHANGES.md / CHANGES and
-NEWS.md / NEWS files have been updated and reviewed.
+*NOTE: the files CHANGES and NEWS are called CHANGES.md and NEWS.md in
+OpenSSL versions from version 3.0 and on*
 
-NEWS.md / NEWS should contain a summary of any changes for the release,
-and for a security release is.  You should also update NEWS in the master
-branch to include details of all releases.  Just update the NEWS bullet
-points - do not change the release date, keep it as **under development**.
+For each source checkout, make sure that the CHANGES and NEWS files have
+been updated and reviewed.
+
+The NEWS file should contain a summary of any changes for the release;
+for a security release, it's often simply a list of the CVEs addressed.
+You should also update NEWS.md in the master branch to include details of
+all releases.  Only update the bullet points - do not change the release
+date, keep it as **under development**.
 
 Add any security fixes to the tree and commit them.
 
-Make sure that the copyrights are updated.  This script will update
-the copyright markers and commit the changes (where $TOOLS stands for
-the openssl-tools.git checkout directory):
+Make sure that the copyrights are updated.  This script will update the
+copyright markers and commit the changes (where $TOOLS stands for the
+openssl-tools.git checkout directory):
 
     $TOOLS/release-tools/do-copyright-year
 
-Obtain approval for these commits from the reviewer and add the
-reviewed-by headers as required.
+Obtain approval for these commits from the reviewer and add the reviewed-by
+headers as required.
 
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
@@ -180,13 +183,13 @@ approval.
 *The changes in this section should be made in your clone of the openssl
 source repo*
 
-The method to generate a release tarball and announcement text has
-changed with OpenSSL 3.0, so while we continue to make pre-3.0 OpenSSL
-releases, there are two methods to be aware of.
+The method to generate a release tarball and announcement text has changed
+with OpenSSL 3.0, so while we continue to make pre-3.0 OpenSSL releases,
+there are two methods to be aware of.
 
 Both methods will leave a handful of files, most importantly the release
-tarball.  When they are done, they display a set of instructions on how
-to perform the publishing tasks, *please take note of them*.
+tarball.  When they are done, they display a set of instructions on how to
+perform the publishing tasks, *please take note of them*.
 
 After having run the release script, verify that its results are sensible.
 Check the commits that were added, using for example `git log`.  Check the
@@ -278,9 +281,9 @@ And that they are ready for the website:
 
     ls /var/www/openssl/source
 
-*For OpenSSL 3.0 and on*, push your local changes to the main source repo
-as instructed by `dev/release.sh`.  You may want to sanity check the pushes
-by inserting the `-n` (dry-run) option.
+*For OpenSSL 3.0 and on*, push your local changes to the main source repo as
+instructed by `dev/release.sh`.  You may want to sanity check the pushes by
+inserting the `-n` (dry-run) option.
 
 *For OpenSSL before 3.0*, simply push your local changes to the main source
 repo, and please do remember to push the release tags as well, which is done
@@ -290,17 +293,18 @@ pushes by inserting the `-n` (dry-run) option.
 ## Updating the website
 
 Push the website changes you made earlier to the OpenSSL website repo.  When
-you do this, the website will get updated and a script to flush the Akamai CDN
-cache will be run.  You can look at things on www-origin.openssl.org; the
-CDN-hosted www.openssl.org should only be a few minutes delayed.
+you do this, the website will get updated and a script to flush the Akamai
+CDN cache will be run.  You can look at things on www-origin.openssl.org;
+the CDN-hosted www.openssl.org should only be a few minutes delayed.
 
 # Post-publishing tasks
 
 ## Check the website
 
-Verify that the release notes, which are built from the CHANGES file in the
-release, have been updated.  This is done automatically by the commit-hook,
-but if you see a problem, try the following steps on `dev.openssl.org`:
+Verify that the release notes, which are built from the CHANGES.md file
+in the release, have been updated.  This is done automatically by the
+commit-hook, but if you see a problem, try the following steps on
+`dev.openssl.org`:
 
     cd /var/www/openssl
     sudo -u openssl -H make relupd
