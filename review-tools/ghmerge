@@ -180,14 +180,14 @@ function cleanup {
 }
 trap 'cleanup' EXIT
 
-git checkout -b $WORK $REF
-
 # append new commits from $REPO/$BRANCH
 if [ "$PICK" != "yes" ]; then
     echo Rebasing $REPO/$BRANCH on $REF...
-    git pull --rebase $REPO $BRANCH || (git rebase --abort; exit 1)
+    git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
+    git rebase $REF || (echo 'Fix or Ctrl-d to abort' ; read || (git rebase --abort; exit 1))
 else
     echo Cherry-picking $REPO/$BRANCH to $REF...
+    git checkout -b $WORK $REF
     git fetch $REPO $BRANCH && git cherry-pick FETCH_HEAD
 fi
 
