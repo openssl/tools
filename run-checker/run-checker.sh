@@ -43,7 +43,11 @@ enable-unit-test no-whirlpool enable-weak-ssl-ciphers enable-zlib
 enable-zlib-dynamic 386 no-dtls no-tls no-ssl3 no-tls1 no-tls1_1 no-tls1_2
 no-dtls1 no-dtls1_2 no-ssl3-method no-tls1-method no-tls1_1-method
 no-tls1_2-method no-dtls1-method no-dtls1_2-method no-siphash no-tls1_3 no-sm2
-no-sm3 no-sm4 enable-trace no-legacy no-cached-fetch)
+no-sm3 no-sm4 enable-trace no-legacy no-cached-fetch no-autoload-config
+'no-buildtest-c++' no-bulk no-cmp no-ktls no-module no-padlockeng
+no-pinshared no-secure-memory no-siv no-uplink enable-acvp-tests enable-fips
+'enable-fips no-fips-securitychecks'
+)
 
 run-hook () {
     local hookname=$1; shift
