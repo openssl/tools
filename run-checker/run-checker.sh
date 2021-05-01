@@ -46,7 +46,10 @@ no-tls1_2-method no-dtls1-method no-dtls1_2-method no-siphash no-tls1_3 no-sm2
 no-sm3 no-sm4 enable-trace no-legacy no-cached-fetch no-autoload-config
 'no-buildtest-c++' no-bulk no-cmp no-ktls no-module no-padlockeng
 no-pinshared no-secure-memory no-siv no-uplink enable-acvp-tests enable-fips
-'enable-fips no-fips-securitychecks'
+'enable-fips no-fips-securitychecks' 'enable-fips enable-acvp-tests'
+'enable-fips no-tls' 'enable-fips no-tls1_1' 'enable-fips no-tls1'
+'enable-fips no-ssl3-method' 'enable-fips no-tls1-method'
+'enable-fips no-tls1_1-method' 'enable-fips no-tls1_3'
 )
 
 run-hook () {
