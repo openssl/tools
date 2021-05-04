@@ -132,7 +132,7 @@ if run-hook prepare; then
         else
             builddir="$(echo $opt | sed -e 's|[ /]|_|g')"
         fi
-        if run-hook start "$builddir" "$opt" -d $warnopts $expandedopts; then
+        if run-hook start "$builddir" "$opt" $warnopts $expandedopts; then
             if (
                 set -e
 
@@ -143,7 +143,7 @@ if run-hook prepare; then
 
                 echo "Building with '$opt'"
                 log-eval \
-                    CC=$optcc ../openssl/config -d $warnopts $expandedopts \
+                    CC=$optcc ../openssl/config $warnopts $expandedopts \
                     >build.log 2>&1 || \
                     exit $?
 
