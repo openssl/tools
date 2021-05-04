@@ -47,7 +47,7 @@ no-sm3 no-sm4 enable-trace no-legacy no-cached-fetch no-autoload-config
 'no-buildtest-c++' no-bulk no-cmp no-ktls no-module no-padlockeng
 no-pinshared no-secure-memory no-siv no-uplink enable-acvp-tests enable-fips
 'enable-fips no-fips-securitychecks' 'enable-fips enable-acvp-tests'
-'enable-fips no-cmac' 'enable-fips no-cmac' 'enable-fips no-des'
+'enable-fips no-cmac' 'enable-fips no-des'
 'enable-fips no-dh' 'enable-fips no-dsa' 'enable-fips no-ec'
 'enable-fips no-ec2m' 'enable-fips no-ecdh' 'enable-fips no-ecdsa'
 'enable-fips no-tls' 'enable-fips no-tls1_1' 'enable-fips no-tls1'
