@@ -22,34 +22,7 @@
 
 here=$(cd $(dirname $0); pwd)
 opts=( ''
-no-afalgeng enable-asan no-asm no-async no-autoalginit no-autoerrinit
-no-bf no-blake2 no-camellia no-capieng no-cast no-chacha no-cmac no-cms no-comp
-enable-crypto-mdebug enable-crypto-mdebug-backtrace no-ct no-deprecated no-des
-no-dgram no-dh no-dsa no-dso no-dynamic-engine no-ec no-ec2m no-ecdh
-no-ecdsa enable-ec_nistp_64_gcc_128 enable-egd no-engine 'no-engine no-shared'
-no-err no-filenames
-no-aria no-asan no-crypto-mdebug no-crypto-mdebug-backtrace no-devcryptoeng
-no-ec_nistp_64_gcc_128 no-egd no-external-tests no-fuzz-afl no-fuzz-libfuzzer
-no-heartbeats no-md2 no-msan no-rc5 no-sctp no-ssl no-ssl-trace no-tests
-no-ubsan no-ui-console no-unit-test no-weak-ssl-ciphers
-no-zlib no-zlib-dynamic
-enable-fuzz-afl enable-fuzz-libfuzzer enable-heartbeats no-hw no-hw-padlock
-no-idea no-makedepend enable-md2 no-md4 no-mdc2 no-gost no-multiblock
-no-nextprotoneg no-ocb no-ocsp no-pic no-poly1305 no-posix-io no-psk no-rc2
-no-rc4 enable-rc5 no-rdrand no-rfc3779 no-ripemd no-rmd160 no-scrypt enable-sctp
-no-seed no-shared no-sock no-srp no-srtp no-sse2 enable-ssl-trace
-no-static-engine no-stdio no-threads no-ts enable-ubsan no-ui
-enable-unit-test no-whirlpool enable-weak-ssl-ciphers enable-zlib
-enable-zlib-dynamic 386 no-dtls no-tls no-ssl3 no-tls1 no-tls1_1 no-tls1_2
-no-dtls1 no-dtls1_2 no-ssl3-method no-tls1-method no-tls1_1-method
-no-tls1_2-method no-dtls1-method no-dtls1_2-method no-siphash no-tls1_3 no-sm2
-no-sm3 no-sm4 enable-trace no-legacy no-cached-fetch no-autoload-config
-'no-buildtest-c++' no-bulk no-cmp no-ktls no-module no-padlockeng
-no-pinshared no-secure-memory no-siv no-uplink enable-acvp-tests enable-fips
-'enable-fips no-fips-securitychecks' 'enable-fips enable-acvp-tests'
-'enable-fips no-tls' 'enable-fips no-tls1_1' 'enable-fips no-tls1'
-'enable-fips no-ssl3-method' 'enable-fips no-tls1-method'
-'enable-fips no-tls1_1-method' 'enable-fips no-tls1_3'
+enable-fuzz-afl enable-fuzz-libfuzzer
 )
 
 run-hook () {
