@@ -335,16 +335,17 @@ Also check the notes here:
 Send out the announcements.  Generic release announcement messages will be
 created automatically by the build script and the commands you need to use
 to send them were displayed when you executed do-release.pl above.
-These should normally be sent from the openssl account.  These are sent to
-openssl-users, openssl-project, and openssl-announce.
+These are sent to openssl-users, openssl-project, and openssl-announce. They
+should be sent from the account of the person that owns the key used for signing
+the release announcement. Ensure that mutt is configured correctly - send a test
+email first if necessary.
 
 If do-release.pl was used with `--move` be sure to move the announcement
 text files away from the staging directory after they have been sent.  This
 is done as follows (with VERSION replaced with the version of OpenSSL to
 announce):
 
-    sudo -u openssl \
-        mutt -s "OpenSSL version VERSION published" \
+    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL version VERSION published" \
             openssl-project openssl-users openssl-announce \
             < /home/openssl/dist/new/openssl-VERSION.txt.asc
     sudo -u openssl \
@@ -367,9 +368,9 @@ Then copy the result to the temporary directory on dev.openssl.org:
     scp secadv_FILENAME.txt.asc dev.openssl.org:/tmp
 
 To finish, log in on dev.openssl.org and send the signed Security
-Advisory by email as the openssl user, and the remove it:
+Advisory by email as the user that signed the advisory, and then remove it:
 
-    sudo -u openssl mutt -s "OpenSSL Security Advisory" \
+    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
             openssl-project openssl-users openssl-announce \
             </tmp/secadv_FILENAME.txt.asc
     rm /tmp/secadv_FILENAME.txt.asc
