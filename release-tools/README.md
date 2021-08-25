@@ -141,11 +141,10 @@ typically want to sanity check this with:
 
         git push -n
 
-Push new tags to public repo. Again sanity check with:
+Push new tags to public repo. You must specify the repository / remote and tag
+name explicitly. Again sanity check with:
 
-        git push --tags -n
-
-to make sure no local tags were pushed.
+        git push -n <repository> <tagname>
 
 ##  Updating the website
 

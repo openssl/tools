@@ -286,9 +286,11 @@ instructed by `dev/release.sh`.  You may want to sanity check the pushes by
 inserting the `-n` (dry-run) option.
 
 *For OpenSSL before 3.0*, simply push your local changes to the main source
-repo, and please do remember to push the release tags as well, which is done
-separately with the `--tags` option.  You may want to sanity check the
-pushes by inserting the `-n` (dry-run) option.
+repo, and please do remember to push the release tags as well. You may want to
+sanity check the pushes by inserting the `-n` (dry-run) option. You must specify
+the repository / remote and tag to be pushed:
+
+    git push <repository> <tagname>
 
 ## Updating the website
 
