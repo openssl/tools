@@ -288,7 +288,10 @@ inserting the `-n` (dry-run) option.
 *For OpenSSL before 3.0*, simply push your local changes to the main source
 repo, and please do remember to push the release tags as well, which is done
 separately with the `--tags` option.  You may want to sanity check the
-pushes by inserting the `-n` (dry-run) option.
+pushes by inserting the `-n` (dry-run) option. You must specify the tag to be
+pushed when using `--tags` to avoid pushing all tags in your local repository:
+
+    git push --tags <tagname>
 
 ## Updating the website
 
