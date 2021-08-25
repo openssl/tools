@@ -144,7 +144,7 @@ typically want to sanity check this with:
 Push new tags to public repo. You must specify the remote and tag name
 explicitly. Again sanity check with:
 
-        git push -n <remote> <tagname>
+        git push -n <repository> <tagname>
 
 ##  Updating the website
 
