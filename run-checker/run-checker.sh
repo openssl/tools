@@ -21,9 +21,7 @@
 # hook-takedown - called at the very end
 
 here=$(cd $(dirname $0); pwd)
-opts=( ''
-enable-fuzz-afl enable-fuzz-libfuzzer
-)
+opts=( '' )
 
 run-hook () {
     local hookname=$1; shift
