@@ -9,12 +9,16 @@ test -f ./config || {
 git checkout --quiet OpenSSL_1_0_2-stable ; git pull --rebase
 git checkout --quiet OpenSSL_1_1_0-stable ; git pull --rebase
 git checkout --quiet OpenSSL_1_1_1-stable ; git pull --rebase
+git checkout --quiet openssl-3.0 ; git pull --rebase
 git checkout --quiet master
 git rebase -p origin/master
 
 for B in `git branch | fgrep -v '*'` ; do
     case "$B" in
     OpenSSL*-stable)
+        echo "        skipping $B"
+        ;;
+    openssl-*)
         echo "        skipping $B"
         ;;
     *)
