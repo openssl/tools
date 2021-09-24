@@ -141,8 +141,8 @@ typically want to sanity check this with:
 
         git push -n
 
-Push new tags to public repo. You must specify the remote and tag name
-explicitly. Again sanity check with:
+Push new tags to public repo. You must specify the repository / remote and tag
+name explicitly. Again sanity check with:
 
         git push -n <repository> <tagname>
 
