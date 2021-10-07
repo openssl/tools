@@ -202,28 +202,28 @@ else
     git fetch $REPO $BRANCH && git cherry-pick FETCH_HEAD
 fi
 
-echo Diff against $REF
-git diff $REF
+echo Diff against $REMOTE/$REF
+git diff $REMOTE/$REF
 
 if [ "$INTERACTIVE" == "yes" ] ; then
-    echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REF: "; read foo
-    git rebase -i $AUTOSQUASH $REF || (git rebase --abort; exit 1)
-    echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM ${REF}.."
-    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM ${REF}..
+    echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$REF: "; read foo
+    git rebase -i $AUTOSQUASH $REMOTE/$REF || (git rebase --abort; exit 1)
+    echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$REF.."
+    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$REF..
 fi
 
-echo Log since $REF
-git log $REF..
+echo Log since $REMOTE/$REF
+git log $REMOTE/$REF..
 
 git checkout $REF
 if [ "$INTERACTIVE" != "yes" ] ; then
-    echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REF: "; read foo
+    echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REMOTE/$REF: "; read foo
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/${REF}..
 else
-    # echo -n "Press Enter to merge to $REF: "; read foo
+    # echo -n "Press Enter to merge to $REMOTE/$REF: "; read foo
     git merge --ff-only $WORK
 fi
 
