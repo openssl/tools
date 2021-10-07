@@ -22,7 +22,7 @@ Examples:
   ghmerge 12345 mattcaswell
   ghmerge 12345 paulidale t8m --nobuild --myemail=dev@ddvo.net
   ghmerge edd05b7^^^^..19692bb2c32 --squash -- 12345 levitte
-  ghmerge 12345 slontis --ref OpenSSL_1_1_1-stable"
+  ghmerge 12345 slontis --ref openssl-3.0"
     exit 9
 }
 
@@ -155,8 +155,31 @@ if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
     exit 1
 fi
 
+ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
+STASH_OUT=`git stash`
+WORK="copy-of-${WHO}-${BRANCH}"
+
+(git branch | grep -q "$WORK") && (echo "Branch already exists: $WORK"; exit 1)
+
+function cleanup {
+    rv=$?
+    echo # make sure to enter new line, needed, e.g., after Ctrl-C
+    [ $rv -ne 0 ] && echo -e "\nghmerge failed"
+    if [ "$REF" != "$ORIG_REF" ] || [ "$WORK_USED" != "" ]; then
+        echo Returning to previous branch $ORIG_REF
+        git checkout -q $ORIG_REF
+    fi
+    if [ "$WORK_USED" != "" ]; then
+        git branch -qD $WORK_USED
+    fi
+    if [ "$STASH_OUT" != "No local changes to save" ]; then
+        git stash pop -q # restore original state, pruning any leftover commits added locally
+    fi
+}
+trap 'cleanup' EXIT
+
 if [ "$REF" = "" ]; then
-    REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master' or, e.g., 'OpenSSL_1_1_1-stable'
+    REF=$ORIG_REF
 else
     echo -n "Press Enter to checkout $REF: "; read foo
     git checkout $REF
@@ -165,29 +188,17 @@ fi
 echo -n "Press Enter to pull the latest $REMOTE/$REF: "; read foo
 git pull $REMOTE $REF || (git rebase --abort; exit 1)
 
-WORK="copy-of-${WHO}-${BRANCH}"
-
-function cleanup {
-    rv=$?
-    echo # new line
-    [ $rv -ne 0 ] && echo -e "\nghmerge failed"
-    if [ "$WORK" != "$REF" ]; then
-        echo Restoring local $REF
-        git checkout -q $REF
-        git branch -qD $WORK 2>/dev/null
-    fi
-    git reset --hard $REMOTE/$REF # prune any leftover commits added locally
-}
-trap 'cleanup' EXIT
-
+WORK_USED=$WORK
 # append new commits from $REPO/$BRANCH
 if [ "$PICK" != "yes" ]; then
     echo Rebasing $REPO/$BRANCH on $REF...
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
+    WORK_USED=$WORK
     git rebase $REF || (echo 'Fix or Ctrl-d to abort' ; read || (git rebase --abort; exit 1))
 else
     echo Cherry-picking $REPO/$BRANCH to $REF...
     git checkout -b $WORK $REF
+    WORK_USED=$WORK
     git fetch $REPO $BRANCH && git cherry-pick FETCH_HEAD
 fi
 
