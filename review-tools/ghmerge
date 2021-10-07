@@ -178,9 +178,8 @@ function cleanup {
 }
 trap 'cleanup' EXIT
 
-if [ "$REF" = "" ]; then
-    REF=$ORIG_REF
-else
+[ "$REF" = "" ] && REF=$ORIG_REF
+if [ "$REF" != "$ORIG_REF" ]; then    
     echo -n "Press Enter to checkout $REF: "; read foo
     git checkout $REF
 fi
