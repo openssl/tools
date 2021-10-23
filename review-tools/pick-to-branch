@@ -3,6 +3,7 @@
 function usage {
     echo "Usage: pick-to-branch [<commit_id>] <branch>
     Cherry-pick a commit on the given target branch.
+    If this is no the current branch, the current branch and its state are preserved.
 
     If <commit_id>, intuit commit id from master.
     The <branch> arg must match a release branch or start with 'm' for master.
@@ -70,8 +71,29 @@ then
     exit 1
 fi
 
-git checkout --quiet master || exit 1
-git checkout $branch || exit 1
+
+ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
+if [ "$branch" != "$ORIG_REF" ]; then
+    STASH_OUT=`git stash`
+fi
+
+function cleanup {
+    rv=$?
+    echo # make sure to enter new line, needed, e.g., after Ctrl-C
+    [ $rv -ne 0 ] && echo -e "pick-to-branch failed"
+    if [ "$branch" != "$ORIG_REF" ]; then
+        echo Returning to previous branch $ORIG_REF
+        git checkout -q $ORIG_REF
+        if [ "$STASH_OUT" != "No local changes to save" ]; then
+            git stash pop -q # restore original state, pruning any leftover commits added locally
+        fi
+    fi
+}
+set -o errexit
+trap 'cleanup' EXIT
+
+git checkout --quiet master
+git checkout $branch
 git cherry-pick -e -x $id
 
 while true
@@ -89,5 +111,3 @@ if [ "$x" = "y" -o "$x" = "yes" ]
 then
     git push
 fi
-
-git checkout master
