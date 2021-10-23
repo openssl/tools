@@ -1,6 +1,13 @@
 #! /bin/bash
 
-# If one arg, intuit commit id from master
+function usage {
+    echo "Usage: pick-to-branch [<commit_id>] <branch>
+    Cherry-pick a commit on the given target branch.
+
+    If <commit_id>, intuit commit id from master.
+    The <branch> arg must match a release branch or start with 'm' for master.
+    A release branch may be given simply as 102, 110, 111, 30, 31."
+}
 
 case $# in
 2)
@@ -12,7 +19,7 @@ case $# in
     b=$1
     ;;
 *)
-    echo "Usage $0 [commitid] branch"
+    usage
     exit 1
     ;;
 esac
@@ -31,6 +38,9 @@ case $b in
 *3*0*)
     branch=openssl-3.0
     ;;
+*3*1*)
+    branch=openssl-3.1
+    ;;
 m*)
     branch=master
     ;;
@@ -40,13 +50,13 @@ m*)
     ;;
 esac
 
-echo "id is $id"
-echo "branch is $branch"
+echo "commit id is $id"
+echo "target branch is $branch"
 echo "Are these correct?"
 
 while true
 do
-    echo -n "Enter 'yes' to continue or 'no' to abort: "
+    echo -n "Enter 'y'/'yes' to continue or 'n'/'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]
@@ -66,7 +76,7 @@ git cherry-pick -e -x $id
 
 while true
 do
-    echo -n "Enter 'yes' to push or 'no' to abort: "
+    echo -n "Enter 'y'/'yes' to push or 'n'/'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]
