@@ -16,7 +16,7 @@ case $# in
     b=$2
     ;;
 1)
-    id=`git branch -v | awk '$2=="master" { print $3; }'`
+    id=`git branch -v | awk '$1=="master" { print $2; }'`
     b=$1
     ;;
 *)
