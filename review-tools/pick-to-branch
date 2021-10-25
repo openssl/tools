@@ -3,7 +3,7 @@
 function usage {
     echo "Usage: pick-to-branch [<commit_id>] <branch>
     Cherry-pick a commit on the given target branch.
-    If this is no the current branch, the current branch and its state are preserved.
+    If this is not the current branch, the current branch and its state are preserved.
 
     If <commit_id>, intuit commit id from master.
     The <branch> arg must match a release branch or start with 'm' for master.
