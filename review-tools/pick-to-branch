@@ -94,7 +94,7 @@ trap 'cleanup' EXIT
 
 git checkout --quiet master
 git checkout $branch
-git cherry-pick -e -x $id
+git cherry-pick -e -x $id || (git cherry-pick --abort; exit 1)
 
 while true
 do
