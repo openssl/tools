@@ -2,7 +2,7 @@
 
 function usage {
     echo "Usage: pick-to-branch [<commit_id>] <branch>
-    Cherry-pick a commit on the given target branch.
+    Cherry-pick a commit on the given release target branch.
     If this is not the current branch, the current branch and its state are preserved.
 
     If <commit_id>, intuit commit id from master.
@@ -46,7 +46,7 @@ m*)
     branch=master
     ;;
 *)
-    echo Unknown branch
+    echo Unknown release target branch \'$b\'
     exit 1
     ;;
 esac
