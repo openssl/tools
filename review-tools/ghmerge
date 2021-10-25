@@ -165,6 +165,13 @@ function cleanup {
     rv=$?
     echo # make sure to enter new line, needed, e.g., after Ctrl-C
     [ $rv -ne 0 ] && echo -e "\nghmerge failed"
+    if [ "$REBASING" == 1 ] ; then
+        git rebase --abort 2>/dev/null || true
+    fi
+    if [ "$CHERRYPICKING" == 1 ] ; then
+        echo "Hint: maybe --cherry-pick was not given a suitable <n> parameter."
+        git cherry-pick --abort 2>/dev/null || true
+    fi
     if [ "$REF" != "$ORIG_REF" ] || [ "$WORK_USED" != "" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
@@ -185,7 +192,9 @@ if [ "$REF" != "$ORIG_REF" ]; then
 fi
 
 echo -n "Press Enter to pull the latest $REMOTE/$REF: "; read foo
-git pull $REMOTE $REF || (git rebase --abort; exit 1)
+REBASING=1
+git pull $REMOTE $REF || exit 1
+REBASING=
 
 WORK_USED=$WORK
 # append new commits from $REPO/$BRANCH
@@ -193,12 +202,16 @@ if [ "$PICK" != "yes" ]; then
     echo Rebasing $REPO/$BRANCH on $REF...
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
     WORK_USED=$WORK
-    git rebase $REF || (echo 'Fix or Ctrl-d to abort' ; read || (git rebase --abort; exit 1))
+    REBASING=1
+    git rebase $REF || (echo 'Fix or Ctrl-d to abort' ; read || exit 1)
+    REBASING=
 else
     echo Cherry-picking $REPO/$BRANCH to $REF...
     git checkout -b $WORK $REF
     WORK_USED=$WORK
-    git fetch $REPO $BRANCH && git cherry-pick FETCH_HEAD
+    CHERRYPICKING=1
+    git fetch $REPO $BRANCH && (git cherry-pick FETCH_HEAD || exit 1)
+    CHERRYPICKING=
 fi
 
 echo Diff against $REMOTE/$REF
@@ -206,7 +219,9 @@ git diff $REMOTE/$REF
 
 if [ "$INTERACTIVE" == "yes" ] ; then
     echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$REF: "; read foo
-    git rebase -i $AUTOSQUASH $REMOTE/$REF || (git rebase --abort; exit 1)
+    REBASING=1
+    git rebase -i $AUTOSQUASH $REMOTE/$REF || exit 1
+    REBASING=
     echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$REF.."
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$REF..
 fi
