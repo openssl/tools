@@ -113,4 +113,6 @@ done
 if [ "$x" = "y" -o "$x" = "yes" ]
 then
     git push
+else
+    git reset --hard @~1
 fi
