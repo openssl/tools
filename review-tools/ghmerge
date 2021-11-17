@@ -12,7 +12,7 @@ Option style arguments:
 --web               Merge a web PR (rather than openssl PR)
 --remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
 --ref <branch>      Branch to merge with (rather than current branch), usually 'master'
---cherry-pick       Use cherry-pick (rather than pull --rebase)
+--cherry-pick <n>   Cherry-pick the last n commits (rather than rebasing)
 --squash            Squash new commits non-interactively (allows editing msg)
 --noautosquash      Do not automatically squash fixups in interactive rebase
 --nobuild           Do not call 'openssbuild' before merging
@@ -22,7 +22,8 @@ Examples:
   ghmerge 12345 mattcaswell
   ghmerge 12345 paulidale t8m --nobuild --myemail=dev@ddvo.net
   ghmerge edd05b7^^^^..19692bb2c32 --squash -- 12345 levitte
-  ghmerge 12345 slontis --ref openssl-3.0"
+  ghmerge 12345 slontis --ref openssl-3.0
+  ghmerge --nobuild --ref openssl-3.0 --cherry-pick 3 16051 paulidale"
     exit 9
 }
 
@@ -59,7 +60,7 @@ while [ $# -ne 0 ]; do
         WHAT=web ; BUILD=no ; shift
         ;;
     --cherry-pick)
-        PICK=yes ; shift
+        shift; PICK=$1; shift
         ;;
     --noautosquash)
         AUTOSQUASH="" ; shift
@@ -197,7 +198,7 @@ REBASING=
 
 WORK_USED=$WORK
 # append new commits from $REPO/$BRANCH
-if [ "$PICK" != "yes" ]; then
+if [ "$PICK" == "" ]; then
     echo Rebasing $REPO/$BRANCH on $REF...
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
     WORK_USED=$WORK
@@ -209,7 +210,7 @@ else
     git checkout -b $WORK $REF
     WORK_USED=$WORK
     CHERRYPICKING=1
-    git fetch $REPO $BRANCH && (git cherry-pick FETCH_HEAD || exit 1)
+    git fetch $REPO $BRANCH && (git cherry-pick FETCH_HEAD~$PICK..FETCH_HEAD || exit 1)
     CHERRYPICKING=
 fi
 
