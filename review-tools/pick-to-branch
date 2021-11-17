@@ -84,6 +84,9 @@ function cleanup {
     rv=$?
     echo # make sure to enter new line, needed, e.g., after Ctrl-C
     [ $rv -ne 0 ] && echo -e "pick-to-branch failed"
+    if [ "$CHERRYPICKING" == 1 ] ; then
+        git cherry-pick --abort 2>/dev/null || true
+    fi
     if [ "$branch" != "$ORIG_REF" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
@@ -98,7 +101,9 @@ trap 'cleanup' EXIT
 git checkout --quiet master
 git checkout $branch
 git pull --ff-only
+CHERRYPICKING=1
 git cherry-pick -e -x $id || (git cherry-pick --abort; exit 1)
+CHERRYPICKING=
 
 while true
 do
