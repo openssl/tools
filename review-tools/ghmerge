@@ -12,7 +12,7 @@ Option style arguments:
 --web               Merge a web PR (rather than openssl PR)
 --remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
 --ref <branch>      Branch to merge with (rather than current branch), usually 'master'
---cherry-pick <n>   Cherry-pick the last n commits (rather than rebasing)
+--cherry-pick [<n>] Cherry-pick the last n (1 <= n <= 99, default: 1) commits, rather than rebasing
 --squash            Squash new commits non-interactively (allows editing msg)
 --noautosquash      Do not automatically squash fixups in interactive rebase
 --nobuild           Do not call 'openssbuild' before merging
@@ -60,7 +60,11 @@ while [ $# -ne 0 ]; do
         WHAT=web ; BUILD=no ; shift
         ;;
     --cherry-pick)
-        shift; PICK=$1; shift
+        shift;
+        PICK=1;
+        if [ $1 != "" ] && [ $1 -ge 1 ] && [ $1 -le 99 ]; then
+            PICK=$1 ; shift
+        fi
         ;;
     --noautosquash)
         AUTOSQUASH="" ; shift
