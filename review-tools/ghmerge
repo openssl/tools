@@ -62,7 +62,7 @@ while [ $# -ne 0 ]; do
     --cherry-pick)
         shift;
         PICK=1;
-        if [ $1 != "" ] && [ $1 -ge 1 ] && [ $1 -le 99 ]; then
+        if [ "$1" != "" ] && [ $1 -ge 1 ] && [ $1 -le 99 ]; then
             PICK=$1 ; shift
         fi
         ;;
