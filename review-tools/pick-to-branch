@@ -1,17 +1,27 @@
 #! /bin/bash
 
 function usage {
-    echo "Usage: pick-to-branch [<id>] <branch>
-    Cherry-pick a commit on the given release target branch.
+    echo "Usage: pick-to-branch [<id>] <branch> [<num>]
+    Cherry-pick a commit (or <num> commits) on the given release target branch.
     If this is not the current branch, the current branch and its state are preserved.
 
     The commit can be given in the form of a branch name.
     If no <id> arg is given, use the commit id of the HEAD of the master.
     The <branch> arg must match a release branch or start with 'm' for master.
-    A release branch may be given simply as 102, 110, 111, 30, 31."
+    A release branch may be given simply as 102, 110, 111, 30, 31.
+
+    The <num> argument defaults to 1 and can be specified only in case <id> is
+    also given."
 }
 
+num=1
+
 case $# in
+3)
+    id=$1
+    b=$2
+    num=$3
+    ;;
 2)
     id=$1
     b=$2
@@ -52,11 +62,14 @@ m*)
     ;;
 esac
 
-echo "Commit to chery-pick is $id:"
-git show $id | head -n 5
-echo
+echo "First commit to cherry-pick is: $id~$((num - 1))"
 echo "Target branch is: $branch"
-echo "Are both of these correct?"
+echo "Number of commits to pick: $num"
+echo "Commits to be cherry-picked:"
+echo
+git log $id~$num..$id
+echo
+echo "Are these correct?"
 
 while true
 do
@@ -102,7 +115,7 @@ git checkout --quiet master
 git checkout $branch
 git pull --ff-only
 CHERRYPICKING=1
-git cherry-pick -e -x $id || (git cherry-pick --abort; exit 1)
+git cherry-pick -e -x $id~$num..$id || (git cherry-pick --abort; exit 1)
 CHERRYPICKING=
 
 while true
