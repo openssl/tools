@@ -202,7 +202,6 @@ REBASING=1
 git pull $REMOTE $TARGET || exit 1
 REBASING=
 
-WORK_USED=$WORK
 # append new commits from $REPO/$BRANCH
 if [ "$PICK" == "no" ]; then
     echo Rebasing $REPO/$BRANCH on $TARGET...
