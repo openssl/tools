@@ -178,6 +178,10 @@ function cleanup {
         echo "Hint: maybe --cherry-pick was not given a suitable <n> parameter."
         git cherry-pick --abort 2>/dev/null || true
     fi
+    if [ "$ORIG_TARGET_HEAD" != "" ]; then
+        echo Restoring original commit HEAD of $TARGET
+        git reset --hard "$ORIG_TARGET_HEAD"
+    fi
     if [ "$TARGET" != "$ORIG_REF" ] || [ "$WORK_USED" != "" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
@@ -186,7 +190,7 @@ function cleanup {
         git branch -qD $WORK_USED
     fi
     if [ "$STASH_OUT" != "No local changes to save" ]; then
-        git stash pop -q # restore original state, pruning any leftover commits added locally
+        git stash pop -q # restore original state of $ORIG_REF, pruning any leftover commits added locally
     fi
 }
 trap 'cleanup' EXIT
@@ -231,18 +235,23 @@ if [ "$INTERACTIVE" == "yes" ] ; then
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET..
 fi
 
+echo
 echo Log since $REMOTE/$TARGET
 git log $REMOTE/$TARGET..
 
 git checkout $TARGET
 if [ "$INTERACTIVE" != "yes" ] ; then
     echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REMOTE/$TARGET: "; read foo
+    ORIG_TARGET_HEAD=`git show -s --format="%H"`
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/${TARGET}..
 else
-    # echo -n "Press Enter to merge to $REMOTE/$TARGET: "; read foo
+    # echo -n "Press Enter to merge to $TARGET: "; read foo
+    echo
+    echo "Merging to $TARGET"
+    ORIG_TARGET_HEAD=`git show -s --format="%H"`
     git merge --ff-only $WORK
 fi
 
@@ -265,4 +274,5 @@ done
 
 if [ "$x" = "y" -o "$x" = "yes" ] ; then
     git push -v $REMOTE $TARGET
+    ORIG_TARGET_HEAD=
 fi
