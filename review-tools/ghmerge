@@ -202,7 +202,7 @@ REBASING=
 
 WORK_USED=$WORK
 # append new commits from $REPO/$BRANCH
-if [ "$PICK" == "" ]; then
+if [ "$PICK" == "no" ]; then
     echo Rebasing $REPO/$BRANCH on $REF...
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
     WORK_USED=$WORK
