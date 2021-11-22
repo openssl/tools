@@ -11,7 +11,8 @@ Option style arguments:
 --tools             Merge a tools PR (rather than openssl PR)
 --web               Merge a web PR (rather than openssl PR)
 --remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
---ref <branch>      Branch to merge with (rather than current branch), usually 'master'
+--target <branch>   Merge target (rather than current branch), usually 'master'
+--ref <branch>      A synonym for --target
 --cherry-pick [<n>] Cherry-pick the last n (1 <= n <= 99, default: 1) commits, rather than rebasing
 --squash            Squash new commits non-interactively (allows editing msg)
 --noautosquash      Do not automatically squash fixups in interactive rebase
@@ -22,8 +23,8 @@ Examples:
   ghmerge 12345 mattcaswell
   ghmerge 12345 paulidale t8m --nobuild --myemail=dev@ddvo.net
   ghmerge edd05b7^^^^..19692bb2c32 --squash -- 12345 levitte
-  ghmerge 12345 slontis --ref openssl-3.0
-  ghmerge --nobuild --ref openssl-3.0 --cherry-pick 3 16051 paulidale"
+  ghmerge 12345 slontis --target openssl-3.0
+  ghmerge --nobuild --target openssl-3.0 --cherry-pick 3 16051 paulidale"
     exit 9
 }
 
@@ -34,7 +35,7 @@ PICK=no
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
 REMOTE=""
-REF=""
+TARGET=""
 BUILD=yes
 [ -z ${CC+x} ] && CC="ccache gcc" # opensslbuild will otherwise use "ccache clang-3.6"
 
@@ -82,12 +83,12 @@ while [ $# -ne 0 ]; do
         fi
         shift; REMOTE=$1; shift
         ;;
-    --ref)
+    --target|--ref)
         if [ $# -lt 2 ] ; then
             echo "Missing argument of '$1'"
             usage_exit
         fi
-        shift; REF=$1; shift
+        shift; TARGET=$1; shift
         ;;
     --)
         if [ $# -lt 3 ] ; then
@@ -177,7 +178,7 @@ function cleanup {
         echo "Hint: maybe --cherry-pick was not given a suitable <n> parameter."
         git cherry-pick --abort 2>/dev/null || true
     fi
-    if [ "$REF" != "$ORIG_REF" ] || [ "$WORK_USED" != "" ]; then
+    if [ "$TARGET" != "$ORIG_REF" ] || [ "$WORK_USED" != "" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
     fi
@@ -190,64 +191,64 @@ function cleanup {
 }
 trap 'cleanup' EXIT
 
-[ "$REF" = "" ] && REF=$ORIG_REF
-if [ "$REF" != "$ORIG_REF" ]; then    
-    echo -n "Press Enter to checkout $REF: "; read foo
-    git checkout $REF
+[ "$TARGET" = "" ] && TARGET=$ORIG_REF
+if [ "$TARGET" != "$ORIG_REF" ]; then
+    echo -n "Press Enter to checkout $TARGET: "; read foo
+    git checkout $TARGET
 fi
 
-echo -n "Press Enter to pull the latest $REMOTE/$REF: "; read foo
+echo -n "Press Enter to pull the latest $REMOTE/$TARGET: "; read foo
 REBASING=1
-git pull $REMOTE $REF || exit 1
+git pull $REMOTE $TARGET || exit 1
 REBASING=
 
 WORK_USED=$WORK
 # append new commits from $REPO/$BRANCH
 if [ "$PICK" == "no" ]; then
-    echo Rebasing $REPO/$BRANCH on $REF...
+    echo Rebasing $REPO/$BRANCH on $TARGET...
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
     WORK_USED=$WORK
     REBASING=1
-    git rebase $REF || (echo 'Fix or Ctrl-d to abort' ; read || exit 1)
+    git rebase $TARGET || (echo 'Fix or Ctrl-d to abort' ; read || exit 1)
     REBASING=
 else
-    echo Cherry-picking $REPO/$BRANCH to $REF...
-    git checkout -b $WORK $REF
+    echo Cherry-picking $REPO/$BRANCH to $TARGET...
+    git checkout -b $WORK $TARGET
     WORK_USED=$WORK
     CHERRYPICKING=1
     git fetch $REPO $BRANCH && (git cherry-pick FETCH_HEAD~$PICK..FETCH_HEAD || exit 1)
     CHERRYPICKING=
 fi
 
-echo Diff against $REMOTE/$REF
-git diff $REMOTE/$REF
+echo Diff against $REMOTE/$TARGET
+git diff $REMOTE/$TARGET
 
 if [ "$INTERACTIVE" == "yes" ] ; then
-    echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$REF: "; read foo
+    echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$TARGET: "; read foo
     REBASING=1
-    git rebase -i $AUTOSQUASH $REMOTE/$REF || exit 1
+    git rebase -i $AUTOSQUASH $REMOTE/$TARGET || exit 1
     REBASING=
-    echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$REF.."
-    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$REF..
+    echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET.."
+    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET..
 fi
 
-echo Log since $REMOTE/$REF
-git log $REMOTE/$REF..
+echo Log since $REMOTE/$TARGET
+git log $REMOTE/$TARGET..
 
-git checkout $REF
+git checkout $TARGET
 if [ "$INTERACTIVE" != "yes" ] ; then
-    echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REMOTE/$REF: "; read foo
+    echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REMOTE/$TARGET: "; read foo
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
-    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/${REF}..
+    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/${TARGET}..
 else
-    # echo -n "Press Enter to merge to $REMOTE/$REF: "; read foo
+    # echo -n "Press Enter to merge to $REMOTE/$TARGET: "; read foo
     git merge --ff-only $WORK
 fi
 
-echo New log since $REMOTE/$REF
-git log $REMOTE/$REF..
+echo New log since $REMOTE/$TARGET
+git log $REMOTE/$TARGET..
 
 if [ "$BUILD" == "yes" ] ; then
     echo Rebuilding...
@@ -255,7 +256,7 @@ if [ "$BUILD" == "yes" ] ; then
 fi
 
 while true ; do
-    echo -n "Enter 'y'/'yes' to push to $REMOTE/$REF or 'n'/'no' to abort: "
+    echo -n "Enter 'y'/'yes' to push to $REMOTE/$TARGET or 'n'/'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
     if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ] ; then
@@ -264,5 +265,5 @@ while true ; do
 done
 
 if [ "$x" = "y" -o "$x" = "yes" ] ; then
-    git push -v $REMOTE $REF
+    git push -v $REMOTE $TARGET
 fi
