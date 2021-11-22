@@ -1,8 +1,8 @@
 #! /bin/bash
 
 function usage {
-    echo "Usage: pick-to-branch [<id>] <branch>
-    Cherry-pick a commit on the given release target branch.
+    echo "Usage: pick-to-branch [<id>] <branch> [<num>]
+    Cherry-pick a commit (or <num> commits) on the given release target branch.
     If this is not the current branch, the current branch and its state are preserved.
 
     The commit can be given in the form of a branch name.
@@ -11,7 +11,14 @@ function usage {
     A release branch may be given simply as 102, 110, 111, 30, 31."
 }
 
+num=0
+
 case $# in
+3)
+    id=$1
+    b=$2
+    num=$(($3 - 1))
+    ;;
 2)
     id=$1
     b=$2
@@ -52,11 +59,12 @@ m*)
     ;;
 esac
 
-echo "Commit to chery-pick is $id:"
-git show $id | head -n 5
+echo "Commit to start cherry-picking is $id~$num:"
+git show $id~$num | head -n 5
 echo
 echo "Target branch is: $branch"
-echo "Are both of these correct?"
+echo "Number of commits to pick: $((num+1))"
+echo "Are these correct?"
 
 while true
 do
@@ -101,9 +109,11 @@ trap 'cleanup' EXIT
 git checkout --quiet master
 git checkout $branch
 git pull --ff-only
-CHERRYPICKING=1
-git cherry-pick -e -x $id || (git cherry-pick --abort; exit 1)
-CHERRYPICKING=
+for n in `seq $num -1 0` ; do
+    CHERRYPICKING=1
+    git cherry-pick -e -x $id~$n || (git cherry-pick --abort; exit 1)
+    CHERRYPICKING=
+done
 
 while true
 do
