@@ -17,7 +17,7 @@ case $# in
 3)
     id=$1
     b=$2
-    num=$(($3 - 1))
+    num=$3
     ;;
 2)
     id=$1
@@ -59,11 +59,11 @@ m*)
     ;;
 esac
 
-echo "Commit to start cherry-picking is $id~$num:"
-git show $id~$num | head -n 5
+echo "Commit to start cherry-picking is $id~$((num - 1)):"
+git show $id~$((num - 1)) | head -n 5
 echo
 echo "Target branch is: $branch"
-echo "Number of commits to pick: $((num+1))"
+echo "Number of commits to pick: $num"
 echo "Are these correct?"
 
 while true
@@ -109,11 +109,9 @@ trap 'cleanup' EXIT
 git checkout --quiet master
 git checkout $branch
 git pull --ff-only
-for n in `seq $num -1 0` ; do
-    CHERRYPICKING=1
-    git cherry-pick -e -x $id~$n || (git cherry-pick --abort; exit 1)
-    CHERRYPICKING=
-done
+CHERRYPICKING=1
+git cherry-pick -e -x $id~$num..$id || (git cherry-pick --abort; exit 1)
+CHERRYPICKING=
 
 while true
 do
