@@ -62,11 +62,13 @@ m*)
     ;;
 esac
 
-echo "Commit to start cherry-picking is $id~$((num - 1)):"
-git show $id~$((num - 1)) | head -n 5
-echo
+echo "First commit to cherry-pick is: $id~$((num - 1))"
 echo "Target branch is: $branch"
 echo "Number of commits to pick: $num"
+echo "Commits to be cherry-picked:"
+echo
+git log $id~$num..$id
+echo
 echo "Are these correct?"
 
 while true
