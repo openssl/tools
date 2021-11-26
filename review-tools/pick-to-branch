@@ -1,16 +1,16 @@
 #! /bin/bash
 
 function usage {
-    echo "Usage: pick-to-branch [<id>] <branch> [<num>]
+    echo "Usage: pick-to-branch [<id>] <target> [<num>]
 
-    Cherry-pick a commit (or <num> commits) on the given release target branch.
+    Cherry-pick a commit (or <num> commits) on the given target release branch.
     If this is not the current branch, the current branch and its state are preserved.
 
     The optional <id> arg specifies the ID of the (last) commit to cherry-pick.
     It can be given in the form of a branch name.
     If no <id> arg is given, the commit id of the HEAD of the master is used.
 
-    The <branch> arg must match a release branch or start with 'm' for master.
+    The <target> arg must match a release branch or start with 'm' for master.
     A release branch may be given simply as 102, 110, 111, 30, 31.
 
     The optional <num> argument specifies the number of commits to cherry-pick.
@@ -42,31 +42,31 @@ esac
 
 case $b in
 *1*0*2*)
-    branch=OpenSSL_1_0_2-stable
+    target=OpenSSL_1_0_2-stable
     ;;
 *1*1*0*)
-    branch=OpenSSL_1_1_0-stable
+    target=OpenSSL_1_1_0-stable
     ;;
 *1*1*1*)
-    branch=OpenSSL_1_1_1-stable
+    target=OpenSSL_1_1_1-stable
     ;;
 *3*0*)
-    branch=openssl-3.0
+    target=openssl-3.0
     ;;
 *3*1*)
-    branch=openssl-3.1
+    target=openssl-3.1
     ;;
 m*)
-    branch=master
+    target=master
     ;;
 *)
-    echo Unknown release target branch \'$b\'
+    echo Unknown target release branch \'$b\'
     exit 1
     ;;
 esac
 
 echo "First commit to cherry-pick is: $id~$((num - 1))"
-echo "Target branch is: $branch"
+echo "Target branch is: $target"
 echo "Number of commits to pick: $num"
 echo "Commit(s) to be cherry-picked:"
 echo
@@ -76,7 +76,7 @@ echo
 echo -n "Press Enter to continue, Ctrl-C to abort:"; read foo
 
 ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
-if [ "$branch" != "$ORIG_REF" ]; then
+if [ "$target" != "$ORIG_REF" ]; then
     STASH_OUT=`git stash`
 fi
 
@@ -88,7 +88,7 @@ function cleanup {
         echo "cherry-picking failed - maybe did not provide a suitable <num> argument?"
         git cherry-pick --abort 2>/dev/null || true
     fi
-    if [ "$branch" != "$ORIG_REF" ]; then
+    if [ "$target" != "$ORIG_REF" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
         if [ "$STASH_OUT" != "No local changes to save" ]; then
@@ -100,7 +100,7 @@ set -o errexit
 trap 'cleanup' EXIT
 
 git checkout --quiet master
-git checkout $branch
+git checkout $target
 git pull --ff-only
 CHERRYPICKING=1
 git cherry-pick -e -x $id~$num..$id || (git cherry-pick --abort; exit 1)
