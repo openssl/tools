@@ -2,16 +2,19 @@
 
 function usage {
     echo "Usage: pick-to-branch [<id>] <branch> [<num>]
+
     Cherry-pick a commit (or <num> commits) on the given release target branch.
     If this is not the current branch, the current branch and its state are preserved.
 
-    The commit can be given in the form of a branch name.
-    If no <id> arg is given, use the commit id of the HEAD of the master.
+    The optional <id> arg specifies the ID of the (last) commit to cherry-pick.
+    It can be given in the form of a branch name.
+    If no <id> arg is given, the commit id of the HEAD of the master is used.
+
     The <branch> arg must match a release branch or start with 'm' for master.
     A release branch may be given simply as 102, 110, 111, 30, 31.
 
-    The <num> argument defaults to 1 and can be specified only in case <id> is
-    also given."
+    The optional <num> argument specifies the number of commits to cherry-pick.
+    It defaults to 1 and can be specified only in case <id> is also given."
 }
 
 num=1
@@ -65,28 +68,12 @@ esac
 echo "First commit to cherry-pick is: $id~$((num - 1))"
 echo "Target branch is: $branch"
 echo "Number of commits to pick: $num"
-echo "Commits to be cherry-picked:"
+echo "Commit(s) to be cherry-picked:"
 echo
 git log $id~$num..$id
 echo
-echo "Are these correct?"
 
-while true
-do
-    echo -n "Enter 'y'/'yes' to continue or 'n'/'no' to abort: "
-    read x
-    x="`echo $x | tr A-Z a-z`"
-    if [ "$x" = "y" -o "$x" = "yes" -o "$x" = "n" -o "$x" = "no" ]
-    then
-        break
-    fi
-done
-
-if [ "$x" = "n" -o "$x" = "no" ]
-then
-    exit 1
-fi
-
+echo -n "Press Enter to continue, Ctrl-C to abort:"; read foo
 
 ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
 if [ "$branch" != "$ORIG_REF" ]; then
@@ -98,6 +85,7 @@ function cleanup {
     echo # make sure to enter new line, needed, e.g., after Ctrl-C
     [ $rv -ne 0 ] && echo -e "pick-to-branch failed"
     if [ "$CHERRYPICKING" == 1 ] ; then
+        echo "cherry-picking failed - maybe did not provide a suitable <num> argument?"
         git cherry-pick --abort 2>/dev/null || true
     fi
     if [ "$branch" != "$ORIG_REF" ]; then
