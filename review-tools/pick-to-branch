@@ -1,14 +1,14 @@
 #! /bin/bash
 
 function usage {
-    echo "Usage: pick-to-branch [<id>] <target> [<num>]
+    echo "Usage: pick-to-branch [<id> | h | HEAD ] <target> [<num>]
 
     Cherry-pick a commit (or <num> commits) on the given target release branch.
     If this is not the current branch, the current branch and its state are preserved.
 
     The optional <id> arg specifies the ID of the (last) commit to cherry-pick.
-    It can be given in the form of a branch name.
-    If no <id> arg is given, the commit id of the HEAD of the master is used.
+    It can also be given in the form of a branch name.  If 'h' or 'HEAD'
+    or no <id> arg is given, the commit id of the HEAD of the master is used.
 
     The <target> arg must match a release branch or start with 'm' for master.
     A release branch may be given simply as 102, 110, 111, 30, 31.
@@ -37,6 +37,10 @@ case $# in
     usage
     exit 1
     ;;
+esac
+
+case $id in
+    h|HEAD) id=`git show -s --format="%H" master`;;
 esac
 
 
