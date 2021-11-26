@@ -110,7 +110,7 @@ trap 'cleanup' EXIT
 git checkout --quiet master
 git checkout $target
 ORIG_TARGET_HEAD=`git show -s --format="%H"`
-git pull --ff-only
+git pull --ff-only `git rev-parse --abbrev-ref  @{u} | sed "s|/| |"`
 CHERRYPICKING=1
 git cherry-pick -e -x $id~$num..$id || (git cherry-pick --abort; exit 1)
 CHERRYPICKING=
