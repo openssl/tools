@@ -230,6 +230,10 @@ if [ "$INTERACTIVE" == "yes" ] ; then
     echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$TARGET: "; read foo
     REBASING=1
     git rebase -i $AUTOSQUASH $REMOTE/$TARGET || exit 1
+    if [ -e .git/rebase-merge ] ; then  # likely, user tried 'b' or 'e' command to break or enter edit mode
+        echo -e "\nRebasing was stopped; please do your changes in parallel using another\n shell in the same directory, then give 'git rebase --continue' there"
+        while [ -e .git/rebase-merge ] ; do sleep 1 ; done
+    fi
     REBASING=
     echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET.."
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET..
