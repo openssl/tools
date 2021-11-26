@@ -88,6 +88,10 @@ function cleanup {
         echo "cherry-picking failed - maybe did not provide a suitable <num> argument?"
         git cherry-pick --abort 2>/dev/null || true
     fi
+    if [ "$ORIG_TARGET_HEAD" != "" ]; then
+        echo Restoring original commit HEAD of $TARGET
+        git reset --merge "$ORIG_TARGET_HEAD"
+    fi
     if [ "$target" != "$ORIG_REF" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
@@ -101,13 +105,13 @@ trap 'cleanup' EXIT
 
 git checkout --quiet master
 git checkout $target
+ORIG_TARGET_HEAD=`git show -s --format="%H"`
 git pull --ff-only
 CHERRYPICKING=1
 git cherry-pick -e -x $id~$num..$id || (git cherry-pick --abort; exit 1)
 CHERRYPICKING=
 
-while true
-do
+while true ; do
     echo -n "Enter 'y'/'yes' to push or 'n'/'no' to abort: "
     read x
     x="`echo $x | tr A-Z a-z`"
@@ -117,9 +121,7 @@ do
     fi
 done
 
-if [ "$x" = "y" -o "$x" = "yes" ]
-then
+if [ "$x" = "y" -o "$x" = "yes" ] ; then
     git push
-else
-    git reset --hard @~1
+    ORIG_TARGET_HEAD=
 fi
