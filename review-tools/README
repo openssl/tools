@@ -113,12 +113,13 @@ It includes several safety precautions and questions such as showing the diff,
 showing the resulting commit messages, and (by default) rebuilding everything.
 
 It works on the current branch, which should be 'master' or one of the stable
-releases. The default remote is the first one matching 'git.openssl.org.*(push)'.
-So typically before calling 'ghmerge' one would have done the following:
+releases. The default remote is the first one matching
+'github.openssl.org:(openssl|omc|otc).*(push)'. So typically before calling
+'ghmerge' one would have done the following:
 
 	git remote -v
-origin	openssl-git@git.openssl.org:openssl.git (fetch)
-origin	openssl-git@git.openssl.org:openssl.git (push)
+origin	openssl-git@github.openssl.org:openssl/openssl.git (fetch)
+origin	openssl-git@github.openssl.org:openssl/openssl.git (push)
 	git fetch origin
 	git checkout master
 
