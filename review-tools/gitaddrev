@@ -118,7 +118,7 @@ my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
 # let's be cautious and check both, in case someone has been registered
 # as a known identity without having a CLA in place.
 die "Commit author ",$author," has no CLA, and this is a non-trivial commit\n"
-if !$trivial && grep { $_ eq $author } (@nocla_reviewers);
+    if !$trivial && grep { $_ eq $author } @nocla_reviewers;
 
 # Now that that's cleared, remove the author from anything that could cause
 # more unnecessary errors (false positives).
