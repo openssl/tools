@@ -130,7 +130,7 @@ else
 fi
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
-[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/git.openssl.org.*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
+[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/github.openssl.org:openssl/openssl.*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
 if [ "$REMOTE" = "" ] ; then
     echo Cannot find git remote with URL including 'git.openssl.org'
     exit 1
