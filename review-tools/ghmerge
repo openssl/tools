@@ -223,10 +223,16 @@ else
     CHERRYPICKING=
 fi
 
-echo Diff against $REMOTE/$TARGET
+echo
+echo Log since $REMOTE/$TARGET:
+git log $REMOTE/$TARGET..
+
+echo
+echo Diff against $REMOTE/$TARGET:
 git diff $REMOTE/$TARGET
 
 if [ "$INTERACTIVE" == "yes" ] ; then
+    echo
     echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$TARGET: "; read foo
     REBASING=1
     git rebase -i $AUTOSQUASH $REMOTE/$TARGET || exit 1
@@ -235,16 +241,14 @@ if [ "$INTERACTIVE" == "yes" ] ; then
         while [ -e .git/rebase-merge ] ; do sleep 1 ; done
     fi
     REBASING=
+    echo
     echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET.."
     addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET..
 fi
 
-echo
-echo Log since $REMOTE/$TARGET
-git log $REMOTE/$TARGET..
-
 git checkout $TARGET
 if [ "$INTERACTIVE" != "yes" ] ; then
+    echo
     echo -n "Press Enter to non-interactively merge --squash $BRANCH to $REMOTE/$TARGET: "; read foo
     ORIG_TARGET_HEAD=`git show -s --format="%H"`
     git merge --ff-only --no-commit --squash $WORK
@@ -259,7 +263,8 @@ else
     git merge --ff-only $WORK
 fi
 
-echo New log since $REMOTE/$TARGET
+echo
+echo New log including addrev output since $REMOTE/$TARGET:
 git log $REMOTE/$TARGET..
 
 if [ "$BUILD" == "yes" ] ; then
@@ -267,6 +272,7 @@ if [ "$BUILD" == "yes" ] ; then
     CC="$CC" opensslbuild >/dev/null # any STDERR output will be shown
 fi
 
+echo
 while true ; do
     echo -n "Enter 'y'/'yes' to push to $REMOTE/$TARGET or 'n'/'no' to abort: "
     read x

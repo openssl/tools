@@ -72,8 +72,8 @@ esac
 echo "First commit to cherry-pick is: $id~$((num - 1))"
 echo "Target branch is: $target"
 echo "Number of commits to pick: $num"
-echo "Commit(s) to be cherry-picked:"
 echo
+echo "Commit(s) to be cherry-picked:"
 git log $id~$num..$id
 echo
 
@@ -115,6 +115,7 @@ CHERRYPICKING=1
 git cherry-pick -e -x $id~$num..$id || (git cherry-pick --abort; exit 1)
 CHERRYPICKING=
 
+echo
 while true ; do
     echo -n "Enter 'y'/'yes' to push or 'n'/'no' to abort: "
     read x
