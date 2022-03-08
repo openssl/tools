@@ -37,25 +37,27 @@ sub try_add_reviewer {
     my $rc = undef;
     my $id2 = $id =~ /^\@(.*)$/ ? { github => $1 } : $id;
     my $rev = $query->find_person_tag($id2, 'rev');
-    if ($rev && (!defined $authorrev || $rev ne $authorrev)) {
-	my $cla = $query->has_cla(lc $rev);
-	if ($cla) {
-	    unless (grep {$_ eq $rev} @reviewers) {
-		$otccount++ if $query->is_member_of($id2, 'otc');
-		push @reviewers, $rev;
-	    }
-	    $rc = $rev;
-	} else {
-	    push @nocla_reviewers, $id
-		unless grep {$_ eq $id} @nocla_reviewers;
-	}
+    if ($rev) {
+        my $cla = $query->has_cla(lc $rev);
+        if ($cla) {
+            if (!defined $authorrev || $rev ne $authorrev) {
+                unless (grep {$_ eq $rev} @reviewers) {
+                    $otccount++ if $query->is_member_of($id2, 'otc');
+                    push @reviewers, $rev;
+                }
+                $rc = $rev;
+            }
+        } else {
+            push @nocla_reviewers, $id
+                unless grep {$_ eq $id} @nocla_reviewers;
+        }
     } else {
-	push @unknown_reviewers, $id
-	    unless grep {$_ eq $id} @unknown_reviewers;
-	unless ($id =~ m|^.+\@.*$| && $query->has_cla(lc $id)) {
-	    push @nocla_reviewers, $id
-		unless grep {$_ eq $id} @nocla_reviewers;
-	}
+        push @unknown_reviewers, $id
+            unless grep {$_ eq $id} @unknown_reviewers;
+        unless ($id =~ m|^.+\@.*$| && $query->has_cla(lc $id)) {
+            push @nocla_reviewers, $id
+                unless grep {$_ eq $id} @nocla_reviewers;
+        }
     }
     return $rc;
 }
