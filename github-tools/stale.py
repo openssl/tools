@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 # requires python 3
 #
-# OpenSSL intersting PR stats on things that are stale
+# A script to run daily that looks through OpenSSL github PRs
+# and creates stats, next actions, and makes comments and closes
+# stale issues.
 #
 # note that we'd use pyGithub but we can't as it doesn't fully handle the timeline objects
 # as of Feb 2020 and we might want to parse timeline if we want to ignore certain things
@@ -66,9 +68,10 @@ def parsepr(pr, days):
     sha = ""
 
     for event in repos:
-#        print (event['event'])
-#        print (event)
-#        print ()
+        if (debug):
+            print (event['event'])
+            print (event)
+            print ()
         try:
             eventdate = ""
             if (event['event'] == "commented"):
@@ -93,7 +96,8 @@ def parsepr(pr, days):
                 eventdate = event['created_at']                
             if (eventdate != ""):
                 comments.append(convertdate(eventdate))
-#            print(reviewed_state)
+            if (debug):
+                print(reviewed_state)
         except:
             return (repos['message'])
 
