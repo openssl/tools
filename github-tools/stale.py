@@ -137,10 +137,6 @@ def parsepr(pr, days):
     # for example if something is for after 1.1.1 but is waiting for a CLA
     # then we've time to get the CLA later, it's deferred.  
 
-    if (('Post 1.1.1' in labels) or
-        ('milestone:Post 3.0.0' in labels)):
-        stale["deferred after 3.0.0"].append(data)
-        return
     if ('stalled: awaiting contributor response' in labels):
         stale["waiting for reporter"].append(data)
         return        
