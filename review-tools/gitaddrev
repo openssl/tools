@@ -35,6 +35,9 @@ my $authorcount = 0;
 # be counted as reviewers.  For all other values, it works as a minimum.
 my $min_authors = 0;            # Main source default
 my $otccount = 0;
+my $min_otc = 1;                # Main source default
+my $omccount = 0;
+my $min_omc = 0;                # Main source default
 my $author = $ENV{GIT_AUTHOR_EMAIL};
 my $authorrev = $query->find_person_tag($author, 'rev');
 
@@ -62,6 +65,7 @@ sub try_add_reviewer {
             if ($rc && !(grep {$_ eq $rc} @reviewers)) {
                 $authorcount++ if is_author($rc);
                 $otccount++ if $query->is_member_of($id2, 'otc');
+                $omccount++ if $query->is_member_of($id2, 'omc');
                 # Authors don't get Reviewed-by trailers
                 push @reviewers, $rc unless is_author($rc);
             }
@@ -127,9 +131,15 @@ foreach (@ARGV) {
     } elsif (/^--web$/) {
         $WHAT = 'web';
         $min_authors = 1;
+        # openssl/web is governed by OMC
+        $min_otc = 0;
+        $min_omc = 2;
     } elsif (/--tools$/) {
         $WHAT = 'tools';
         $min_authors = 1;
+        # openssl/tools is governed by OTC
+        $min_otc = 2;
+        $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
     }
@@ -165,8 +175,11 @@ if (scalar @reviewers < $min_reviewers - $authorcount) {
     die "Too few reviewers (total must be at least ",
         $min_reviewers - $authorcount, ")\n";
 }
-if ($otccount < 1) {
+if ($otccount < $min_otc) {
     die "At least one of the reviewers must be an OTC member\n";
+}
+if ($omccount < $min_omc) {
+    die "At least one of the reviewers must be an OMC member\n";
 }
 
 print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
