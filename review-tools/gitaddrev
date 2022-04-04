@@ -29,9 +29,20 @@ my $query = OpenSSL::Query->new();
 my @reviewers;
 my @nocla_reviewers;
 my @unknown_reviewers;
+my $min_reviewers = 2;          # All source default
+my $authorcount = 0;
+# $min_authors is special in so far that 0 denotes that authors MUST NOT
+# be counted as reviewers.  For all other values, it works as a minimum.
+my $min_authors = 0;            # Main source default
 my $otccount = 0;
 my $author = $ENV{GIT_AUTHOR_EMAIL};
 my $authorrev = $query->find_person_tag($author, 'rev');
+
+sub is_author {
+    my $rev = shift;
+
+    return defined $authorrev && $rev eq $authorrev;
+}
 
 sub try_add_reviewer {
     my $id = shift;
@@ -41,12 +52,18 @@ sub try_add_reviewer {
     if ($rev) {
         my $cla = $query->has_cla(lc $rev);
         if ($cla) {
-            if (!defined $authorrev || $rev ne $authorrev) {
-                unless (grep {$_ eq $rev} @reviewers) {
-                    $otccount++ if $query->is_member_of($id2, 'otc');
-                    push @reviewers, $rev;
-                }
+            # $rc is made to hold and return the reviewer string if it's
+            # valid to count that reviewer string.
+            if (is_author($rev)) {
+                $rc = $rev if $min_authors > 0;
+            } else {
                 $rc = $rev;
+            }
+            if ($rc && !(grep {$_ eq $rc} @reviewers)) {
+                $authorcount++ if is_author($rc);
+                $otccount++ if $query->is_member_of($id2, 'otc');
+                # Authors don't get Reviewed-by trailers
+                push @reviewers, $rc unless is_author($rc);
             }
         } else {
             push @nocla_reviewers, $id
@@ -63,6 +80,7 @@ sub try_add_reviewer {
     return $rc;
 }
 
+my @collect_possible_reviewers = ($author);
 foreach (@ARGV) {
     if (/^--list$/) {
 	my %list = ();
@@ -94,7 +112,7 @@ foreach (@ARGV) {
 	}
 	exit 0;
     } elsif (/^--reviewer=(.+)$/) {
-	try_add_reviewer($1);
+        push @collect_possible_reviewers, $1;
     } elsif (/^--prnum=(.+)$/) {
         $prnum = $1;
     } elsif (/^--commit=(.+)$/) {
@@ -103,17 +121,21 @@ foreach (@ARGV) {
     } elsif (/^--rmreviewers$/) {
         $rmrev = 1;
     } elsif (/^--myemail=(.+\@.+)$/) {
-	try_add_reviewer($1);
+        push @collect_possible_reviewers, $1;
     } elsif (/^--verbose$/) {
 	$verbose = 1;
     } elsif (/^--web$/) {
         $WHAT = 'web';
+        $min_authors = 1;
     } elsif (/--tools$/) {
-        $WHAT = 'tools'
+        $WHAT = 'tools';
+        $min_authors = 1;
     } elsif (/^--release$/) {
         $release = 1;
     }
 }
+
+try_add_reviewer($_) foreach (@collect_possible_reviewers);
 
 my @commit_message = map { (my $x = $_) =~ s|\R$||; $x } <STDIN>;
 my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
@@ -139,8 +161,9 @@ if (@nocla_reviewers) {
 
 print STDERR "Detected trivial marker\n" if $verbose && $trivial;
 
-if (scalar @reviewers < 2) {
-    die "Too few reviewers (total must be at least 2)\n";
+if (scalar @reviewers < $min_reviewers - $authorcount) {
+    die "Too few reviewers (total must be at least ",
+        $min_reviewers - $authorcount, ")\n";
 }
 if ($otccount < 1) {
     die "At least one of the reviewers must be an OTC member\n";
