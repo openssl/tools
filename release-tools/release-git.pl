@@ -156,6 +156,7 @@ sub openssl_git_commit {
     foreach (@reviewers) {
         $message .= "Reviewed-by: $_\n";
     }
+    $message .= "Release: yes\n";
     push @args, "-m", "$message";
     system(@args);
     die "Error committing update" if $?;
