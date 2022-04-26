@@ -20,6 +20,7 @@ my $found = 0;
 my $num = 0;
 my $refuse = 0;
 my $prnum = 0;
+my $release = 0;
 my $verbose = 0;
 my $WHAT = 'openssl';
 
@@ -109,6 +110,8 @@ foreach (@ARGV) {
         $WHAT = 'web';
     } elsif (/--tools$/) {
         $WHAT = 'tools'
+    } elsif (/^--release$/) {
+        $release = 1;
     }
 }
 
@@ -184,6 +187,11 @@ foreach (@commit_message) {
         $last_is_rev = 1;
         # Remove reviewers that are already in the message from our reviewer list
         @reviewers = grep { $_ ne $id } @reviewers;
+    } elsif (/^Release:\s*yes\s*$/i) {
+        if ($release == 1) {
+            # We are re-adding the release line below
+            next;
+        }
     }
     print $_,"\n";
 }
@@ -193,6 +201,10 @@ if ($rmrev == 0) {
     foreach(@reviewers) {
 	print "Reviewed-by: $_\n";
     }
+}
+
+if ($release == 1) {
+    print "Release: yes\n";
 }
 
 print "(Merged from https://github.com/openssl/$WHAT/pull/$prnum)\n"
