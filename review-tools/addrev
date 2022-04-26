@@ -46,6 +46,8 @@ foreach (@ARGV) {
         $haveprnum = 1;
     } elsif (/^--commit=(.+)$/) {
         $args .= "--commit=$1 ";
+    } elsif (/^--release$/) {
+        $args .= "--release ";
     } elsif (/^-(\d+)$/) {
         print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
         $filterargs = "HEAD~$1..";

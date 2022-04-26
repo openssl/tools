@@ -169,8 +169,8 @@ openssl-tools.git checkout directory):
 
     $TOOLS/release-tools/do-copyright-year
 
-Obtain approval for these commits from the reviewer and add the reviewed-by
-headers as required.
+Obtain approval for these commits from the reviewer and add the Release and
+Reviewed-By trailers as required.
 
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
