@@ -131,10 +131,13 @@ foreach (@ARGV) {
         $min_authors = 1;
         # openssl/web is governed by OMC
         $min_otc = 0;
-        $min_omc = 1;
+        $min_omc = 2;
     } elsif (/--tools$/) {
         $WHAT = 'tools';
         $min_authors = 1;
+        # openssl/web is governed by OTC
+        $min_otc = 2;
+        $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
     }
