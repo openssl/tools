@@ -31,6 +31,8 @@ my @nocla_reviewers;
 my @unknown_reviewers;
 my $min_reviewers = 2;          # All source default
 my $authorcount = 0;
+# $min_authors is special in so far that 0 denotes that authors MUST NOT
+# be counted as reviewers.  For all other values, it works as a minimum.
 my $min_authors = 0;            # Main source default
 my $otccount = 0;
 my $min_otc = 1;                # Main source default
