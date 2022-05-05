@@ -137,7 +137,7 @@ foreach (@ARGV) {
     } elsif (/--tools$/) {
         $WHAT = 'tools';
         $min_authors = 1;
-        # openssl/web is governed by OTC
+        # openssl/tools is governed by OTC
         $min_otc = 2;
         $min_omc = 0;
     } elsif (/^--release$/) {
