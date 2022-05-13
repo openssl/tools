@@ -58,7 +58,7 @@ sub try_add_reviewer {
             # $rc is made to hold and return the reviewer string if it's
             # valid to count that reviewer string.
             if (is_author($rev)) {
-                $rc = $rev if $min_authors > 0;
+                $rc = $rev if $min_authors > 0 || $release;
             } else {
                 $rc = $rev;
             }
