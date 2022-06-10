@@ -66,7 +66,7 @@ You must have access to the following repositories:
 
     This contains certain common tools
 
--   `git@github.openssl.org:otc/otc.git`
+-   `git@github.openssl.org:omc/data.git`
 
     This contains files to be updated as part of any release
 
@@ -132,9 +132,7 @@ You will need to checkout at least three working trees:
 
 -   one for release data
 
-        git clone git@github.openssl.org:otc/otc.git tools
-
-    The resulting directory will be referred to as `$OTC`
+        git clone git@github.openssl.org:omc/data.git data
 
 -   At least one for openssl source
 
@@ -260,7 +258,7 @@ ensure you include a link to it.
 *Do* send the commits to the reviewer and await their approval.
 
 Commit your changes, but *do not push* them to the otc repo at this stage.
-(the otc repo being `git@github.openssl.org:otc/otc.git`)
+(the otc repo being `git@github.openssl.org:omc/data.git`)
 
 ## Update the website locally
 
