@@ -247,8 +247,8 @@ The manual for that script is found in `$TOOLS/release-tools/MKRELEASE.md`
 
 ## Update the newsflash locally
 
-*The changes in this section should be made in your clone of the openssl
-otc repo*
+*The changes in this section should be made in your clone of the release
+data repo*
 
 Update the release-data/newsflash.txt file.  This normally is one or two
 lines.  Just copy and paste existing announcements making minor changes for
@@ -257,8 +257,8 @@ ensure you include a link to it.
 
 *Do* send the commits to the reviewer and await their approval.
 
-Commit your changes, but *do not push* them to the otc repo at this stage.
-(the otc repo being `git@github.openssl.org:omc/data.git`)
+Commit your changes, but *do not push* them to the release data repo at this
+stage.  (the release data repo being `git@github.openssl.org:omc/data.git`)
 
 ## Update the website locally
 
@@ -322,7 +322,7 @@ the repository / remote and tag to be pushed:
 
 ## Updating the newflash
 
-Push the newsflash changes to the OpenSSL otc repo.  When you do this, the
+Push the newsflash changes to the release data repo.  When you do this, the
 website will get updated and a script to flush the Akamai CDN cache will be
 run.  You can look at things on www-origin.openssl.org; the CDN-hosted
 www.openssl.org should only be a few minutes delayed.
