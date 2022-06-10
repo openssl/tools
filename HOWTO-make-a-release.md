@@ -15,8 +15,8 @@ and additional tester.
     -   [SSH access](#check-your-access)
     -   [A method for reviewing](#a-way-to-reviewing)
 -   [Pre-publishing tasks](#pre-publishing-tasks)
-    -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
+    -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
     -   [Make sure that the openssl source is up to date](#make-sure-that-the-openssl-source-is-up-to-date)
     -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
@@ -50,15 +50,15 @@ programs in you `$PATH`:
 
 You must have access to the following repositories:
 
--   `openssl-git@git.openssl.org:openssl.git`
+-   `git@github.openssl.org:openssl/openssl.git`
 
     This is the usual main source repository
 
--   `openssl-git@git.openssl.org:openssl-web.git`
+-   `git@github.openssl.org:openssl/web.git`
 
     This is the website repository
 
--   `openssl-git@git.openssl.org:tools.git`
+-   `git@github.openssl.org:otc/tools.git`
 
     This contains certain common tools
 
@@ -108,32 +108,23 @@ figure out how the review shall be done.
 Some of the actions in this section need to be repeated for each OpenSSL
 version released.
 
-## Freeze the source repository
-
-The day before the release, freeze the main repository.  This locks out
-everyone but the named user, who is doing the release, from doing any
-pushes.  Someone other than the person doing the release should run the
-command.  For example:
-
-    ssh openssl-git@git.openssl.org freeze openssl NAME
-
 ## Prepare your repository checkouts
 
 You will need to checkout at least three working trees:
 
 -   one for the website
 
-        git clone openssl-git@git.openssl.org:openssl-web.git website
+        git clone git@github.openssl.org:openssl/web.git website
 
 -   one for extra tools
 
-        git clone openssl-git@git.openssl.org:tools.git tools
+        git clone git@github.openssl.org:otc/tools.git tools
 
     The resulting directory will be referred to as `$TOOLS`
 
 -   At least one for openssl source
 
-        git clone openssl-git@git.openssl.org:openssl.git
+        git clone git@github.openssl.org:openssl/openssl.git
 
     If you're doing multiple releases in one go, there are many ways to deal
     with it.  One possibility, available since git 2.5, is to use `git
@@ -141,6 +132,19 @@ You will need to checkout at least three working trees:
 
         (cd openssl;
          git worktree add ../openssl-1.1.1 OpenSSL_1_1_1-stable)
+
+## Freeze the source repository
+
+The day before the release, freeze the main repository.  This locks out
+everyone but the named user, who is doing the release, from doing any
+pushes.  Someone other than the person doing the release should run the
+command.
+
+This must be done from a checkout of `git@github.openssl.org:openssl/openssl.git`.
+
+    git push git@github.openssl.org:openssl/openssl.git refs/frozen/NAME
+
+Where `NAME` is the github username of the user doing the release.
 
 ## Make sure that the openssl source is up to date
 
@@ -176,7 +180,7 @@ Reviewed-By trailers as required.
 approval.
 
 *Do not push* changes to the main source repo at this stage.
-(the main source repo being `openssl-git@git.openssl.org:openssl.git`)
+(the main source repo being `git@github.openssl.org:openssl/openssl.git`)
 
 ## Generate the tarball and announcement text
 
@@ -200,7 +204,7 @@ match in the .md5, .sha1, .sha256, and review the announcment file.
 approval.
 
 *Do not push* changes to the main source repo at this stage.
-(the main source repo being `openssl-git@git.openssl.org:openssl.git`)
+(the main source repo being `git@github.openssl.org:openssl/openssl.git`)
 
 ### OpenSSL 3.0 and on
 
@@ -246,7 +250,7 @@ If there is a Security Advisory then copy it into the news/secadv directory.
 *Do* send the commits to the reviewer and await their approval.
 
 Commit your changes, but *do not push* them to the website repo at this stage.
-(the website repo being `openssl-git@git.openssl.org:openssl-web.git`)
+(the website repo being `git@github.openssl.org:openssl/web.git`)
 
 # Publish the release
 
@@ -385,7 +389,10 @@ Check the mailing list messages have arrived.
 
 ## Unfreeze the source repository.
 
-    ssh openssl-git@git.openssl.org unfreeze openssl
+This must be done from a checkout of the main source repo.
+
+    git push --delete git@github.openssl.org:openssl/openssl.git \
+        refs/frozen/NAME
 
 ## Security fixes
 
