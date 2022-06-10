@@ -23,11 +23,8 @@ and additional tester.
         -   [OpenSSL before 3.0](#openssl-before-3.0)
     -   [Update the release data locally](#update-the-release-data-locally)
         [do not push]
-    -   [Update the website locally](#update-the-website-locally)
-        [security advisory only, do not push]
 -   [Publish the release](#publish-the-release)
     -   [Updating the release data](#updating-the-release-data)
-    -   [Updating the website](#updating-the-website) [security advisory only]
 -   [Post-publishing tasks](#post-publishing-tasks)
     -   [Check the website](#check-the-website)
     -   [Send the announcement mail](#send-the-announcement-mail)
@@ -58,10 +55,6 @@ You must have access to the following repositories:
 -   `git@github.openssl.org:openssl/openssl.git`
 
     This is the usual main source repository
-
--   `git@github.openssl.org:openssl/web.git`
-
-    This is the website repository
 
 -   `git@github.openssl.org:otc/tools.git`
 
@@ -120,10 +113,6 @@ version released.
 ## Prepare your repository checkouts
 
 You will need to checkout at least three working trees:
-
--   one for the website
-
-        git clone git@github.openssl.org:openssl/web.git website
 
 -   one for extra tools
 
@@ -256,26 +245,14 @@ copy and paste existing announcements making minor changes for the date and
 version number as necessary.  If there is an advisory then ensure you
 include a link to it.
 
+Update the vulnerabilities.xml file if appropriate.
+
+If there is a Security Advisory then copy it into the secadv directory.
+
 *Do* send the commits to the reviewer and await their approval.
 
 Commit your changes, but *do not push* them to the release data repo at this
 stage.  (the release data repo being `git@github.openssl.org:omc/data.git`)
-
-## Update the website locally
-
-**This is for security advisory updates only**
-
-*The changes in this section should be made in your clone of the openssl
-web repo*
-
-Update the news/vulnerabilities.xml file if appropriate.
-
-If there is a Security Advisory then copy it into the news/secadv directory.
-
-*Do* send the commits to the reviewer and await their approval.
-
-Commit your changes, but *do not push* them to the website repo at this stage.
-(the website repo being `git@github.openssl.org:openssl/web.git`)
 
 # Publish the release
 
@@ -327,15 +304,6 @@ Push the newsflash changes to the release data repo.  When you do this, the
 website will get updated and a script to flush the Akamai CDN cache will be
 run.  You can look at things on www-origin.openssl.org; the CDN-hosted
 www.openssl.org should only be a few minutes delayed.
-
-## Updating the website
-
-**This is for security advisory updates only**
-
-Push the website changes you made earlier to the OpenSSL website repo.  When
-you do this, the website will get updated and a script to flush the Akamai
-CDN cache will be run.  You can look at things on www-origin.openssl.org;
-the CDN-hosted www.openssl.org should only be a few minutes delayed.
 
 # Post-publishing tasks
 
@@ -394,8 +362,8 @@ announce):
 ## Send out the Security Advisory
 
 *The secadv file mentioned in this section is the Security Advisory
-that you copied into the web repo, up in the section
-[Update the website locally](#update-the-website-locally)*
+that you copied into the release data repo, up in the section
+[Update the release data locally](#update-the-release-data-locally)*
  
 *This section is only applicable if this is a security release*
 
