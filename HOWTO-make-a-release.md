@@ -21,8 +21,12 @@ and additional tester.
     -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
         -   [OpenSSL before 3.0](#openssl-before-3.0)
-    -   [Update the website locally](#update-the-website-locally) [do not push]
+    -   [Update the newsflash locally](#update-the-newsflash-locally) [do not push]
+    -   [Update the website locally](#update-the-website-locally)
+        [security advisory only, do not push]
 -   [Publish the release](#publish-the-release)
+    -   [Updating the newsflash](#updating-the-newsflash)
+    -   [Updating the website](#updating-the-website) [security advisory only]
 -   [Post-publishing tasks](#post-publishing-tasks)
     -   [Check the website](#check-the-website)
     -   [Send the announcement mail](#send-the-announcement-mail)
@@ -61,6 +65,10 @@ You must have access to the following repositories:
 -   `git@github.openssl.org:otc/tools.git`
 
     This contains certain common tools
+
+-   `git@github.openssl.org:otc/otc.git`
+
+    This contains files to be updated as part of any release
 
 ## PGP / GnuPG key
 
@@ -121,6 +129,12 @@ You will need to checkout at least three working trees:
         git clone git@github.openssl.org:otc/tools.git tools
 
     The resulting directory will be referred to as `$TOOLS`
+
+-   one for release data
+
+        git clone git@github.openssl.org:otc/otc.git tools
+
+    The resulting directory will be referred to as `$OTC`
 
 -   At least one for openssl source
 
@@ -233,15 +247,27 @@ with $TOOLS, and is generally called like this:
 
 The manual for that script is found in `$TOOLS/release-tools/MKRELEASE.md`
 
+## Update the newsflash locally
+
+*The changes in this section should be made in your clone of the openssl
+otc repo*
+
+Update the release-data/newsflash.txt file.  This normally is one or two
+lines.  Just copy and paste existing announcements making minor changes for
+the date and version number as necessary.  If there is an advisory then
+ensure you include a link to it.
+
+*Do* send the commits to the reviewer and await their approval.
+
+Commit your changes, but *do not push* them to the otc repo at this stage.
+(the otc repo being `git@github.openssl.org:otc/otc.git`)
+
 ## Update the website locally
+
+**This is for security advisory updates only**
 
 *The changes in this section should be made in your clone of the openssl
 web repo*
-
-Update the news/newsflash.txt file.  This normally is one or two lines.
-Just copy and paste existing announcements making minor changes for the date
-and version number as necessary.  If there is an advisory then ensure you
-include a link to it.
 
 Update the news/vulnerabilities.xml file if appropriate.
 
@@ -296,7 +322,16 @@ the repository / remote and tag to be pushed:
 
     git push <repository> <tagname>
 
+## Updating the newflash
+
+Push the newsflash changes to the OpenSSL otc repo.  When you do this, the
+website will get updated and a script to flush the Akamai CDN cache will be
+run.  You can look at things on www-origin.openssl.org; the CDN-hosted
+www.openssl.org should only be a few minutes delayed.
+
 ## Updating the website
+
+**This is for security advisory updates only**
 
 Push the website changes you made earlier to the OpenSSL website repo.  When
 you do this, the website will get updated and a script to flush the Akamai
