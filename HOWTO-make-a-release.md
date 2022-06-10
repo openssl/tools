@@ -21,11 +21,12 @@ and additional tester.
     -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
         -   [OpenSSL before 3.0](#openssl-before-3.0)
-    -   [Update the newsflash locally](#update-the-newsflash-locally) [do not push]
+    -   [Update the release data locally](#update-the-release-data-locally)
+        [do not push]
     -   [Update the website locally](#update-the-website-locally)
         [security advisory only, do not push]
 -   [Publish the release](#publish-the-release)
-    -   [Updating the newsflash](#updating-the-newsflash)
+    -   [Updating the release data](#updating-the-release-data)
     -   [Updating the website](#updating-the-website) [security advisory only]
 -   [Post-publishing tasks](#post-publishing-tasks)
     -   [Check the website](#check-the-website)
@@ -245,15 +246,15 @@ with $TOOLS, and is generally called like this:
 
 The manual for that script is found in `$TOOLS/release-tools/MKRELEASE.md`
 
-## Update the newsflash locally
+## Update the release data locally
 
 *The changes in this section should be made in your clone of the release
 data repo*
 
-Update the release-data/newsflash.txt file.  This normally is one or two
-lines.  Just copy and paste existing announcements making minor changes for
-the date and version number as necessary.  If there is an advisory then
-ensure you include a link to it.
+Update the newsflash.txt file.  This normally is one or two lines.  Just
+copy and paste existing announcements making minor changes for the date and
+version number as necessary.  If there is an advisory then ensure you
+include a link to it.
 
 *Do* send the commits to the reviewer and await their approval.
 
@@ -320,7 +321,7 @@ the repository / remote and tag to be pushed:
 
     git push <repository> <tagname>
 
-## Updating the newflash
+## Updating the release data
 
 Push the newsflash changes to the release data repo.  When you do this, the
 website will get updated and a script to flush the Akamai CDN cache will be
