@@ -12,15 +12,35 @@
 use strict;
 use warnings;
 
+use Cwd qw(:DEFAULT abs_path);
+use File::Basename;
+
 # Find all .html files that include a .inc file, and create a map
 my %inc2html = ();
 
 my $debug = $ENV{DEBUG};
 my $dryrun = $ENV{DRYRUN};
 
-my $base = '/var/www/openssl';	# MUST NOT end with a slash
+if (scalar @ARGV != 2 || $ARGV[0] eq '-h') {
+    my $prog = basename($0);
+    print STDERR <<_____;
+usage: $prog BASEDIR BASEURL
 
-foreach ( `find $base -type f -name '*.html'` ) {
+where BASEDIR is the base directory where original web files are scanned for,
+and BASEURL is the corresponding base URL.
+_____
+    exit $ARGV[0] eq '-h' ? 0 : 1;
+}
+
+my $basedir = shift @ARGV; # For example, /var/www/openssl
+my $baseurl = shift @ARGV; # For example, https://www.openssl.org
+
+# This ensures that we have an absolute base directory, and that it's
+# normalised (i.e. doesn't have duplicated or ending slashes)
+my $tmp = abs_path($basedir) or die "$basedir: $!\n";
+$basedir = $tmp;
+
+foreach ( `find $basedir -type f -name '*.html'` ) {
     chomp;
     my $file = $_;
     my ($dn, $fn) = $_ =~ m/^(?:(.*)\/)?([^\/]*)$/;
@@ -30,7 +50,7 @@ foreach ( `find $base -type f -name '*.html'` ) {
     foreach ( <HTML> ) {
 	if (/<!--\s*#include\s+virtual="([^"]*)"\s*-->/) {
 	    my $vf = $1;
-	    $vf = ($vf =~ m|^/|) ? "$base$vf" : "$dn/$vf";
+	    $vf = ($vf =~ m|^/|) ? "$basedir$vf" : "$dn/$vf";
 	    push @incs, "$vf";
 	}
     }
@@ -56,14 +76,14 @@ if ($debug) {
 #    one with an ending slash and one without.
 my %files = ();
 
-foreach ( `find $base -type f -mtime -2` ) {
+foreach ( `find $basedir -type f -mtime -2` ) {
     chomp;
-    next if /^\Q$base\E\/(\.git|bin)/;
+    next if /^\Q$basedir\E\/(\.git|bin)/;
     next if /\/\.ht\w+$/;
     my $x = $_;
     my @files = defined $inc2html{$x} ? @{$inc2html{$x}} : ( $x );
     foreach ( @files ) {
-	s/^\Q$base\E\//https:\/\/www.openssl.org\//;
+	s/^\Q$basedir\E\//$baseurl\//;
 	$files{$_} = 1;
 	if ( /^(.*)\/index.(html|cgi|pl|php|xhtml|htm)$/ ) {
 	    $files{"$1/"} = $files{"$1"} = 1;
