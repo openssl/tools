@@ -1,0 +1,89 @@
+#! /usr/bin/perl
+#
+# script to purge the Akamai cache.
+#
+# Notes:
+#
+# - we limit the purging to files newer than an hour
+# - there must be a file ~openssl/.edgerc with our Akamai credentials
+# - the Akamai supplied program 'akamai-purge' must be installed in
+#   /usr/local/bin
+
+use strict;
+use warnings;
+
+# Find all .html files that include a .inc file, and create a map
+my %inc2html = ();
+
+my $debug = $ENV{DEBUG};
+my $dryrun = $ENV{DRYRUN};
+
+my $base = '/var/www/openssl';	# MUST NOT end with a slash
+
+foreach ( `find $base -type f -name '*.html'` ) {
+    chomp;
+    my $file = $_;
+    my ($dn, $fn) = $_ =~ m/^(?:(.*)\/)?([^\/]*)$/;
+    my @incs = ();
+
+    open HTML, $_;
+    foreach ( <HTML> ) {
+	if (/<!--\s*#include\s+virtual="([^"]*)"\s*-->/) {
+	    my $vf = $1;
+	    $vf = ($vf =~ m|^/|) ? "$base$vf" : "$dn/$vf";
+	    push @incs, "$vf";
+	}
+    }
+    close HTML;
+
+    foreach ( @incs ) {
+	push @{$inc2html{$_}}, $file;
+    }
+}
+
+if ($debug) {
+    for ( sort keys %inc2html ) {
+	print STDERR "DEBUG: $_ => ", join(", ", @{$inc2html{$_}}), "\n";
+    }
+}
+
+# Find all files younger than an hour
+# Discard those in .git/ and bin/
+# Discard any .ht*
+# For any virtually included file, use the corresponding .html file instead
+# For all remaining files, turn it into a valid URL
+# For any valid index file, duplicate into two URLs without the file,
+#    one with an ending slash and one without.
+my %files = ();
+
+foreach ( `find $base -type f -mtime -2` ) {
+    chomp;
+    next if /^\Q$base\E\/(\.git|bin)/;
+    next if /\/\.ht\w+$/;
+    my $x = $_;
+    my @files = defined $inc2html{$x} ? @{$inc2html{$x}} : ( $x );
+    foreach ( @files ) {
+	s/^\Q$base\E\//https:\/\/www.openssl.org\//;
+	$files{$_} = 1;
+	if ( /^(.*)\/index.(html|cgi|pl|php|xhtml|htm)$/ ) {
+	    $files{"$1/"} = $files{"$1"} = 1;
+	}
+    }
+}
+
+# Finally, output the result to the akamai-purge program
+my @files = sort keys %files;
+while ( @files ) {
+    my $count = 500;		# Try not to overwhelm Akamai
+    if ( $dryrun || open PURGE, '| /usr/local/bin/akamai-purge invalidate' ) {
+	printf STDERR
+	    "DEBUG: Invoking '/usr/local/bin/akamai-purge invalidate' with:\n"
+	    if $debug;
+	while ( @files && $count-- > 0 ) {
+	    my $file = pop @files;
+	    print STDERR "  ",$file,"\n" if $debug;
+	    print PURGE $file,"\n" unless $dryrun;
+	}
+	close PURGE unless $dryrun;
+    }
+}
