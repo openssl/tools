@@ -135,9 +135,9 @@ You will need to checkout at least three working trees:
 
 ## Freeze the source repository
 
-The day before the release, freeze the main repository.  This locks out
-everyone but the named user, who is doing the release, from doing any
-pushes.  Someone other than the person doing the release should run the
+Three business day before the release, freeze the main repository.  This
+locks out everyone but the named user, who is doing the release, from doing
+any pushes.  Someone other than the person doing the release should run the
 command.
 
 This must be done from a checkout of `git@github.openssl.org:openssl/openssl.git`.
