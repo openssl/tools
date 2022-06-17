@@ -144,7 +144,7 @@ command.
 
 This must be done from a checkout of `git@github.openssl.org:openssl/openssl.git`.
 
-    git push git@github.openssl.org:openssl/openssl.git refs/frozen/NAME
+    git push git@github.openssl.org:openssl/openssl.git HEAD:refs/frozen/NAME
 
 Where `NAME` is the github username of the user doing the release.
 
