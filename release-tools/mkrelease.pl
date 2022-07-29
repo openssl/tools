@@ -22,6 +22,9 @@ require "release-git.pl";
 require "release-update.pl";
 require "release-version.pl";
 
+my @public_bversions = qw( 1.1.1 );
+my @premium_bversions = qw( 1.0.2 );
+
 our $debug   = 0;
 our $verbose = 0;
 my @reviewers;
@@ -121,8 +124,11 @@ foreach (@ARGV) {
     }
 }
 
+$_ = openssl_git_current_branch();
+die "The OpenSSL branch $_ isn't supported by this script, try dev/release.sh instead\n"
+    unless /OpenSSL_[0-9]+_[0-9]+_[0-9]+-stable/;
+
 if ($revert) {
-    $_ = openssl_git_current_branch();
     print "Reverting to repository version for $_\n";
     system("git reset --hard origin/$_");
     die "Error reverting!!" if $?;
@@ -344,14 +350,19 @@ if ( !$no_release ) {
    The OpenSSL Project Team.
 
 EOF
-    } else {
+    } elsif (grep { $bversion eq $_ } @public_bversions) {
+        ###### PUBLIC RELEASE TEMPLATE ######
+
         # Using $avers so its length is similar to a real version
         # length so it's easier to make the announcement look pretty.
         my $avers = $expected_version;
+
+        my $title = "OpenSSL version $avers released";
+        my $underline = "=" x length($title);
         print OUT <<EOF;
 
-   OpenSSL version $avers released
-   ===============================
+   $title
+   $underline
 
    OpenSSL - The Open Source toolkit for SSL/TLS
    https://www.openssl.org/
@@ -368,6 +379,51 @@ EOF
 
      * https://www.openssl.org/source/
      * ftp://ftp.openssl.org/source/
+
+   The distribution file name is:
+
+    o $tarfile
+      Size: $length
+      SHA1 checksum: $sha1hash
+      SHA256 checksum: $sha256hash
+
+   The checksums were calculated using the following commands:
+
+    openssl sha1 $tarfile
+    openssl sha256 $tarfile
+
+   Yours,
+
+   The OpenSSL Project Team.
+
+EOF
+
+    } else {
+        ###### PREMIUM RELEASE TEMPLATE ######
+
+        # Using $avers so its length is similar to a real version
+        # length so it's easier to make the announcement look pretty.
+        my $avers = $expected_version;
+
+        my $title = "OpenSSL version $avers released";
+        my $underline = "=" x length($title);
+        print OUT <<EOF;
+
+   $title
+   $underline
+
+   OpenSSL - The Open Source toolkit for SSL/TLS
+   https://www.openssl.org/
+
+   The OpenSSL project team is pleased to announce the release of
+   version $avers of our open source toolkit for SSL/TLS.
+
+   OpenSSL $avers is available for download via SFTP from the
+   following location:
+
+     * Server: ftp.openssl.org
+
+   Accessing it requires that you have registered an SSH key with us.
 
    The distribution file name is:
 
