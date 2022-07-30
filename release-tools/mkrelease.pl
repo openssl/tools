@@ -40,6 +40,7 @@ my $no_upload;
 my $bversion;
 my $ok;
 my $label;
+my $premium_password;
 
 #Determine include path
 our $includepath;
@@ -103,6 +104,8 @@ foreach (@ARGV) {
         $pre = 0;
     } elsif (/^--enter-pre/) {
         $pre = 1;
+    } elsif (/^--premium-password=(.*)$/) {
+        $premium_password = $1;
     } elsif (/^--debug/) {
         $debug   = 1;
         $verbose = 1;
@@ -149,6 +152,8 @@ if ($branch_info_only) {
 }
 
 die "No reviewer set!" unless @reviewers;
+die "No premium password given!"
+    if ((grep { $_ eq $bversion } @premium_bversions) && !$premium_password);
 
 print "Current branch version is $bversion\n";
 
@@ -422,8 +427,8 @@ EOF
    following location:
 
      * Server: ftp.openssl.org
-
-   Accessing it requires that you have registered an SSH key with us.
+     * Username: premium
+     * Password: $premium_password
 
    The distribution file name is:
 
