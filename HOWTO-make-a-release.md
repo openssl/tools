@@ -16,6 +16,7 @@ process is documented in other files that go into deeper detail.
 -   [Publish the release](#publish-the-release)
 -   [Post-releasing tasks](#post-publishing-tasks)
     -   [Unfreeze the source repository](#unfreeze-the-source-repository)
+    -   [Update compatibility tests](#update-the-provider-backwards-compatibility-tests)
     -   [Keep in touch](#keep-in-touch)
 
 
@@ -154,6 +155,13 @@ or:
 
     git push --delete git@github.openssl.org:openssl/premium.git \
         refs/frozen/NAME
+
+## Update the provider backwards compatibility tests
+
+In the case of a new minor release, the tags being tested by the
+`.github/workflows/provider-compatibility.yml`
+script need to be updated for the released version and **all** subsequent (i.e.
+higher numbered versions) to include the tag for this release.
 
 ## Keep in touch
 
