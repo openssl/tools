@@ -212,7 +212,7 @@ if [ "$PICK" == "no" ]; then
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
     WORK_USED=$WORK
     REBASING=1
-    git rebase $TARGET || (echo 'Fix or Ctrl-d to abort' ; read || exit 1)
+    git rebase $TARGET || (echo -ne "Press Ctrl-d to abort, or fix the issue in another shell,\n    run 'git rebase --continue' there, and on success press Enter here: "; read || exit 1)
     REBASING=
 else
     echo Cherry-picking $REPO/$BRANCH to $TARGET...
