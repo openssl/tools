@@ -77,7 +77,7 @@ echo
 git log $id~$num..$id
 echo
 
-echo -n "Press Enter to continue, Ctrl-C to abort:"; read foo
+echo -n "Press Enter to continue, Ctrl-C to abort: "; read foo
 
 ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
 if [ "$target" != "$ORIG_REF" ]; then
@@ -112,7 +112,7 @@ git checkout $target
 ORIG_TARGET_HEAD=`git show -s --format="%H"`
 git pull --ff-only `git rev-parse --abbrev-ref  @{u} | sed "s|/| |"`
 CHERRYPICKING=1
-git cherry-pick -e -x $id~$num..$id || (echo 'Fix or Ctrl-d to abort' ; read || exit 1)
+git cherry-pick -e -x $id~$num..$id || (echo -ne "Press Ctrl-d to abort, or fix the issue in another shell,\n    run 'git cherry-pick --continue' there, and on success press Enter here: "; read || exit 1)
 CHERRYPICKING=
 
 while true ; do
