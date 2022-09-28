@@ -20,6 +20,7 @@ my $found = 0;
 my $num = 0;
 my $refuse = 0;
 my $prnum = 0;
+my $release = 0;
 my $verbose = 0;
 my $WHAT = 'openssl';
 
@@ -28,9 +29,23 @@ my $query = OpenSSL::Query->new();
 my @reviewers;
 my @nocla_reviewers;
 my @unknown_reviewers;
+my $min_reviewers = 2;          # All source default
+my $authorcount = 0;
+# $min_authors is special in so far that 0 denotes that authors MUST NOT
+# be counted as reviewers.  For all other values, it works as a minimum.
+my $min_authors = 0;            # Main source default
 my $otccount = 0;
+my $min_otc = 1;                # Main source default
+my $omccount = 0;
+my $min_omc = 0;                # Main source default
 my $author = $ENV{GIT_AUTHOR_EMAIL};
 my $authorrev = $query->find_person_tag($author, 'rev');
+
+sub is_author {
+    my $rev = shift;
+
+    return defined $authorrev && $rev eq $authorrev;
+}
 
 sub try_add_reviewer {
     my $id = shift;
@@ -40,12 +55,19 @@ sub try_add_reviewer {
     if ($rev) {
         my $cla = $query->has_cla(lc $rev);
         if ($cla) {
-            if (!defined $authorrev || $rev ne $authorrev) {
-                unless (grep {$_ eq $rev} @reviewers) {
-                    $otccount++ if $query->is_member_of($id2, 'otc');
-                    push @reviewers, $rev;
-                }
+            # $rc is made to hold and return the reviewer string if it's
+            # valid to count that reviewer string.
+            if (is_author($rev)) {
+                $rc = $rev if $min_authors > 0 || $release;
+            } else {
                 $rc = $rev;
+            }
+            if ($rc && !(grep {$_ eq $rc} @reviewers)) {
+                $authorcount++ if is_author($rc);
+                $otccount++ if $query->is_member_of($id2, 'otc');
+                $omccount++ if $query->is_member_of($id2, 'omc');
+                # Authors don't get Reviewed-by trailers
+                push @reviewers, $rc unless is_author($rc);
             }
         } else {
             push @nocla_reviewers, $id
@@ -62,6 +84,7 @@ sub try_add_reviewer {
     return $rc;
 }
 
+my @collect_possible_reviewers = ($author);
 foreach (@ARGV) {
     if (/^--list$/) {
 	my %list = ();
@@ -93,7 +116,7 @@ foreach (@ARGV) {
 	}
 	exit 0;
     } elsif (/^--reviewer=(.+)$/) {
-	try_add_reviewer($1);
+        push @collect_possible_reviewers, $1;
     } elsif (/^--prnum=(.+)$/) {
         $prnum = $1;
     } elsif (/^--commit=(.+)$/) {
@@ -102,15 +125,27 @@ foreach (@ARGV) {
     } elsif (/^--rmreviewers$/) {
         $rmrev = 1;
     } elsif (/^--myemail=(.+\@.+)$/) {
-	try_add_reviewer($1);
+        push @collect_possible_reviewers, $1;
     } elsif (/^--verbose$/) {
 	$verbose = 1;
     } elsif (/^--web$/) {
         $WHAT = 'web';
+        $min_authors = 1;
+        # openssl/web is governed by OMC
+        $min_otc = 0;
+        $min_omc = 2;
     } elsif (/--tools$/) {
-        $WHAT = 'tools'
+        $WHAT = 'tools';
+        $min_authors = 1;
+        # openssl/tools is governed by OTC
+        $min_otc = 2;
+        $min_omc = 0;
+    } elsif (/^--release$/) {
+        $release = 1;
     }
 }
+
+try_add_reviewer($_) foreach (@collect_possible_reviewers);
 
 my @commit_message = map { (my $x = $_) =~ s|\R$||; $x } <STDIN>;
 my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
@@ -136,11 +171,15 @@ if (@nocla_reviewers) {
 
 print STDERR "Detected trivial marker\n" if $verbose && $trivial;
 
-if (scalar @reviewers < 2) {
-    die "Too few reviewers (total must be at least 2)\n";
+if (scalar @reviewers < $min_reviewers - $authorcount) {
+    die "Too few reviewers (total must be at least ",
+        $min_reviewers - $authorcount, ")\n";
 }
-if ($otccount < 1) {
+if ($otccount < $min_otc) {
     die "At least one of the reviewers must be an OTC member\n";
+}
+if ($omccount < $min_omc) {
+    die "At least one of the reviewers must be an OMC member\n";
 }
 
 print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
@@ -184,6 +223,11 @@ foreach (@commit_message) {
         $last_is_rev = 1;
         # Remove reviewers that are already in the message from our reviewer list
         @reviewers = grep { $_ ne $id } @reviewers;
+    } elsif (/^Release:\s*yes\s*$/i) {
+        if ($release == 1) {
+            # We are re-adding the release line below
+            next;
+        }
     }
     print $_,"\n";
 }
@@ -193,6 +237,10 @@ if ($rmrev == 0) {
     foreach(@reviewers) {
 	print "Reviewed-by: $_\n";
     }
+}
+
+if ($release == 1) {
+    print "Release: yes\n";
 }
 
 print "(Merged from https://github.com/openssl/$WHAT/pull/$prnum)\n"

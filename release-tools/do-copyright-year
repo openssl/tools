@@ -54,5 +54,5 @@ git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
     )
 echo Files changed: $(git status --porcelain | grep '^ *M' | wc -l)
 echo Committing change locally.
-git commit -m 'Update copyright year'
+git commit -m $'Update copyright year\n\nRelease: yes'
 rm -f $ss
