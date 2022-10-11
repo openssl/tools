@@ -144,9 +144,12 @@ command.
 
 This must be done from a checkout of `git@github.openssl.org:openssl/openssl.git`.
 
-    git push git@github.openssl.org:openssl/openssl.git refs/frozen/NAME
+    git push git@github.openssl.org:openssl/openssl.git master:refs/frozen/NAME
 
 Where `NAME` is the github username of the user doing the release.
+
+Note: it currently doesn't matter what source branch is used when pushing,
+the whole repository is frozen either way.  The example above uses master.
 
 ## Make sure that the openssl source is up to date
 
