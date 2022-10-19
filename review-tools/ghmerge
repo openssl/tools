@@ -219,7 +219,7 @@ else
     git checkout -b $WORK $TARGET
     WORK_USED=$WORK
     CHERRYPICKING=1
-    git fetch $REPO $BRANCH && (git cherry-pick FETCH_HEAD~$PICK..FETCH_HEAD || exit 1)
+    git fetch $REPO $BRANCH && (git cherry-pick FETCH_HEAD~$PICK..FETCH_HEAD || (echo -ne "Press Ctrl-d to abort, or fix the issue in another shell,\n    run 'git cherry-pick --continue' there, and on success press Enter here: "; read || exit 1))
     CHERRYPICKING=
 fi
 
