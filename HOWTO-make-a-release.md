@@ -26,7 +26,7 @@ and additional tester.
 -   [Publish the release](#publish-the-release)
     -   [Updating the release data](#updating-the-release-data)
 -   [Post-publishing tasks](#post-publishing-tasks)
-    -   [Check the website](#check-the-website)
+    -   [Check the website](#check-the-website) [only for public releases]
     -   [Send the announcement mail](#send-the-announcement-mail)
     -   [Send out the Security Advisory](#send-out-the-security-advisory)
     -   [Unfreeze the source repository](#unfreeze-the-source-repository)
@@ -52,9 +52,11 @@ programs in you `$PATH`:
 
 You must have access to the following repositories:
 
--   `git@github.openssl.org:openssl/openssl.git`
+-   `git@github.openssl.org:openssl/openssl.git` or
+    `git@github.openssl.org:openssl/premium.git`
 
-    This is the usual main source repository
+    `openssl/openssl` is the public source repository, while
+    `openssl/premium` is the premium release repository.
 
 -   `git@github.openssl.org:otc/tools.git`
 
@@ -128,6 +130,10 @@ You will need to checkout at least three working trees:
 
         git clone git@github.openssl.org:openssl/openssl.git
 
+    or
+
+        git clone git@github.openssl.org:openssl/premium.git
+
     If you're doing multiple releases in one go, there are many ways to deal
     with it.  One possibility, available since git 2.5, is to use `git
     worktree`:
@@ -137,19 +143,27 @@ You will need to checkout at least three working trees:
 
 ## Freeze the source repository
 
-Three business day before the release, freeze the main repository.  This
-locks out everyone but the named user, who is doing the release, from doing
-any pushes.  Someone other than the person doing the release should run the
-command.
+Three business day before the release, freeze the appropriate source
+repository.
 
-This must be done from a checkout of `git@github.openssl.org:openssl/openssl.git`.
+This locks out everyone but the named user, who is doing the release, from
+doing any pushes.  Someone other than the person doing the release should
+run the command.
 
-    git push git@github.openssl.org:openssl/openssl.git master:refs/frozen/NAME
+This must be done from a checkout of that source repository, so for public
+releases:
+
+    git push git@github.openssl.org:openssl/openssl.git HEAD:refs/frozen/NAME
+
+and for premium releases:
+
+    git push git@github.openssl.org:openssl/premium.git HEAD:refs/frozen/NAME
 
 Where `NAME` is the github username of the user doing the release.
 
 Note: it currently doesn't matter what source branch is used when pushing,
-the whole repository is frozen either way.  The example above uses master.
+the whole repository is frozen either way.  The example above uses whatever
+branch you happen to have checked out.
 
 ## Make sure that the openssl source is up to date
 
@@ -184,8 +198,9 @@ Reviewed-By trailers as required.
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
 
-*Do not push* changes to the main source repo at this stage.
-(the main source repo being `git@github.openssl.org:openssl/openssl.git`)
+*Do not push* changes to the source repo at this stage.
+(the source repo being on of `git@github.openssl.org:openssl/openssl.git` or
+`git@github.openssl.org:openssl/premium.git`)
 
 ## Generate the tarball and announcement text
 
@@ -208,8 +223,9 @@ match in the .md5, .sha1, .sha256, and review the announcment file.
 *Do* send the auto-generated commits to the reviewer and await their
 approval.
 
-*Do not push* changes to the main source repo at this stage.
-(the main source repo being `git@github.openssl.org:openssl/openssl.git`)
+*Do not push* changes to the source repo at this stage.
+(the source repo being on of `git@github.openssl.org:openssl/openssl.git` or
+`git@github.openssl.org:openssl/premium.git`)
 
 ### OpenSSL 3.0 and on
 
@@ -243,19 +259,26 @@ The manual for that script is found in `$TOOLS/release-tools/MKRELEASE.md`
 *The changes in this section should be made in your clone of the release
 data repo*
 
-Update the newsflash.txt file.  This normally is one or two lines.  Just
-copy and paste existing announcements making minor changes for the date and
-version number as necessary.  If there is an advisory then ensure you
-include a link to it.
+-   Newsflash *[only for public releases]*
 
-Update the vulnerabilities.xml file if appropriate.
+    Update the newsflash.txt file.  This normally is one or two lines.  Just
+    copy and paste existing announcements making minor changes for the date
+    and version number as necessary.  If there is an advisory then ensure
+    you include a link to it.
 
-If there is a Security Advisory then copy it into the secadv directory.
+-   Security advisory *[both public and premium releases]*
 
-*Do* send the commits to the reviewer and await their approval.
+    Update the vulnerabilities.xml file if appropriate.
+
+    If there is a Security Advisory then copy it into the secadv directory.
 
 Commit your changes, but *do not push* them to the release data repo at this
 stage.  (the release data repo being `git@github.openssl.org:omc/data.git`)
+
+*Do* send the commits to the reviewer and await their approval.  It's
+advisable to use this command to get a copy of those commits:
+
+    git format-patch
 
 # Publish the release
 
@@ -282,35 +305,39 @@ The do-release.pl script will display the commands you will need to issue to
 send the announcement emails later.  Keep a note of those commands for
 future reference.
 
-Verify that the tarballs are available via FTP:
+For public releases, verify that the tarballs are available via FTP:
 
-    ftp://ftp.openssl.org/source/
+    ls /srv/ftp/source
 
-And that they are ready for the website:
+For premium releases, verify that the tarballs are available via SFTP:
 
-    ls /var/www/openssl/source
+    ls /srv/premium
 
-*For OpenSSL 3.0 and on*, push your local changes to the main source repo as
-instructed by `dev/release.sh`.  You may want to sanity check the pushes by
-inserting the `-n` (dry-run) option.
+*For OpenSSL 3.0 and on*, push your local changes to the appropriate source
+repo as instructed by `dev/release.sh`.  You may want to sanity check the
+pushes by inserting the `-n` (dry-run) option.
 
-*For OpenSSL before 3.0*, simply push your local changes to the main source
-repo, and please do remember to push the release tags as well. You may want to
-sanity check the pushes by inserting the `-n` (dry-run) option. You must specify
-the repository / remote and tag to be pushed:
+*For OpenSSL before 3.0*, simply push your local changes to the appropriate
+source repo, and please do remember to push the release tags as well. You
+may want to sanity check the pushes by inserting the `-n` (dry-run)
+option. You must specify the repository / remote and tag to be pushed:
 
     git push <repository> <tagname>
 
 ## Updating the release data
 
-Push the newsflash changes to the release data repo.  When you do this, the
-website will get updated and a script to flush the Akamai CDN cache will be
-run.  You can look at things on www-origin.openssl.org; the CDN-hosted
-www.openssl.org should only be a few minutes delayed.
+If you committed anything to the release data repo, push the changes now.
+
+When you do this for a public release, the website will get updated and a
+script to flush the Akamai CDN cache will be run.  You can look at things on
+www-origin.openssl.org; the CDN-hosted www.openssl.org should only be a few
+minutes delayed.
 
 # Post-publishing tasks
 
 ## Check the website
+
+*NOTE: This is **only** for public releases*
 
 Verify that the release notes, which are built from the CHANGES.md file
 in the release, have been updated.  This is done automatically by OpenSSL
@@ -341,20 +368,16 @@ Also check the notes here:
 
 Send out the announcements.  Generic release announcement messages will be
 created automatically by the build script and the commands you need to use
-to send them were displayed when you executed do-release.pl above.
-These are sent to openssl-users, openssl-project, and openssl-announce. They
-should be sent from the account of the person that owns the key used for signing
-the release announcement. Ensure that mutt is configured correctly - send a test
-email first if necessary.
+to send them were displayed when you executed do-release.pl above. They
+should be sent from the account of the person that owns the key used for
+signing the release announcement. Ensure that mutt is configured correctly -
+send a test email first if necessary.
 
 If do-release.pl was used with `--move` be sure to move the announcement
-text files away from the staging directory after they have been sent.  This
-is done as follows (with VERSION replaced with the version of OpenSSL to
-announce):
+text files away from the staging directory *after they have been sent*.
+This is done as follows (with VERSION replaced with the version of OpenSSL
+to announce):
 
-    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL version VERSION published" \
-            openssl-project openssl-users openssl-announce \
-            < /home/openssl/dist/new/openssl-VERSION.txt.asc
     sudo -u openssl \
         mv ~openssl/dist/new/openssl-VERSION.txt.asc ~openssl/dist/old
 
@@ -375,24 +398,44 @@ Then copy the result to the temporary directory on dev.openssl.org:
     scp secadv_FILENAME.txt.asc dev.openssl.org:/tmp
 
 To finish, log in on dev.openssl.org and send the signed Security
-Advisory by email as the user that signed the advisory, and then remove it:
+Advisory by email as the user that signed the advisory.
+
+For all releases, send them to the default set of public mailing lists:
 
     REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
             openssl-project openssl-users openssl-announce \
             </tmp/secadv_FILENAME.txt.asc
+
+For premium releases, send them to support-announce as well *and
+separately*:
+
+    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
+            support-announce </tmp/secadv_FILENAME.txt.asc
+
+When done, remove the email file:
+
     rm /tmp/secadv_FILENAME.txt.asc
 
 Approve the openssl-announce email.  Go to
 <https://mta.openssl.org/mailman/admindb/openssl-announce>
 and approve the messages.
 
-Check the mailing list messages have arrived.
+For premium releases, approve the support-announce email as well.  Go to
+<https://mta.openssl.org/mailman/admindb/support-announce> and approve the
+messages.
+
+Check that the mailing list messages have arrived.
 
 ## Unfreeze the source repository.
 
-This must be done from a checkout of the main source repo.
+This must be done from a checkout of the appropriate source repo:
 
     git push --delete git@github.openssl.org:openssl/openssl.git \
+        refs/frozen/NAME
+
+or:
+
+    git push --delete git@github.openssl.org:openssl/premium.git \
         refs/frozen/NAME
 
 ## Security fixes
