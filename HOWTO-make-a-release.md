@@ -16,7 +16,7 @@ and additional tester.
     -   [A method for reviewing](#a-way-to-reviewing)
 -   [Pre-publishing tasks](#pre-publishing-tasks)
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
-    -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
+    -   [Freeze the source repository](#freeze-the-source-repository) [three business days before release]
     -   [Make sure that the openssl source is up to date](#make-sure-that-the-openssl-source-is-up-to-date)
     -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
@@ -313,13 +313,9 @@ www.openssl.org should only be a few minutes delayed.
 ## Check the website
 
 Verify that the release notes, which are built from the CHANGES.md file
-in the release, have been updated.  This is done automatically by the
-commit-hook, but if you see a problem, try the following steps on
-`dev.openssl.org`:
-
-    cd /var/www/openssl
-    sudo -u openssl -H make relupd
-    sudo -u openssl -H ./bin/purge-one-hour
+in the release, have been updated.  This is done automatically by OpenSSL
+automation; if you see a problem, check if the web build job has been
+performed yet, you may have to wait a few minutes before it kicks in.
 
 Wait for a while for the Akamai flush to work (normally within a few minutes).
 Have a look at the website and news announcement at:
