@@ -16,7 +16,7 @@ and additional tester.
     -   [A method for reviewing](#a-way-to-reviewing)
 -   [Pre-publishing tasks](#pre-publishing-tasks)
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
-    -   [Freeze the source repository](#freeze-the-source-repository) [the day before release]
+    -   [Freeze the source repository](#freeze-the-source-repository) [three business days before release]
     -   [Make sure that the openssl source is up to date](#make-sure-that-the-openssl-source-is-up-to-date)
     -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
         -   [OpenSSL 3.0 and on](#openssl-3.0-and-on)
@@ -254,8 +254,11 @@ If there is a Security Advisory then copy it into the secadv directory.
 
 *Do* send the commits to the reviewer and await their approval.
 
-Commit your changes, but *do not push* them to the release data repo at this
-stage.  (the release data repo being `git@github.openssl.org:omc/data.git`)
+Make a pull request from your changes, against the release data repo (the
+release data repo being `git@github.openssl.org:omc/data.git`).
+
+*Do not merge the pull request at this point*, even if the reviewer already
+approved it.
 
 # Publish the release
 
@@ -303,23 +306,25 @@ the repository / remote and tag to be pushed:
 
 ## Updating the release data
 
-Push the newsflash changes to the release data repo.  When you do this, the
-website will get updated and a script to flush the Akamai CDN cache will be
-run.  You can look at things on www-origin.openssl.org; the CDN-hosted
-www.openssl.org should only be a few minutes delayed.
+Merge the PR against the release data repo now.
+
+When you do this, the website will get updated and a script to flush the
+Akamai CDN cache will be run.
+
+You can look at <https://automation.openssl.org/> to see the automation
+builds in action.  The builder called `web` is of particular interest.
+
+You can also look at the result at <https://www-origin.openssl.org>; the
+CDN-hosted www.openssl.org should get updated withing minutes later.
 
 # Post-publishing tasks
 
 ## Check the website
 
 Verify that the release notes, which are built from the CHANGES.md file
-in the release, have been updated.  This is done automatically by the
-commit-hook, but if you see a problem, try the following steps on
-`dev.openssl.org`:
-
-    cd /var/www/openssl
-    sudo -u openssl -H make relupd
-    sudo -u openssl -H ./bin/purge-one-hour
+in the release, have been updated.  This is done automatically by OpenSSL
+automation; if you see a problem, check if the web build job has been
+performed yet, you may have to wait a few minutes before it kicks in.
 
 Wait for a while for the Akamai flush to work (normally within a few minutes).
 Have a look at the website and news announcement at:
