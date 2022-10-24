@@ -30,6 +30,7 @@ and additional tester.
     -   [Send the announcement mail](#send-the-announcement-mail)
     -   [Send out the Security Advisory](#send-out-the-security-advisory)
     -   [Unfreeze the source repository](#unfreeze-the-source-repository)
+    -   [Update compatibility tests](#update-the-provider-backwards-compatibility-tests)
     -   [Security fixes](#security-fixes)
     -   [Keep in touch](#keep-in-touch)
 
@@ -398,6 +399,12 @@ This must be done from a checkout of the main source repo.
 
     git push --delete git@github.openssl.org:openssl/openssl.git \
         refs/frozen/NAME
+
+## Update the provider backwards compatibility tests
+
+The tags being tested by the `.github/workflows/provider-compatibility.yml`
+script need to be updated for the released version and **all** subsequent (i.e.
+higher numbered versions) to include the tag for this release.
 
 ## Security fixes
 
