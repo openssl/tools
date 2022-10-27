@@ -272,13 +272,11 @@ data repo*
 
     If there is a Security Advisory then copy it into the secadv directory.
 
-Commit your changes, but *do not push* them to the release data repo at this
-stage.  (the release data repo being `git@github.openssl.org:omc/data.git`)
+Make a pull request from your changes, against the release data repo (the
+release data repo being `git@github.openssl.org:omc/data.git`).
 
-*Do* send the commits to the reviewer and await their approval.  It's
-advisable to use this command to get a copy of those commits:
-
-    git format-patch
+*Do not merge the pull request at this point*, even if the reviewer already
+approved it.
 
 # Publish the release
 
@@ -326,12 +324,17 @@ option. You must specify the repository / remote and tag to be pushed:
 
 ## Updating the release data
 
-If you committed anything to the release data repo, push the changes now.
+If there is a PR against the release repo to be merged, perform the merge
+now.
 
 When you do this for a public release, the website will get updated and a
-script to flush the Akamai CDN cache will be run.  You can look at things on
-www-origin.openssl.org; the CDN-hosted www.openssl.org should only be a few
-minutes delayed.
+script to flush the Akamai CDN cache will be run.
+
+You can look at <https://automation.openssl.org/> to see the automation
+builds in action.  The builder called `web` is of particular interest.
+
+You can also look at the result at <https://www-origin.openssl.org>; the
+CDN-hosted www.openssl.org should get updated withing minutes later.
 
 # Post-publishing tasks
 
