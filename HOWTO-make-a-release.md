@@ -199,8 +199,8 @@ Reviewed-By trailers as required.
 approval.
 
 *Do not push* changes to the source repo at this stage.
-(the source repo being on of `git@github.openssl.org:openssl/openssl.git` or
-`git@github.openssl.org:openssl/premium.git`)
+(the source repo being one of `git@github.openssl.org:openssl/openssl.git`
+or `git@github.openssl.org:openssl/premium.git`)
 
 ## Generate the tarball and announcement text
 
@@ -224,8 +224,8 @@ match in the .md5, .sha1, .sha256, and review the announcment file.
 approval.
 
 *Do not push* changes to the source repo at this stage.
-(the source repo being on of `git@github.openssl.org:openssl/openssl.git` or
-`git@github.openssl.org:openssl/premium.git`)
+(the source repo being one of `git@github.openssl.org:openssl/openssl.git`
+or `git@github.openssl.org:openssl/premium.git`)
 
 ### OpenSSL 3.0 and on
 
