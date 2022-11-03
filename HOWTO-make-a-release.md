@@ -324,8 +324,8 @@ option. You must specify the repository / remote and tag to be pushed:
 
 ## Updating the release data
 
-If there is a PR against the release repo to be merged, perform the merge
-now.
+If there is a PR against the release data repo to be merged, perform the
+merge now.
 
 When you do this for a public release, the website will get updated and a
 script to flush the Akamai CDN cache will be run.
