@@ -46,22 +46,22 @@ esac
 
 case $b in
 *1*0*2*)
-    target=OpenSSL_1_0_2-stable
+    TARGET=OpenSSL_1_0_2-stable
     ;;
 *1*1*0*)
-    target=OpenSSL_1_1_0-stable
+    TARGET=OpenSSL_1_1_0-stable
     ;;
 *1*1*1*)
-    target=OpenSSL_1_1_1-stable
+    TARGET=OpenSSL_1_1_1-stable
     ;;
 *3*0*)
-    target=openssl-3.0
+    TARGET=openssl-3.0
     ;;
 *3*1*)
-    target=openssl-3.1
+    TARGET=openssl-3.1
     ;;
 m*)
-    target=master
+    TARGET=master
     ;;
 *)
     echo Unknown target release branch \'$b\'
@@ -70,7 +70,7 @@ m*)
 esac
 
 echo "First commit to cherry-pick is: $id~$((num - 1))"
-echo "Target branch is: $target"
+echo "Target branch is: $TARGET"
 echo "Number of commits to pick: $num"
 echo
 echo "Commit(s) to be cherry-picked:"
@@ -80,7 +80,7 @@ echo
 echo -n "Press Enter to continue, Ctrl-C to abort: "; read foo
 
 ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
-if [ "$target" != "$ORIG_REF" ]; then
+if [ "$TARGET" != "$ORIG_REF" ]; then
     STASH_OUT=`git stash`
 fi
 
@@ -96,7 +96,7 @@ function cleanup {
         echo Restoring original commit HEAD of $TARGET
         git reset --merge "$ORIG_TARGET_HEAD"
     fi
-    if [ "$target" != "$ORIG_REF" ]; then
+    if [ "$TARGET" != "$ORIG_REF" ]; then
         echo Returning to previous branch $ORIG_REF
         git checkout -q $ORIG_REF
         if [ "$STASH_OUT" != "No local changes to save" ]; then
@@ -108,7 +108,7 @@ set -o errexit
 trap 'cleanup' EXIT
 
 git checkout --quiet master
-git checkout $target
+git checkout $TARGET
 ORIG_TARGET_HEAD=`git show -s --format="%H"`
 git pull --ff-only `git rev-parse --abbrev-ref  @{u} | sed "s|/| |"`
 CHERRYPICKING=1
