@@ -412,6 +412,7 @@ For all releases, send them to the default set of public mailing lists:
 
     REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
             openssl-project openssl-users openssl-announce \
+            oss-security@lists.openwall.com \
             </tmp/secadv_FILENAME.txt.asc
 
 For premium releases, send them to support-announce as well *and
