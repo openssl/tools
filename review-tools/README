@@ -33,7 +33,7 @@ Run 'addrev --help' for usage.
 
 If a reviewer already exists in the log message, it isn't added again.
 
-If the commiter is not the author of the commit then they are added
+If the committer is not the author of the commit then they are added
 automatically as a reviewer.
 
 Reviewer names can be given as simple known lower case names, or as github
