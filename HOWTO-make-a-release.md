@@ -291,7 +291,7 @@ in this section.
 
 Check that the release has been uploaded properly.  The release tarballs and
 associated files should be in ~openssl/dist/new.  They should be owned by
-the openssl userid and world-readable.
+the "upload" userid and world-readable.
 
 Copy the tarballs to appropriate directories.  This can be done using the
 do-release.pl script.  See $TOOLS/release-tools/DO-RELEASE.md for a
@@ -326,6 +326,24 @@ may want to sanity check the pushes by inserting the `-n` (dry-run)
 option. You must specify the repository / remote and tag to be pushed:
 
     git push <repository> <tagname>
+
+Upload the release files to the "Releases" section on github. Visit this URL:
+
+https://github.com/openssl/openssl/releases
+
+Click the "Draft a new release" button. Give the release a title, e.g.
+"OpenSSL 3.1.0". Give it a description. Typically this will be the same text
+that was used in the newsflash.txt file to announce the release. Upload the
+four release files, e.g.
+
+openssl-3.1.0.tar.gz
+openssl-3.1.0.tar.gz.asc
+openssl-3.1.0.tar.gz.sha1
+openssl-3.1.0.tar.gz.sha256
+
+If this is not the latest stable release, uncheck the "Set as the latest release"
+checkbox. If this is an alpha or beta release check the "Set as a pre-release"
+checkbox. Finally click "Publish release".
 
 ## Updating the release data
 
