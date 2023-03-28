@@ -13,6 +13,9 @@
 #                       is found and should be stored.  If this is empty,
 #                       no version information was found, and the release
 #                       should be aborted.
+# RELEASE_FILES         The set of files that must be manipulated during a
+#                       release, separated by semicolons.  Other scripts are
+#                       used to actually manipulate these files.
 #
 # MAJOR, MINOR, FIX, PATCH
 #                       The three or four parts of a version number, depending
@@ -73,6 +76,8 @@ get_version () {
     _PRE_RELEASE_TAG=
     _BUILD_METADATA=
 
+    RELEASE_FILES=
+
     # Detect possible version files.
     # OpenSSL 3.0 and on use VERSION.dat.
     # OpenSSL 1.1.y use include/openssl/opensslv.h
@@ -115,6 +120,7 @@ get_version () {
                                  -e 's|^dev$|0|' \
                                  -e 's|^alpha([0-9]+)(-(dev))?$|\1|' \
                                  -e 's|^beta([0-9]+)(-(dev))?$|\1|' )
+            RELEASE_FILES='CHANGES.md;NEWS.md'
             ;;
         */opensslv.h )
             # opensslv.h is a bit more difficult to get version data from,
@@ -180,13 +186,20 @@ if (m|^[[:space:]]*#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_NUMBER[[:space
             TYPE=$PRE_RELEASE_TAG
             PRE_LABEL=
             PRE_NUM=0
+
+            if [ -n "$(git ls-files openssl.spec)" ]; then
+                # 1.0.x
+                RELEASE_FILES='README;CHANGES;NEWS;openssl.spec'
+            else
+                # 1.1.x
+                RELEASE_FILES='README;CHANGES;NEWS'
+            fi
             ;;
         * )
             ;;
     esac
 }
 
-# $1 is one of "alpha", "beta", "final", "", or "minor"
 fixup_version () {
     local new_label="$1"
 
