@@ -66,6 +66,7 @@ next_release_state () {
         $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$next=$next"
         $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$MAJOR=$MAJOR"
         $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$MINOR=$MINOR"
+        $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$FIX=$FIX"
         $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$PATCH=$PATCH"
         $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$TYPE=$TYPE"
         $DEBUG >&2 "DEBUG[next_release_state]: BEGIN: \$PRE_LABEL=$PRE_LABEL"
@@ -169,7 +170,7 @@ next_release_state () {
             # the PATCH number is zero.  If it is, we force the caller to
             # go through the alpha and beta release process.
             dev+ )
-                if [ "$PATCH" = "0" ]; then
+                if [ "$PATCH" = "0" -o "$PATCH" = "" ]; then
                     echo >&2 "Can't update PATCH version number from 0"
                     echo >&2 "Please use --alpha or --beta"
                     exit 1
@@ -203,6 +204,7 @@ next_release_state () {
         $DEBUG >&2 "DEBUG[next_release_state]: END: \$next=$next"
         $DEBUG >&2 "DEBUG[next_release_state]: END: \$MAJOR=$MAJOR"
         $DEBUG >&2 "DEBUG[next_release_state]: END: \$MINOR=$MINOR"
+        $DEBUG >&2 "DEBUG[next_release_state]: END: \$FIX=$FIX"
         $DEBUG >&2 "DEBUG[next_release_state]: END: \$PATCH=$PATCH"
         $DEBUG >&2 "DEBUG[next_release_state]: END: \$TYPE=$TYPE"
         $DEBUG >&2 "DEBUG[next_release_state]: END: \$PRE_LABEL=$PRE_LABEL"

@@ -257,7 +257,7 @@ get_version
 # changes for the release, the update branch is where we make the post-
 # release changes
 update_branch="$orig_branch"
-release_branch="openssl-$SERIES"
+release_branch="$(std_branch_name)"
 
 # among others, we only create a release branch if the patch number is zero
 if [ "$update_branch" = "$release_branch" ] || [ $PATCH -ne 0 ]; then
@@ -362,7 +362,7 @@ else
     release_text="$release"
     announce_template=openssl-announce-release.tmpl
 fi
-tag="openssl-$release"
+tag="$(std_tag_name)"
 $VERBOSE "== Updated version information to $release"
 
 $VERBOSE "== Updating files with release date for $release : $RELEASE_DATE"
