@@ -68,6 +68,7 @@ expected=(
     [TYPE]=dev
     [SERIES]=3.2
     [VERSION]=3.2.0
+    [FULL_VERSION]=3.2.0-dev
     [PRE_RELEASE_TAG]=dev
     [SHLIB_VERSION]=3
 )
@@ -78,6 +79,7 @@ echo "Test release of 3.2.0-alpha1"
 expected=(
     [TYPE]=
     [VERSION]=3.2.0
+    [FULL_VERSION]=3.2.0-alpha1
     [PRE_RELEASE_TAG]=alpha1
     [RELEASE_DATE]="$today"
 )
@@ -88,6 +90,7 @@ echo "Test post-release of 3.2.0-alpha1"
 expected=(
     [TYPE]=dev
     [VERSION]=3.2.0
+    [FULL_VERSION]=3.2.0-alpha2-dev
     [PRE_RELEASE_TAG]=alpha2-dev
     [RELEASE_DATE]=
 )
@@ -98,6 +101,7 @@ echo "Test release of 3.2.0-beta1"
 expected=(
     [TYPE]=
     [VERSION]=3.2.0
+    [FULL_VERSION]=3.2.0-beta1
     [PRE_RELEASE_TAG]=beta1
     [RELEASE_DATE]="$today"
 )
@@ -108,6 +112,7 @@ echo "Test post-release of 3.2.0-beta1"
 expected=(
     [TYPE]=dev
     [VERSION]=3.2.0
+    [FULL_VERSION]=3.2.0-beta2-dev
     [PRE_RELEASE_TAG]=beta2-dev
     [RELEASE_DATE]=
 )
@@ -118,6 +123,7 @@ echo "Test release of 3.2.0"
 expected=(
     [TYPE]=
     [VERSION]=3.2.0
+    [FULL_VERSION]=3.2.0
     [PRE_RELEASE_TAG]=
     [RELEASE_DATE]="$today"
 )
@@ -128,6 +134,7 @@ echo "Test post-release of 3.2.0"
 expected=(
     [TYPE]=dev
     [VERSION]=3.2.1
+    [FULL_VERSION]=3.2.1-dev
     [PRE_RELEASE_TAG]=dev
     [RELEASE_DATE]=
 )
@@ -138,6 +145,7 @@ echo "Test release of 3.2.1"
 expected=(
     [TYPE]=
     [VERSION]=3.2.1
+    [FULL_VERSION]=3.2.1
     [PRE_RELEASE_TAG]=
     [RELEASE_DATE]="$today"
 )
@@ -148,6 +156,7 @@ echo "Test post-release of 3.2.1"
 expected=(
     [TYPE]=dev
     [VERSION]=3.2.2
+    [FULL_VERSION]=3.2.2-dev
     [PRE_RELEASE_TAG]=dev
     [RELEASE_DATE]=
 )
@@ -158,6 +167,7 @@ echo "Test switch to next minor release (3.3.0-dev)"
 expected=(
     [TYPE]=dev
     [VERSION]=3.3.0
+    [FULL_VERSION]=3.3.0-dev
     [PRE_RELEASE_TAG]=dev
     [RELEASE_DATE]=
 )
@@ -203,6 +213,7 @@ expected=(
     [TYPE]=dev
     [SERIES]=1.0.2
     [VERSION]=1.0.2zh
+    [FULL_VERSION]=1.0.2zh-dev
     [PRE_RELEASE_TAG]=dev
     [SHLIB_VERSION]=1.0.0
 )
@@ -213,6 +224,7 @@ echo "Test release of 1.0.2zh"
 expected=(
     [TYPE]=
     [VERSION]=1.0.2zh
+    [FULL_VERSION]=1.0.2zh
     [PRE_RELEASE_TAG]=
     [RELEASE_DATE]="$today"
 )
@@ -223,6 +235,7 @@ echo "Test post-release of 1.0.2zh"
 expected=(
     [TYPE]=dev
     [VERSION]=1.0.2zi
+    [FULL_VERSION]=1.0.2zi-dev
     [PRE_RELEASE_TAG]=dev
     [RELEASE_DATE]=
 )
