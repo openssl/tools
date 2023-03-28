@@ -1,7 +1,7 @@
 Auxillary files for dev/release.sh
 ===================================
 
-- release-state-fn.sh
+- `release-state-fn.sh`
 
   This is the main version and state update logic...  you could say
   that it's the innermost engine for the release mechanism.  It
@@ -9,22 +9,29 @@ Auxillary files for dev/release.sh
   release-version-fn.sh to supply necessary functions that are
   specific for versioning schemes.
 
-- release-version-fn.sh
+- `release-version-fn.sh`
 
-  Supplies functions that are specific to versioning schemes:
+  Supplies functions to manipulate version data appropriately for the
+  detected version scheme:
 
-  get_version() gets the version data from appropriate files.
+  `get_version()` gets the version data from appropriate files.
 
-  set_version() writes the version data to appropriate files.
+  `set_version()` writes the version data to appropriate files.
 
-  fixup_version() updates the version data, given a first argument
+  `fixup_version()` updates the version data, given a first argument
   that instructs it what update to do.
 
-- openssl-announce-pre-release.tmpl and openssl-announce-release.tmpl
+- `openssl-announce-pre-release.tmpl` and `openssl-announce-release.tmpl`
 
   Templates for announcements
 
-- fixup-*-release.pl and fixup-*-postrelease.pl
+- `fixup-*-release.pl` and `fixup-*-postrelease.pl`
 
   Fixup scripts for specific files, to be done for the release
   commit and for the post-release commit.
+
+  Some of the scripts have very similar names, to handle different file layouts.
+  For example, `fixup-CHANGES.md-postrelease.pl` handles the file `CHANGES.md`
+  that is used in OpenSSL 3.0 and on, while `fixup-CHANGES-postrelease.pl`
+  handles the file `CHANGES` that is used in pre-3.0 OpenSSL versions.
+  Do not confuse these or other similarly named scripts.
