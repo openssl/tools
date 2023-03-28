@@ -33,6 +33,8 @@
 #                       MAJOR, MINOR and (possibly) FIX
 # VERSION               The current version number.  It is copmuted from
 #                       MAJOR, MINOR, (possibly) FIX and PATCH
+# FULL_VERSION          Like VERSION, but with metadata (PRE_RELEASE_TAG,
+#                       BUILD_METADATA) added
 #
 # TYPE                  The state the source is in.  It may have an empty value
 #                       for released source, or 'dev' for "in development".
@@ -64,6 +66,7 @@ get_version () {
     # These are computed from extracted variables
     SERIES=
     VERSION=
+    FULL_VERSION=
     TYPE=
     PRE_LABEL=
     PRE_NUM=
@@ -96,6 +99,7 @@ get_version () {
 
             SERIES="$MAJOR.$MINOR"
             VERSION="$MAJOR.$MINOR.$PATCH"
+            FULL_VERSION="$VERSION$_PRE_RELEASE_TAG$_BUILD_METADATA"
             TYPE=$( echo "$PRE_RELEASE_TAG" \
                         | sed -E \
                               -e 's|^dev$|dev|' \
@@ -172,6 +176,7 @@ if (m|^[[:space:]]*#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_NUMBER[[:space
 
             SERIES="$MAJOR.$MINOR.$FIX"
             VERSION="$MAJOR.$MINOR.$FIX$PATCH"
+            FULL_VERSION="$VERSION$_PRE_RELEASE_TAG"
             TYPE=$PRE_RELEASE_TAG
             PRE_LABEL=
             PRE_NUM=0
@@ -257,10 +262,12 @@ fixup_version () {
         VERSION.dat )
             SERIES="$MAJOR.$MINOR"
             VERSION="$SERIES.$PATCH"
+            FULL_VERSION="$VERSION$_PRE_RELEASE_TAG$_BUILD_METADATA"
             ;;
         */opensslv.h )
             SERIES="$MAJOR.$MINOR.$FIX"
             VERSION="$SERIES$PATCH"
+            FULL_VERSION="$VERSION$_PRE_RELEASE_TAG"
             ;;
     esac
 }
@@ -324,7 +331,7 @@ std_branch_name () {
 std_tag_name () {
     case "$VERSION_FILE" in
         VERSION.dat )
-            echo "openssl-$VERSION$_PRE_RELEASE_TAG$_BUILD_METADATA"
+            echo "openssl-$FULL_VERSION"
             ;;
         */opensslv.h )
             echo "OpenSSL_${VERSION//./_}"

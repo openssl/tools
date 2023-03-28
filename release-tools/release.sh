@@ -365,12 +365,11 @@ fi
 # Write the version information we updated
 set_version
 
+release="$FULL_VERSION"
 if [ -n "$PRE_LABEL" ]; then
-    release="$VERSION$_PRE_RELEASE_TAG$_BUILD_METADATA"
     release_text="$SERIES$_BUILD_METADATA $PRE_LABEL $PRE_NUM"
     announce_template=openssl-announce-pre-release.tmpl
 else
-    release="$VERSION$_BUILD_METADATA"
     release_text="$release"
     announce_template=openssl-announce-release.tmpl
 fi
@@ -470,7 +469,7 @@ prev_release_date="$RELEASE_DATE"
 next_release_state "$next_method2"
 set_version
 
-release="$VERSION$_PRE_RELEASE_TAG$_BUILD_METADATA"
+release="$FULL_VERSION"
 release_text="$VERSION$_BUILD_METADATA"
 if [ -n "$PRE_LABEL" ]; then
     release_text="$SERIES$_BUILD_METADATA $PRE_LABEL $PRE_NUM"
@@ -506,7 +505,7 @@ if $do_branch; then
     next_release_state "minor"
     set_version
 
-    release="$VERSION$_PRE_RELEASE_TAG$_BUILD_METADATA"
+    release="$FULL_VERSION"
     release_text="$SERIES$_BUILD_METADATA"
     $VERBOSE "== Updated version information to $release"
 
