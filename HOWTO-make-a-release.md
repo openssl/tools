@@ -227,32 +227,21 @@ approval.
 (the source repo being one of `git@github.openssl.org:openssl/openssl.git`
 or `git@github.openssl.org:openssl/premium.git`)
 
-### OpenSSL 3.0 and on
-
 The release generating script is in the OpenSSL source checkout, and is
 generally called like this:
 
-    dev/release.sh --reviewer=NAME
+    $TOOLS/release-tools/release.sh --reviewer=NAME
 
 This script has a multitude of other options that are useful for specific
 cases, and is also self-documented:
 
 -   To get a quick usage reminder:
 
-        dev/release.sh --help
+        $TOOLS/release-tools/release.sh --help
 
 -   To get a man-page:
 
-        dev/release.sh --manual
-
-### OpenSSL before 3.0
-
-The release generating script is in the tools checkout, represented here
-with $TOOLS, and is generally called like this:
-
-    $TOOLS/release-tools/mkrelease.pl --reviewer=NAME
-
-The manual for that script is found in `$TOOLS/release-tools/MKRELEASE.md`
+        $TOOLS/release-tools/release.sh --manual
 
 ## Update the release data locally
 
@@ -317,8 +306,8 @@ For premium releases, verify that the tarballs are available via SFTP:
     ls /srv/premium
 
 *For OpenSSL 3.0 and on*, push your local changes to the appropriate source
-repo as instructed by `dev/release.sh`.  You may want to sanity check the
-pushes by inserting the `-n` (dry-run) option.
+repo as instructed by `$TOOLS/release-tools/release.sh`.  You may want to
+sanity check the pushes by inserting the `-n` (dry-run) option.
 
 *For OpenSSL before 3.0*, simply push your local changes to the appropriate
 source repo, and please do remember to push the release tags as well. You
