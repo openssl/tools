@@ -195,14 +195,11 @@ trap "exec 42>&-; rm $VERBOSITY_FIFO" 0 2
 
 # Setup ##############################################################
 
-# Make sure we're in the work directory
-cd $(dirname $0)/..
-HERE=$(pwd)
-
 # Check that we have the scripts that define functions we use
+RELEASE_AUX=$(cd $(dirname $0)/release-aux; pwd)
 found=true
-for fn in "$HERE/dev/release-aux/release-version-fn.sh" \
-          "$HERE/dev/release-aux/release-state-fn.sh"; do
+for fn in "$RELEASE_AUX/release-version-fn.sh" \
+          "$RELEASE_AUX/release-state-fn.sh"; do
     if ! [ -f "$fn" ]; then
         echo >&2 "'$fn' is missing"
         found=false
@@ -213,8 +210,25 @@ if ! $found; then
 fi
 
 # Load version functions
-. $HERE/dev/release-aux/release-version-fn.sh
-. $HERE/dev/release-aux/release-state-fn.sh
+. $RELEASE_AUX/release-version-fn.sh
+. $RELEASE_AUX/release-state-fn.sh
+
+# Make sure we're in the work directory, and remember it
+if HERE=$(git rev-parse --show-toplevel); then
+    :
+else
+    echo >&2 "Not in a git worktree"
+    exit 1
+fi
+
+# Make sure that it's a plausible OpenSSL work tree, by checking
+# that a version file is found
+get_version
+
+if [ -z "$VERSION_FILE" ]; then
+    echo >&2 "Couldn't find OpenSSL version data"
+    exit 1
+fi
 
 # Make sure it's a branch we recognise
 orig_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -236,8 +250,6 @@ orig_HEAD=$(git rev-parse HEAD)
 # Initialize #########################################################
 
 echo "== Initializing work tree"
-
-get_version
 
 # Generate a cloned directory name
 release_clone="$orig_branch-release-tmp"
@@ -366,7 +378,7 @@ tag="$(std_tag_name)"
 $VERBOSE "== Updated version information to $release"
 
 $VERBOSE "== Updating files with release date for $release : $RELEASE_DATE"
-for fixup in "$HERE/dev/release-aux"/fixup-*-release.pl; do
+for fixup in "$RELEASE_AUX"/fixup-*-release.pl; do
     file="$(basename "$fixup" | sed -e 's|^fixup-||' -e 's|-release\.pl$||')"
     $VERBOSE "> $file"
     RELEASE="$release" RELEASE_TEXT="$release_text" RELEASE_DATE="$RELEASE_DATE" \
@@ -410,7 +422,7 @@ sha256hash=$(cat "../$tgzfile.sha256")
 
 $VERBOSE "== Generating announcement text: $announce"
 # Hack the announcement template
-cat "$HERE/dev/release-aux/$announce_template" \
+cat "$RELEASE_AUX/$announce_template" \
     | sed -e "s|\\\$release_text|$release_text|g" \
           -e "s|\\\$release|$release|g" \
           -e "s|\\\$series|$SERIES|g" \
@@ -419,7 +431,7 @@ cat "$HERE/dev/release-aux/$announce_template" \
           -e "s|\\\$length|$length|" \
           -e "s|\\\$sha1hash|$sha1hash|" \
           -e "s|\\\$sha256hash|$sha256hash|" \
-    | perl -p "$HERE/dev/release-aux/fix-title.pl" \
+    | perl -p "$RELEASE_AUX/fix-title.pl" \
     > "../$announce"
 
 $VERBOSE "== Generating signatures: $tgzfile.asc $announce.asc"
@@ -466,7 +478,7 @@ fi
 $VERBOSE "== Updated version information to $release"
 
 $VERBOSE "== Updating files for $release :"
-for fixup in "$HERE/dev/release-aux"/fixup-*-postrelease.pl; do
+for fixup in "$RELEASE_AUX"/fixup-*-postrelease.pl; do
     file="$(basename "$fixup" | sed -e 's|^fixup-||' -e 's|-postrelease\.pl$||')"
     $VERBOSE "> $file"
     RELEASE="$release" RELEASE_TEXT="$release_text" \
@@ -499,7 +511,7 @@ if $do_branch; then
     $VERBOSE "== Updated version information to $release"
 
     $VERBOSE "== Updating files for $release :"
-    for fixup in "$HERE/dev/release-aux"/fixup-*-postrelease.pl; do
+    for fixup in "$RELEASE_AUX"/fixup-*-postrelease.pl; do
         file="$(basename "$fixup" | sed -e 's|^fixup-||' -e 's|-postrelease\.pl$||')"
         $VERBOSE "> $file"
         RELEASE="$release" RELEASE_TEXT="$release_text" \
