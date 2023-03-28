@@ -71,6 +71,7 @@ expected=(
     [FULL_VERSION]=3.2.0-dev
     [PRE_RELEASE_TAG]=dev
     [SHLIB_VERSION]=3
+    [RELEASE_FILES]='CHANGES.md;NEWS.md'
 )
 get_version
 check
@@ -216,6 +217,7 @@ expected=(
     [FULL_VERSION]=1.0.2zh-dev
     [PRE_RELEASE_TAG]=dev
     [SHLIB_VERSION]=1.0.0
+    [RELEASE_FILES]='README;CHANGES;NEWS;openssl.spec'
 )
 get_version
 check

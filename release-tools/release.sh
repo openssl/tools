@@ -247,6 +247,26 @@ else
 fi
 orig_HEAD=$(git rev-parse HEAD)
 
+# Make sure that we have fixup scripts for all the files that need
+# to be modified for a release.  We trust this, because we're not
+# going to change versioning scheme in the middle of a release.
+save_IFS=$IFS
+IFS=';'
+found=true
+for fn in $RELEASE_FILES; do
+    for file in "$RELEASE_AUX/fixup-$fn-release.pl" \
+                "$RELEASE_AUX/fixup-$fn-postrelease.pl"; do
+        if ! [ -f "$file" ]; then
+            echo >&2 "'$file' is missing"
+            found=false
+        fi
+    done
+done
+IFS=$save_IFS
+if ! $found; then
+    exit 1
+fi
+
 # Initialize #########################################################
 
 echo "== Initializing work tree"
@@ -377,12 +397,15 @@ tag="$(std_tag_name)"
 $VERBOSE "== Updated version information to $release"
 
 $VERBOSE "== Updating files with release date for $release : $RELEASE_DATE"
-for fixup in "$RELEASE_AUX"/fixup-*-release.pl; do
-    file="$(basename "$fixup" | sed -e 's|^fixup-||' -e 's|-release\.pl$||')"
-    $VERBOSE "> $file"
-    RELEASE="$release" RELEASE_TEXT="$release_text" RELEASE_DATE="$RELEASE_DATE" \
-        perl -pi $fixup $file
-done
+(
+    IFS=';'
+    for file in $RELEASE_FILES; do
+        fixup="$RELEASE_AUX/fixup-$(basename "$file")-release.pl"
+        $VERBOSE "> $file"
+        RELEASE="$release" RELEASE_TEXT="$release_text" RELEASE_DATE="$RELEASE_DATE" \
+               perl -pi $fixup $file
+    done
+)
 
 $VERBOSE "== Committing updates and tagging"
 git add -u
@@ -477,14 +500,17 @@ fi
 $VERBOSE "== Updated version information to $release"
 
 $VERBOSE "== Updating files for $release :"
-for fixup in "$RELEASE_AUX"/fixup-*-postrelease.pl; do
-    file="$(basename "$fixup" | sed -e 's|^fixup-||' -e 's|-postrelease\.pl$||')"
-    $VERBOSE "> $file"
-    RELEASE="$release" RELEASE_TEXT="$release_text" \
-        PREV_RELEASE_TEXT="$prev_release_text" \
-        PREV_RELEASE_DATE="$prev_release_date" \
-        perl -pi $fixup $file
-done
+(
+    IFS=';'
+    for file in $RELEASE_FILES; do
+        fixup="$RELEASE_AUX/fixup-$(basename "$file")-postrelease.pl"
+        $VERBOSE "> $file"
+        RELEASE="$release" RELEASE_TEXT="$release_text" \
+               PREV_RELEASE_TEXT="$prev_release_text" \
+               PREV_RELEASE_DATE="$prev_release_date" \
+               perl -pi $fixup $file
+    done
+)
 
 $VERBOSE "== Committing updates"
 git add -u
@@ -510,12 +536,15 @@ if $do_branch; then
     $VERBOSE "== Updated version information to $release"
 
     $VERBOSE "== Updating files for $release :"
-    for fixup in "$RELEASE_AUX"/fixup-*-postrelease.pl; do
-        file="$(basename "$fixup" | sed -e 's|^fixup-||' -e 's|-postrelease\.pl$||')"
-        $VERBOSE "> $file"
-        RELEASE="$release" RELEASE_TEXT="$release_text" \
-            perl -pi $fixup $file
-    done
+    (
+        IFS=';'
+        for file in $RELEASE_FILES; do
+            fixup="$RELEASE_AUX/fixup-$(basename "$file")-postrelease.pl"
+            $VERBOSE "> $file"
+            RELEASE="$release" RELEASE_TEXT="$release_text" \
+                   perl -pi $fixup $file
+        done
+    )
 
     $VERBOSE "== Committing updates"
     git add -u
