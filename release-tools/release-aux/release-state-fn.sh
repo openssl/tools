@@ -37,10 +37,20 @@
 #               should only be used in the master branch when a release branch
 #               has been created.
 #
-# This function expects there to be a function called fixup_version(), which
-# SHOULD take the |next| as first argument, and SHOULD increase the label
-# counter or the PATCH number accordingly, but only when the current
-# state is "in development".
+# This function uses a private function _fixup_version(), which takes |next|
+# value as first argument, and SHOULD increase the label counter or the PATCH
+# number accordingly, but only when the current state is "in development".
+
+# The following global variables are manipulated, either directly here or
+# by the fixup_version function:
+#
+# PRE_LABEL
+# PRE_NUM
+# PATCH
+# VERSION
+# SERIES
+# TYPE
+# RELEASE_DATE
 
 next_release_state () {
     local next="$1"
@@ -151,6 +161,7 @@ next_release_state () {
             # fixup_version() should trip up the PATCH number.
             + )
                 TYPE=dev
+                RELEASE_DATE=
                 fixup_version ""
                 ;;
 
