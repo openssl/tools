@@ -21,6 +21,12 @@ Auxillary files for dev/release.sh
   `fixup_version()` updates the version data, given a first argument
   that instructs it what update to do.
 
+  `std_branch_name()` outputs the standard branch name for the OpenSSL
+  version in the worktree.
+
+  `std_tag_name()` outputs the standard tag name for the the OpenSSL
+  version in the worktree.
+
 - `openssl-announce-pre-release.tmpl` and `openssl-announce-release.tmpl`
 
   Templates for announcements
