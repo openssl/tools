@@ -345,7 +345,9 @@ update_branch="$orig_branch"
 release_branch="$(std_branch_name)"
 
 # among others, we only create a release branch if the patch number is zero
-if [ "$update_branch" = "$release_branch" ] || [ $PATCH -ne 0 ]; then
+if [ "$update_branch" = "$release_branch" ] \
+       || [ -z "$PATCH" ] \
+       || [ $PATCH -ne 0 ]; then
     if $do_branch && $warn_branch; then
         echo >&2 "Warning! We're already in a release branch; --branch ignored"
     fi
@@ -414,10 +416,12 @@ make update >&42
 # As long as we're doing an alpha release, we can have symbols without specific
 # numbers assigned. In a beta or final release, all symbols MUST have an
 # assigned number.
-if [ "$next_method" != 'alpha' ]; then
+if [ "$next_method" != 'alpha' ] && grep -q '^renumber *:' Makefile; then
     make renumber >&42
 fi
-make update-fips-checksums >&42
+if grep -q '^update-fips-checksums *:' Makefile; then
+    make update-fips-checksums >&42
+fi
 
 if [ -n "$(git status --porcelain)" ]; then
     $VERBOSE "== Committing updates"
@@ -476,10 +480,16 @@ announce=openssl-$release.txt
 echo "== Generating tar, hash and announcement files.  This make take a bit of time"
 
 $VERBOSE "== Making tarfile: $tgzfile"
-# Unfortunately, util/mktar.sh does verbose output on STDERR...  for good
-# reason, but it means we don't display errors unless --verbose
-./util/mktar.sh --tarfile="../$tarfile" 2>&1 \
-    | while read L; do $VERBOSE "> $L"; done
+
+# Unfortunately, some tarball generators do verbose output on STDERR...  for
+# good reason, but it means we don't display errors unless --verbose
+(
+    if [ -f ./util/mktar.sh ]; then
+        ./util/mktar.sh --tarfile="../$tarfile" 2>&1
+    else
+        make DISTTARVARS=TARFILE="../$tarfile" dist 2>&1
+    fi
+) | while read L; do $VERBOSE "> $L"; done
 
 if ! [ -f "../$tgzfile" ]; then
     echo >&2 "Where did the tarball end up? (../$tgzfile)"
