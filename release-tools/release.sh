@@ -33,7 +33,10 @@ Usage: release.sh [ options ... ]
                 For the purpose of signing tags and tar files, use this
                 key (default: use the default e-mail address’ key).
 
---no-upload     Don't upload to upload@dev.openssl.org.
+--upload-address=<address>
+                The location to upload release files to (default:
+                upload@dev.openssl.org)
+--no-upload     Don't upload the release files.
 --no-update     Don't perform 'make update' and 'make update-fips-checksums'.
 --verbose       Verbose output.
 --debug         Include debug output.  Implies --no-upload.
@@ -76,6 +79,7 @@ upload_address=upload@dev.openssl.org
 
 TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch' \
+              -l 'upload-address:' \
               -l 'no-upload,no-update' \
               -l 'verbose,debug' \
               -l 'local-user:' \
@@ -103,6 +107,11 @@ while true; do
     --branch )
         do_branch=true
         warn_branch=true
+        shift
+        ;;
+    --upload-address )
+        shift
+        upload_address="$1"
         shift
         ;;
     --no-upload )
@@ -199,7 +208,8 @@ trap "exec 42>&-; rm $VERBOSITY_FIFO" 0 2
 RELEASE_AUX=$(cd $(dirname $0)/release-aux; pwd)
 found=true
 for fn in "$RELEASE_AUX/release-version-fn.sh" \
-          "$RELEASE_AUX/release-state-fn.sh"; do
+          "$RELEASE_AUX/release-state-fn.sh" \
+          "$RELEASE_AUX/upload-fn.sh"; do
     if ! [ -f "$fn" ]; then
         echo >&2 "'$fn' is missing"
         found=false
@@ -212,6 +222,8 @@ fi
 # Load version functions
 . $RELEASE_AUX/release-version-fn.sh
 . $RELEASE_AUX/release-state-fn.sh
+# Load upload backend functions
+. $RELEASE_AUX/upload-fn.sh
 
 # Make sure we're in the work directory, and remember it
 if HERE=$(git rev-parse --show-toplevel); then
@@ -266,6 +278,47 @@ IFS=$save_IFS
 if ! $found; then
     exit 1
 fi
+
+# We turn upload_address into a few variables, which can be used
+# by backends that must understand a subset of the SFTP commands
+upload_directory=
+upload_backend=
+case "$upload_address" in
+    *:* )
+        # Something with a colon is interpreted as the typical SCP
+        # location.  We reinterpret that in our terms
+        upload_directory="${upload_address#*:}"
+        upload_address="${upload_address%%:*}"
+        upload_backend=sftp
+        ;;
+    *@* )
+        upload_backend=sftp
+        ;;
+    sftp://?*/* | sftp://?* )
+        # First, remove the URI scheme
+        upload_address="${upload_address#sftp://}"
+        # Now we know that we have a host, followed by a slash, followed by
+        # a directory spec.  If there is no slash, there's no directory.
+        upload_directory="${upload_address#*/}"
+        if [ "$upload_directory" = "$upload_address" ]; then
+            # There was nothing with a slash to remove, so no directory.
+            upload_directory=
+        fi
+        upload_address="${upload_address%%/*}"
+        upload_backend=sftp
+        ;;
+    sftp:* )
+        echo >&2 "Invalid upload address $upload_address"
+        exit 1
+        ;;
+    * )
+        if $do_upload && ! [ -d "$upload_address" ]; then
+           echo >&2 "Not an existing directory: $upload_address"
+           exit 1
+        fi
+        upload_backend=file
+        ;;
+esac
 
 # Initialize #########################################################
 
@@ -467,18 +520,24 @@ $VERBOSE "== Push what we have to the parent repository"
 git push --follow-tags parent HEAD
 
 if $do_upload; then
-    (
-        if [ "$VERBOSE" != ':' ]; then
-            echo "progress"
-        fi
-        echo "put ../$tgzfile"
-        echo "put ../$tgzfile.sha1"
-        echo "put ../$tgzfile.sha256"
-        echo "put ../$tgzfile.asc"
-        echo "put ../$announce.asc"
-    ) \
-    | sftp "$upload_address"
+    echo "== Upload tar, hash and announcement files"
 fi
+
+(
+    # With sftp, the progress meter is enabled by default,
+    # so we turn it off unless --verbose was given
+    if [ "$VERBOSE" == ':' ]; then
+        echo "progress"
+    fi
+    if [ -n "$upload_directory" ]; then
+        echo "cd $upload_directory"
+    fi
+    echo "put ../$tgzfile"
+    echo "put ../$tgzfile.sha1"
+    echo "put ../$tgzfile.sha256"
+    echo "put ../$tgzfile.asc"
+    echo "put ../$announce.asc"
+) | upload_backend_$upload_backend "$upload_address" $do_upload
 
 # Post-release #######################################################
 
@@ -685,6 +744,7 @@ B<--final> |
 B<--branch> |
 B<--local-user>=I<keyid> |
 B<--reviewer>=I<id> |
+B<--upload-address>=I<address> |
 B<--no-upload> |
 B<--no-update> |
 B<--verbose> |
@@ -742,9 +802,30 @@ Create a branch specific for the I<SERIES> release series, if it doesn't
 already exist, and switch to it.  The exact branch name will be
 C<< openssl-I<SERIES> >>.
 
+=item B<--upload-address>=I<address>
+
+The location that the release files are to be uploaded to.  Supported values
+are:
+
+=over 4
+
+=item -
+
+an existing local directory
+
+=item -
+
+something that can be interpreted as an SCP/SFTP address.  In this case,
+SFTP will always be used.  Typical SCP remote file specs will be translated
+into something that makes sense for SFTP.
+
+=back
+
+The default upload address is C<upload@dev.openssl.org>.
+
 =item B<--no-upload>
 
-Don't upload the produced files.
+Don't upload the release files.
 
 =item B<--no-update>
 
