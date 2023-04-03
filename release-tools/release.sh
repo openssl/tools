@@ -423,7 +423,7 @@ if grep -q '^update-fips-checksums *:' Makefile; then
     make update-fips-checksums >&42
 fi
 
-if [ -n "$(git status --porcelain)" ]; then
+if [ -n "$(git status --porcelain --untracked-files=no --ignore-submodules=all)" ]; then
     $VERBOSE "== Committing updates"
     git add -u
     git commit $git_quiet -m $'make update\n\nRelease: yes'
@@ -551,6 +551,16 @@ fi
 
 # Post-release #######################################################
 
+# Reset the files to their pre-release contents.  This doesn't affect
+# HEAD, but simply set all the files in a state that 'git revert -n HEAD'
+# would have given, but without the artifacts that 'git revert' adds.
+#
+# This allows all the post-release fixup scripts to perform from the
+# same point as the release fixup scripts, hopefully making them easier
+# to write.  This also makes the same post-release fixup scripts easier
+# to run when --branch has been used, as they will be run both on the
+# release branch and on the update branch, essentially from the same
+# state for affected files.
 $VERBOSE "== Reset all files to their pre-release contents"
 git reset $git_quiet HEAD^ -- .
 git checkout -- .
