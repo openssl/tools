@@ -28,6 +28,16 @@ Usage: release.sh [ options ... ]
                 where '{major}' and '{minor}' are the major and minor
                 version numbers.
 
+--clean-worktree
+                Expect the current worktree to be clean, and uses it directly.
+                This implies the current branch of the worktree will be updated.
+
+--branch-fmt=<fmt>
+                Format for branch names.
+                Default is "%b" for the release branch.
+--tag-fmt=<fmt> Format for tag names.
+                Default is "%t" for the release tag.
+
 --reviewer=<id> The reviewer of the commits.
 --local-user=<keyid>
                 For the purpose of signing tags and tar files, use this
@@ -61,9 +71,14 @@ next_method2=
 do_branch=false
 warn_branch=false
 
-do_clean=true
 do_upload=true
 do_update=true
+
+clean_worktree=false
+
+default_branch_fmt='OSSL--%b--%v'
+default_tag_fmt='%t'
+
 ECHO=echo
 DEBUG=:
 VERBOSE=:
@@ -83,12 +98,14 @@ upload_address=upload@dev.openssl.org
 
 TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch' \
+              -l 'clean-worktree' \
+              -l 'branch-fmt:,tag-fmt:' \
+              -l 'reviewer:' \
+              -l 'local-user:' \
               -l 'upload-address:' \
               -l 'no-upload,no-update' \
               -l 'quiet,verbose,debug' \
               -l 'porcelain' \
-              -l 'local-user:' \
-              -l 'reviewer:' \
               -l 'force' \
               -l 'help,manual' \
               -n release.sh -- - "$@")
@@ -112,6 +129,33 @@ while true; do
     --branch )
         do_branch=true
         warn_branch=true
+        shift
+        ;;
+    --clean-worktree )
+        clean_worktree=true
+        default_branch_fmt='%b'
+        default_tag_fmt='%t'
+        shift
+        ;;
+    --branch-fmt )
+        shift
+        branch_fmt="$1"
+        shift
+        ;;
+    --tag-fmt )
+        shift
+        tag_fmt="$1"
+        shift
+        ;;
+    --reviewer )
+        reviewers="$reviewers $1=$2"
+        shift
+        shift
+        ;;
+    --local-user )
+        shift
+        tagkey=" -u $1"
+        gpgkey=" -u $1"
         shift
         ;;
     --upload-address )
@@ -141,17 +185,6 @@ while true; do
     --debug )
         DEBUG=echo
         do_upload=false
-        shift
-        ;;
-    --local-user )
-        shift
-        tagkey=" -u $1"
-        gpgkey=" -u $1"
-        shift
-        ;;
-    --reviewer )
-        reviewers="$reviewers $1=$2"
-        shift
         shift
         ;;
     --porcelain )
@@ -185,6 +218,9 @@ while true; do
         ;;
     esac
 done
+
+if [ -z "$branch_fmt" ]; then branch_fmt="$default_branch_fmt"; fi
+if [ -z "$tag_fmt" ]; then tag_fmt="$default_tag_fmt"; fi
 
 $DEBUG >&2 "DEBUG: \$next_method=$next_method"
 $DEBUG >&2 "DEBUG: \$next_method2=$next_method2"
@@ -224,6 +260,7 @@ RELEASE_AUX=$(cd $(dirname $0)/release-aux; pwd)
 found=true
 for fn in "$RELEASE_AUX/release-version-fn.sh" \
           "$RELEASE_AUX/release-state-fn.sh" \
+          "$RELEASE_AUX/string-fn.sh" \
           "$RELEASE_AUX/upload-fn.sh"; do
     if ! [ -f "$fn" ]; then
         echo >&2 "'$fn' is missing"
@@ -237,6 +274,8 @@ fi
 # Load version functions
 . $RELEASE_AUX/release-version-fn.sh
 . $RELEASE_AUX/release-state-fn.sh
+# Load string manipulation functions
+. $RELEASE_AUX/string-fn.sh
 # Load upload backend functions
 . $RELEASE_AUX/upload-fn.sh
 
@@ -339,60 +378,83 @@ esac
 
 $ECHO "== Initializing work tree"
 
-# Generate a cloned directory name
-release_clone="$orig_branch-release-tmp"
+release_clone=
+if $clean_worktree; then
+    if [ -n "$(git status -s)" ]; then
+        echo >&2 "You've specified --clean-worktree, but your worktree is unclean"
+        exit 1
+    fi
+else
+    # Generate a cloned directory name
+    release_clone="$orig_branch-release-tmp"
 
-$ECHO "== Work tree will be in $release_clone"
+    $ECHO "== Work tree will be in $release_clone"
 
-# Make a clone in a subdirectory and move there
-if ! [ -d "$release_clone" ]; then
-    $VERBOSE "== Cloning to $release_clone"
-    git clone $git_quiet -b "$orig_branch" -o parent . "$release_clone"
+    # Make a clone in a subdirectory and move there
+    if ! [ -d "$release_clone" ]; then
+        $VERBOSE "== Cloning to $release_clone"
+        git clone $git_quiet -b "$orig_branch" -o parent . "$release_clone"
+    fi
+    cd "$release_clone"
 fi
-cd "$release_clone"
 
 get_version
 
-# Branches we will work with.  The release branch is where we make the
-# changes for the release, the update branch is where we make the post-
-# release changes
-update_branch="$orig_branch"
-release_branch="$(std_branch_name)"
+# Branches to start from.  The release branch is where the changes for the
+# release are made, and the update branch is where the post-release changes are
+# made.  If --branch was given and is relevant, they should be different (and
+# the update branch should be 'master'), otherwise they should be the same.
+orig_update_branch="$orig_branch"
+orig_release_branch="$(std_branch_name)"
 
 # among others, we only create a release branch if the patch number is zero
-if [ "$update_branch" = "$release_branch" ] \
-       || [ -z "$PATCH" ] \
-       || [ $PATCH -ne 0 ]; then
+if [ "$orig_update_branch" = "$orig_release_branch" ] \
+       || [ -n "$PATCH" -a "$PATCH" != 0 ]; then
     if $do_branch && $warn_branch; then
         echo >&2 "Warning! We're already in a release branch; --branch ignored"
     fi
     do_branch=false
 fi
 
-if ! $do_branch; then
-    release_branch="$update_branch"
+if $do_branch; then
+    if [ "$orig_update_branch" != "master" ]; then
+        echo >&2 "--branch is invalid unless the current branch is 'master'"
+        exit 1
+    fi
+    # No need to check if $orig_update_branch and $orig_release_branch differ,
+    # 'cause the code a few lines up guarantee that if they are the same,
+    # $do_branch becomes false
+else
+    # In this case, the computed release branch may differ from the update branch,
+    # even if it shouldn't...  this is the case when alpha or beta releases are
+    # made in the master branch, which is perfectly ok.  Therefore, simply reset
+    # the release branch to be the same as the update branch and carry on.
+    orig_release_branch="$orig_update_branch"
 fi
 
-# Branches we create for PRs
-branch_version="$VERSION${PRE_LABEL:+-$PRE_LABEL$PRE_NUM}"
-tmp_update_branch="OSSL--$update_branch--$branch_version"
-tmp_release_branch="OSSL--$release_branch--$branch_version"
-
-# Check that we're still on the same branch as our parent repo, or on a
-# release branch
+# Check that the current branch is still on the same branch as our parent repo,
+# or on a release branch
 current_branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "$current_branch" = "$update_branch" ]; then
+if [ "$current_branch" = "$orig_update_branch" ]; then
     :
-elif [ "$current_branch" = "$release_branch" ]; then
+elif [ "$current_branch" = "$orig_release_branch" ]; then
     :
 else
-    echo >&2 "The cloned sub-directory '$release_clone' is on a branch"
-    if [ "$update_branch" = "$release_branch" ]; then
-        echo >&2 "other than '$update_branch'."
+    # It is an error to end up here.  Let's try to figure out what went wrong
+
+    if $clean_worktree; then
+        # We should never get here.  If we do, something is incorrect in
+        # the code above.
+        echo >&2 "Unexpected current branch: $current_branch"
     else
-        echo >&2 "other than '$update_branch' or '$release_branch'."
+        echo >&2 "The cloned sub-directory '$release_clone' is on a branch"
+        if [ "$orig_update_branch" = "$orig_release_branch" ]; then
+            echo >&2 "other than '$orig_update_branch'."
+        else
+            echo >&2 "other than '$orig_update_branch' or '$orig_release_branch'."
+        fi
+        echo >&2 "Please 'cd \"$(pwd)\"; git checkout $orig_update_branch'"
     fi
-    echo >&2 "Please 'cd \"$(pwd)\"; git checkout $update_branch'"
     exit 1
 fi
 
@@ -403,23 +465,57 @@ $DEBUG >&2 "DEBUG: Source directory is $SOURCEDIR"
 
 # We always expect to start from a state of development
 if [ "$TYPE" != 'dev' ]; then
-    echo >&2 "Not in a development branch"
-    echo >&2 "Have a look at the git log in $release_clone, it may be that"
-    echo >&2 "a previous crash left it in an intermediate state and that"
-    echo >&2 "need to drop the top commit:"
-    echo >&2 ""
-    echo >&2 "(cd $release_clone; git reset --hard HEAD^)"
-    echo >&2 "# WARNING! LOOK BEFORE YOU ACT"
+    upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || echo 'HEAD^')
+    if $clean_worktree; then
+        cat >&2 <<EOF
+Not in a development branch.
+
+Have a look at the git log, it may be that a previous crash left it in
+an intermediate state and that need to drop the top commit:
+
+git reset --hard $upstream
+# WARNING! LOOK BEFORE YOU ACT, KNOW WHAT YOU DO
+EOF
+    else
+        cat >&2 <<EOF
+Not in a development branch.
+
+Have a look at the git log in $release_clone, it may be that
+a previous crash left it in an intermediate state and that need to drop
+the top commit:
+
+(cd $release_clone; git reset --hard $upstream)
+# WARNING! LOOK BEFORE YOU ACT, KNOW WHAT YOU DO
+EOF
+    fi
     exit 1
 fi
 
+# Make the update branch name according to our current data
+update_branch=$(format_string "$branch_fmt" \
+                              "b=$orig_update_branch" \
+                              "t=" \
+                              "v=$FULL_VERSION")
+    
 # Update the version information.  This won't save anything anywhere, yet,
 # but does check for possible next_method errors before we do bigger work.
 next_release_state "$next_method"
 
-# Create our temporary release branch
-$VERBOSE "== Creating a local release branch: $tmp_release_branch"
-git checkout $git_quiet -b "$tmp_release_branch"
+# Make the release tag and branch name according to our current data
+tag=$(format_string "$tag_fmt" \
+                    "b=$orig_release_branch" \
+                    "t=$(std_tag_name)" \
+                    "v=$FULL_VERSION")
+release_branch=$(format_string "$branch_fmt" \
+                               "b=$orig_release_branch" \
+                               "t=$(std_tag_name)" \
+                               "v=$FULL_VERSION")
+    
+# Create a update branch, unless it's the same as our current branch
+if [ "$update_branch" != "$orig_update_branch" ]; then
+    $VERBOSE "== Creating a local update branch and switch to it: $update_branch"
+    git checkout $git_quiet -b "$update_branch"
+fi
 
 $ECHO "== Configuring OpenSSL for update and release.  This may take a bit of time"
 
@@ -447,11 +543,10 @@ if [ -n "$(git status --porcelain --untracked-files=no --ignore-submodules=all)"
     fi
 fi
 
-# Create our temporary update branch, if it's not the release branch.
-# This is used in post-release below
-if $do_branch; then
-    $VERBOSE "== Creating a local update branch: $tmp_update_branch"
-    git branch $git_quiet "$tmp_update_branch"
+# Create a update branch, unless it's the same as the update branch
+if [ "$release_branch" != "$update_branch" ]; then
+    $VERBOSE "== Creating a local release branch and switch to it: $release_branch"
+    git checkout $git_quiet -b "$release_branch"
 fi
 
 # Write the version information we updated
@@ -465,7 +560,6 @@ else
     release_text="$release"
     announce_template=openssl-announce-release.tmpl
 fi
-tag="$(std_tag_name)"
 $VERBOSE "== Updated version information to $release"
 
 $VERBOSE "== Updating files with release date for $release : $RELEASE_DATE"
@@ -540,9 +634,15 @@ $ECHO "Signing the release files.  You may need to enter a pass phrase"
 gpg$gpgkey --use-agent -sba "../$tgzfile"
 gpg$gpgkey --use-agent -sta --clearsign "../$announce"
 
-# Push everything to the parent repo
-$VERBOSE "== Push what we have to the parent repository"
-git push --follow-tags parent HEAD
+if ! $clean_worktree; then
+    # Push everything to the parent repo
+    $VERBOSE "== Push what we have to the parent repository"
+    git push --follow-tags parent HEAD
+fi
+
+upload_files=( "$tgzfile" "$tgzfile.sha1" "/$tgzfile.sha256"
+               "$tgzfile.asc" "$announce.asc" )
+
 
 upload_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
                "$tgzfile.asc" "$announce.asc" )
@@ -614,13 +714,15 @@ if [ -n "$reviewers" ]; then
     addrev --release --nopr $reviewers
 fi
 
-# Push everything to the parent repo
-$VERBOSE "== Push what we have to the parent repository"
-git push parent HEAD
+if ! $clean_worktree; then
+    # Push everything to the parent repo
+    $VERBOSE "== Push what we have to the parent repository"
+    git push parent HEAD
+fi
 
-if $do_branch; then
-    $VERBOSE "== Going back to the update branch $tmp_update_branch"
-    git checkout $git_quiet "$tmp_update_branch"
+if [ "$release_branch" != "$update_branch" ]; then
+    $VERBOSE "== Going back to the update branch $update_branch"
+    git checkout $git_quiet "$update_branch"
 
     get_version
     next_release_state "minor"
@@ -661,12 +763,18 @@ $VERBOSE "== Done"
 
 cd $HERE
 if $do_porcelain; then
-    echo "clone_directory='$release_clone'"
-    echo "update_branch='$tmp_update_branch'"
-    echo "final_update_branch='$update_branch'"
-    if [ "$tmp_release_branch" != "$tmp_update_branch" ]; then
-        echo "release_branch='$tmp_release_branch'"
-        echo "final_release_branch='$release_branch'"
+    if [ -n "$release_clone" ]; then
+        echo "clone_directory='$release_clone'"
+    fi
+    echo "update_branch='$update_branch'"
+    if [ "$update_branch" != "$orig_update_branch" ]; then
+        echo "final_update_branch='$orig_update_branch'"
+    fi
+    if [ "$release_branch" != "$update_branch" ]; then
+        echo "release_branch='$release_branch'"
+        if [ "$release_branch" != "$orig_release_branch" ]; then
+            echo "final_release_branch='$orig_release_branch'"
+        fi
     fi
     echo "release_tag='$tag'"
     echo "upload_files='${upload_files[@]}'"
@@ -703,39 +811,86 @@ EOF
 
 EOF
 
-    if $do_branch; then
+    if [ "$release_branch" != "$update_branch" ]; then
         cat <<EOF
 You need to prepare the main repository with a new branch, '$release_branch'.
 That is done directly in the server's bare repository like this:
 
     git branch $release_branch $orig_HEAD
 
-Two additional release branches have been added to your repository.
-Push them to github, make PRs from them and have them approved:
+EOF
+    fi
+    if [ "$update_branch" != "$orig_update_branch" ] \
+       && [ "$release_branch" != "$update_branch" ]; then
+        # "Normal" scenario with --branch
+        cat <<EOF
+A release tag and two branches have been added to your local repository.
+Push them to github, make PRs from them and have them approved.
 
-    $tmp_update_branch
-    $tmp_release_branch
+    Update branch: $update_branch
+    Release branch: $release_branch
+    Tag: $tag
 
-When merging them into the main repository, do it like this:
+When merging everything into the main repository, do it like this:
 
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tmp_release_branch:$release_branch
+        $release_branch:$orig_release_branch
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tmp_update_branch:$update_branch
+        $update_branch:$orig_update_branch
+    git push git@github.openssl.org:openssl/openssl.git \\
+        $tag
+EOF
+    elif [ "$update_branch" != "$orig_update_branch" ]; then
+        # "Normal" scenario without --branch
+        cat <<EOF
+A release tag and a release/update branch have been added to your local
+repository.  Push them to github, make PRs from them and have them
+approved.
+
+    Release/update branch: $update_branch
+    Tag: $tag
+
+When merging everything into the main repository, do it like this:
+
+    git push git@github.openssl.org:openssl/openssl.git \\
+        $update_branch:$orig_update_branch
+    git push git@github.openssl.org:openssl/openssl.git \\
+        $tag
+EOF
+    elif [ "$release_branch" != "$update_branch" ]; then
+        # --clean-worktree and --branch scenario
+        cat <<EOF
+A release tag and a release branch has been added to your repository,
+and the current branch has been updated.  Push them to github, make
+PRs from them and have them approved:
+
+    Updated branch: $update_branch
+    Release branch: $release_branch
+    Tag: $tag
+
+When merging everything into the main repository, do it like this:
+
+    git push git@github.openssl.org:openssl/openssl.git \\
+        $release_branch:$orig_release_branch
+    git push git@github.openssl.org:openssl/openssl.git \\
+        $update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
         $tag
 EOF
     else
+        # --clean-worktree without --branch scenario
         cat <<EOF
-One additional release branch has been added to your repository.
-Push it to github, make a PR from it and have it approved:
+A release tag has been added to your local repository, and the current
+branch has been updated.  Push them to github, make PRs from them and
+have them approved.
 
-    $tmp_release_branch
+    Release/update branch: $update_branch
+    Tag: $tag
 
-When merging it into the main repository, do it like this:
+When merging everything into the main repository, do it like this:
 
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tmp_release_branch:$release_branch
+        $update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
         $tag
 EOF
@@ -744,29 +899,33 @@ EOF
     cat <<EOF
 
 ----------------------------------------------------------------------
+EOF
+
+    cat <<EOF
 
 When everything is done, or if something went wrong and you want to start
 over, simply clean away temporary things left behind:
-
+EOF
+    if [ -n "$release_clone" ]; then
+        cat <<EOF
 The release worktree:
 
     rm -rf $release_clone
 EOF
+    fi
+    cat <<EOF
 
-    if $do_branch; then
-        cat <<EOF
+Additional branches:
 
-The additional release branches:
-
-    git branch -D $tmp_release_branch
-    git branch -D $tmp_update_branch
 EOF
-    else
+    if [ "$release_branch" != "$update_branch" ]; then
         cat <<EOF
-
-The temporary release branch:
-
-    git branch -D $tmp_release_branch
+    git branch -D $release_branch
+EOF
+    fi
+    if [ "$update_branch" != "$orig_update_branch" ]; then
+        cat <<EOF
+    git branch -D $update_branch
 EOF
     fi
 fi
@@ -792,6 +951,9 @@ B<--next-beta> |
 B<--beta> |
 B<--final> |
 B<--branch> |
+B<--clean-worktree> |
+B<--branch-fmt>=I<fmt> |
+B<--tag-fmt>=I<fmt> |
 B<--local-user>=I<keyid> |
 B<--reviewer>=I<id> |
 B<--upload-address>=I<address> |
@@ -817,9 +979,19 @@ are given through options, and will exit with an error in ambiguous cases.
 B<release.sh> finishes off with instructions on what to do next.  When
 finishing commands are given, they must be followed exactly.
 
-B<release.sh> leaves behind a clone of the local workspace, as well as one
-or two branches in the local repository.  These will be mentioned and can
-safely be removed after all instructions have been successfully followed.
+B<release.sh> normally leaves behind a clone of the local repository, as a
+subdirectory in the current worktree, as well as an extra branch with the
+results of running this script in the local repository.  This extra branch
+is useful to create a pull request from, which will also be mentioned at the
+end of the run of B<release.sh>.  This local clone subdirectory as well as
+this extra branch can safely be removed after all instructions have been
+successfully followed.
+
+When the option B<--clean-worktree> is given, B<release.sh> has a different
+behaviour.  In this case, it doesn't create that clone or any extra branch,
+and it will update the current branch of the worktree directly.  This is
+useful when it's desirable to push the changes directly to a remote repository
+without having to go through a pull request and approval process.
 
 =head1 OPTIONS
 
@@ -851,8 +1023,74 @@ This implies B<--branch>.
 =item B<--branch>
 
 Create a branch specific for the I<SERIES> release series, if it doesn't
-already exist, and switch to it.  The exact branch name will be
-C<< openssl-I<SERIES> >>.
+already exist, and switch to it when making the release files.  The exact
+branch name will be C<< openssl-I<SERIES> >>.
+
+=item B<--clean-worktree>
+
+This indicates that the current worktree is clean and can be acted on
+directly, instead of creating a clone of the local repository or creating
+any extra branch.
+
+=item B<--branch-fmt>=I<fmt>
+
+=item B<--tag-fmt>=I<fmt>
+
+Format for branch and tag names.  This can be used to tune the names of
+branches and tags that are updated or added by this script.
+
+I<fmt> can include printf-like formating directives:
+
+=over 4
+
+=item %b
+
+is replaced with a branch name.  This branch name is usually the current
+branch of the current repository, but may also be the default release
+branch name that is generated when B<--branch> is given.
+
+=item %t
+
+is replaced with the generated release tag name.
+
+=item %v
+
+is replaced with the version number.  The exact version number varies
+through the process of this script.
+
+=back
+
+This script uses the following defaults:
+
+=over 4
+
+=item * Without B<--clean-worktree>
+
+For branches: C<OSSL--%b--%v>
+
+For tags: C<%t>
+
+=item * With B<--clean-worktree>
+
+For branches: C<%b>
+
+For tags: C<%t>
+
+=back
+
+=item B<--reviewer>=I<id>
+
+Add I<id> to the set of reviewers for the commits performed by this script.
+Multiple reviewers are allowed.
+
+If no reviewer is given, you will have to run C<addrev> manually, which
+means retagging a release commit manually as well.
+
+=item B<--local-user>=I<keyid>
+
+Use I<keyid> as the local user for C<git tag> and for signing with C<gpg>.
+
+If not given, then the default e-mail address' key is used.
 
 =item B<--upload-address>=I<address>
 
@@ -908,16 +1146,17 @@ in a form reminicent of shell variable assignments.  Currently supported are:
 
 =item B<clone_directory>=I<dir>
 
-The directory for the clone that this script creates.
+The directory for the clone that this script creates.  This is not given when
+the option B<--clean-worktree> is used.
 
 =item B<update_branch>=I<branch>
 
-The temporary update branch
+The temporary update branch.  This is always given.
 
 =item B<final_update_branch>=I<branch>
 
 The final update branch that the temporary update branch should end up being
-merged into.
+merged into.  This is not given when the option B<--clean-worktree> is used.
 
 =item B<release_branch>=I<branch>
 
@@ -932,28 +1171,14 @@ merged into.  This is only given if it differs from the final update branch
 
 =item B<release_tag>=I<tag>
 
-The release tag.
+The release tag.  This is always given.
 
 =item B<upload_files>='I<files>'
 
 The space separated list of files that were or would have been uploaded
-(depending on the presence of B<--no-upload>.
+(depending on the presence of B<--no-upload>).  This is always given.
 
 =back
-
-=item B<--local-user>=I<keyid>
-
-Use I<keyid> as the local user for C<git tag> and for signing with C<gpg>.
-
-If not given, then the default e-mail address' key is used.
-
-=item B<--reviewer>=I<id>
-
-Add I<id> to the set of reviewers for the commits performed by this script.
-Multiple reviewers are allowed.
-
-If no reviewer is given, you will have to run C<addrev> manually, which
-means retagging a release commit manually as well.
 
 =item B<--force>
 
