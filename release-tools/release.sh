@@ -544,6 +544,9 @@ gpg$gpgkey --use-agent -sta --clearsign "../$announce"
 $VERBOSE "== Push what we have to the parent repository"
 git push --follow-tags parent HEAD
 
+upload_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
+               "$tgzfile.asc" "$announce.asc" )
+
 if $do_upload; then
     $ECHO "== Upload tar, hash and announcement files"
 fi
@@ -557,11 +560,9 @@ fi
     if [ -n "$upload_directory" ]; then
         echo "cd $upload_directory"
     fi
-    echo "put ../$tgzfile"
-    echo "put ../$tgzfile.sha1"
-    echo "put ../$tgzfile.sha256"
-    echo "put ../$tgzfile.asc"
-    echo "put ../$announce.asc"
+    for uf in "${upload_files[@]}"; do
+        echo "put ../$uf"
+    done
 ) | upload_backend_$upload_backend "$upload_address" $do_upload
 
 # Post-release #######################################################
@@ -668,6 +669,7 @@ if $do_porcelain; then
         echo "final_release_branch='$release_branch'"
     fi
     echo "release_tag='$tag'"
+    echo "upload_files='${upload_files[@]}'"
 else
     cat <<EOF
 
@@ -679,23 +681,26 @@ please see instructions that follow.
 
 EOF
 
-    if $do_release; then
+    if $do_upload; then
         cat <<EOF
-
 The following files were uploaded to $upload_address, please ensure they
 are dealt with appropriately:
 
-    $tgzfile
-    $tgzfile.sha1
-    $tgzfile.sha256
-    $tgzfile.asc
-    $announce.asc
+EOF
+    else
+        cat <<EOF
+The following files were generated for upload, please deal with them
+appropriately:
+
 EOF
     fi
-
+    for uf in "${upload_files[@]}"; do
+        echo "    $uf"
+    done
     cat <<EOF
 
 ----------------------------------------------------------------------
+
 EOF
 
     if $do_branch; then
@@ -739,9 +744,6 @@ EOF
     cat <<EOF
 
 ----------------------------------------------------------------------
-EOF
-
-    cat <<EOF
 
 When everything is done, or if something went wrong and you want to start
 over, simply clean away temporary things left behind:
@@ -931,6 +933,11 @@ merged into.  This is only given if it differs from the final update branch
 =item B<release_tag>=I<tag>
 
 The release tag.
+
+=item B<upload_files>='I<files>'
+
+The space separated list of files that were or would have been uploaded
+(depending on the presence of B<--no-upload>.
 
 =back
 
