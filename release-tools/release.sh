@@ -38,8 +38,10 @@ Usage: release.sh [ options ... ]
                 upload@dev.openssl.org)
 --no-upload     Don't upload the release files.
 --no-update     Don't perform 'make update' and 'make update-fips-checksums'.
+--quiet         Really quiet, only the final output will still be output.
 --verbose       Verbose output.
 --debug         Include debug output.  Implies --no-upload.
+--porcelain     Give the output in an easy-to-parse format for scripts.
 
 --force         Force execution
 
@@ -62,9 +64,11 @@ warn_branch=false
 do_clean=true
 do_upload=true
 do_update=true
+ECHO=echo
 DEBUG=:
 VERBOSE=:
 git_quiet=-q
+do_porcelain=false
 
 force=false
 
@@ -81,7 +85,8 @@ TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch' \
               -l 'upload-address:' \
               -l 'no-upload,no-update' \
-              -l 'verbose,debug' \
+              -l 'quiet,verbose,debug' \
+              -l 'porcelain' \
               -l 'local-user:' \
               -l 'reviewer:' \
               -l 'force' \
@@ -122,7 +127,13 @@ while true; do
         do_update=false
         shift
         ;;
+    --quiet )
+        ECHO=:
+        VERBOSE=:
+        shift
+        ;;
     --verbose )
+        ECHO=echo
         VERBOSE=echo
         git_quiet=
         shift
@@ -141,6 +152,10 @@ while true; do
     --reviewer )
         reviewers="$reviewers $1=$2"
         shift
+        shift
+        ;;
+    --porcelain )
+        do_porcelain=true
         shift
         ;;
     --force )
@@ -322,12 +337,12 @@ esac
 
 # Initialize #########################################################
 
-echo "== Initializing work tree"
+$ECHO "== Initializing work tree"
 
 # Generate a cloned directory name
 release_clone="$orig_branch-release-tmp"
 
-echo "== Work tree will be in $release_clone"
+$ECHO "== Work tree will be in $release_clone"
 
 # Make a clone in a subdirectory and move there
 if ! [ -d "$release_clone" ]; then
@@ -406,7 +421,7 @@ next_release_state "$next_method"
 $VERBOSE "== Creating a local release branch: $tmp_release_branch"
 git checkout $git_quiet -b "$tmp_release_branch"
 
-echo "== Configuring OpenSSL for update and release.  This may take a bit of time"
+$ECHO "== Configuring OpenSSL for update and release.  This may take a bit of time"
 
 ./Configure cc >&42
 
@@ -470,14 +485,14 @@ git commit $git_quiet -m "Prepare for release of $release_text"$'\n\nRelease: ye
 if [ -n "$reviewers" ]; then
     addrev --release --nopr $reviewers
 fi
-echo "Tagging release with tag $tag.  You may need to enter a pass phrase"
+$ECHO "Tagging release with tag $tag.  You may need to enter a pass phrase"
 git tag$tagkey "$tag" -m "OpenSSL $release release tag"
 
 tarfile=openssl-$release.tar
 tgzfile=$tarfile.gz
 announce=openssl-$release.txt
 
-echo "== Generating tar, hash and announcement files.  This make take a bit of time"
+$ECHO "== Generating tar, hash and announcement files.  This make take a bit of time"
 
 $VERBOSE "== Making tarfile: $tgzfile"
 
@@ -521,7 +536,7 @@ cat "$RELEASE_AUX/$announce_template" \
 
 $VERBOSE "== Generating signatures: $tgzfile.asc $announce.asc"
 rm -f "../$tgzfile.asc" "../$announce.asc"
-echo "Signing the release files.  You may need to enter a pass phrase"
+$ECHO "Signing the release files.  You may need to enter a pass phrase"
 gpg$gpgkey --use-agent -sba "../$tgzfile"
 gpg$gpgkey --use-agent -sta --clearsign "../$announce"
 
@@ -530,7 +545,7 @@ $VERBOSE "== Push what we have to the parent repository"
 git push --follow-tags parent HEAD
 
 if $do_upload; then
-    echo "== Upload tar, hash and announcement files"
+    $ECHO "== Upload tar, hash and announcement files"
 fi
 
 (
@@ -633,16 +648,28 @@ if $do_branch; then
     fi
 fi
 
-# Push everything to the parent repo
-$VERBOSE "== Push what we have to the parent repository"
-git push parent HEAD
+if ! $clean_worktree; then
+    # Push everything to the parent repo
+    $VERBOSE "== Push what we have to the parent repository"
+    git push parent HEAD
+fi
 
 # Done ###############################################################
 
 $VERBOSE "== Done"
 
 cd $HERE
-cat <<EOF
+if $do_porcelain; then
+    echo "clone_directory='$release_clone'"
+    echo "update_branch='$tmp_update_branch'"
+    echo "final_update_branch='$update_branch'"
+    if [ "$tmp_release_branch" != "$tmp_update_branch" ]; then
+        echo "release_branch='$tmp_release_branch'"
+        echo "final_release_branch='$release_branch'"
+    fi
+    echo "release_tag='$tag'"
+else
+    cat <<EOF
 
 ======================================================================
 The release is done, and involves a few files and commits for you to
@@ -652,8 +679,8 @@ please see instructions that follow.
 
 EOF
 
-if $do_release; then
-    cat <<EOF
+    if $do_release; then
+        cat <<EOF
 
 The following files were uploaded to $upload_address, please ensure they
 are dealt with appropriately:
@@ -664,15 +691,15 @@ are dealt with appropriately:
     $tgzfile.asc
     $announce.asc
 EOF
-fi
+    fi
 
-cat <<EOF
+    cat <<EOF
 
 ----------------------------------------------------------------------
 EOF
 
-if $do_branch; then
-    cat <<EOF
+    if $do_branch; then
+        cat <<EOF
 You need to prepare the main repository with a new branch, '$release_branch'.
 That is done directly in the server's bare repository like this:
 
@@ -693,8 +720,8 @@ When merging them into the main repository, do it like this:
     git push git@github.openssl.org:openssl/openssl.git \\
         $tag
 EOF
-else
-cat <<EOF
+    else
+        cat <<EOF
 One additional release branch has been added to your repository.
 Push it to github, make a PR from it and have it approved:
 
@@ -707,14 +734,14 @@ When merging it into the main repository, do it like this:
     git push git@github.openssl.org:openssl/openssl.git \\
         $tag
 EOF
-fi
+    fi
 
-cat <<EOF
+    cat <<EOF
 
 ----------------------------------------------------------------------
 EOF
 
-cat <<EOF
+    cat <<EOF
 
 When everything is done, or if something went wrong and you want to start
 over, simply clean away temporary things left behind:
@@ -724,21 +751,22 @@ The release worktree:
     rm -rf $release_clone
 EOF
 
-if $do_branch; then
-    cat <<EOF
+    if $do_branch; then
+        cat <<EOF
 
 The additional release branches:
 
     git branch -D $tmp_release_branch
     git branch -D $tmp_update_branch
 EOF
-else
-    cat <<EOF
+    else
+        cat <<EOF
 
 The temporary release branch:
 
     git branch -D $tmp_release_branch
 EOF
+    fi
 fi
 
 exit 0
@@ -767,8 +795,10 @@ B<--reviewer>=I<id> |
 B<--upload-address>=I<address> |
 B<--no-upload> |
 B<--no-update> |
+B<--quiet> |
 B<--verbose> |
 B<--debug> |
+B<--porcelain> |
 B<--help> |
 B<--manual>
 ]
@@ -851,6 +881,14 @@ Don't upload the release files.
 
 Don't run C<make update> and C<make update-fips-checksums>.
 
+=item B<--quiet>
+
+Really quiet, only bare necessity output, which is the final instructions,
+or should the B<--porcelain> option be used, only that output.
+
+messages appearing on standard error will still be shown, but should be
+fairly minimal.
+
 =item B<--verbose>
 
 Verbose output.
@@ -858,6 +896,43 @@ Verbose output.
 =item B<--debug>
 
 Display extra debug output.  Implies B<--no-upload>
+
+=item B<--porcelain>
+
+Give final output in an easy-to-parse format for scripts.  The output comes
+in a form reminicent of shell variable assignments.  Currently supported are:
+
+=over 4
+
+=item B<clone_directory>=I<dir>
+
+The directory for the clone that this script creates.
+
+=item B<update_branch>=I<branch>
+
+The temporary update branch
+
+=item B<final_update_branch>=I<branch>
+
+The final update branch that the temporary update branch should end up being
+merged into.
+
+=item B<release_branch>=I<branch>
+
+The temporary release branch, only given if it differs from the update branch
+(i.e. B<--branch> was given or implied).
+
+=item B<final_release_branch>=I<branch>
+
+The final release branch that the temporary release branch should end up being
+merged into.  This is only given if it differs from the final update branch
+(i.e. B<--branch> was given or implied).
+
+=item B<release_tag>=I<tag>
+
+The release tag.
+
+=back
 
 =item B<--local-user>=I<keyid>
 
