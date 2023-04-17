@@ -296,8 +296,16 @@ if [ -z "$VERSION_FILE" ]; then
     exit 1
 fi
 
-# Make sure it's a branch we recognise
+orig_HEAD=$(git rev-parse HEAD)
 orig_branch=$(git rev-parse --abbrev-ref HEAD)
+orig_remote=$(git for-each-ref --format='%(push:remotename)' \
+                  $(git symbolic-ref -q HEAD))
+if ! orig_remote_url=$(git remote get-url $orig_remote 2>/dev/null); then
+    # If there is no registered remote, then $orig_remote is the URL
+    orig_remote_url="$orig_remote"
+fi
+
+# Make sure it's a branch we recognise
 if (echo "$orig_branch" \
         | grep -E -q \
                -e '^master$' \
@@ -311,7 +319,6 @@ else
     echo >&2 "Please 'git checkout' an appropriate branch"
     exit 1
 fi
-orig_HEAD=$(git rev-parse HEAD)
 
 # Make sure that we have fixup scripts for all the files that need
 # to be modified for a release.  We trust this, because we're not
@@ -584,9 +591,11 @@ git tag$tagkey "$tag" -m "OpenSSL $release release tag"
 
 tarfile=openssl-$release.tar
 tgzfile=$tarfile.gz
+metadata=openssl-$release.dat
 announce=openssl-$release.txt
 
-$ECHO "== Generating tar, hash and announcement files.  This make take a bit of time"
+$ECHO "== Generating tar, hash, announcement and metadata files."
+$ECHO "== This make take a bit of time..."
 
 $VERBOSE "== Making tarfile: $tgzfile"
 
@@ -643,8 +652,26 @@ fi
 staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
                 "$tgzfile.asc" "$announce.asc" )
 
+$VERBOSE "== Generating metadata file: $metadata"
+
+(
+    if [ "$update_branch" != "$orig_update_branch" ]; then
+        echo "staging_update_branch='$orig_update_branch'"
+    fi
+    echo "update_branch='$orig_update_branch'"
+    if [ "$release_branch" != "$update_branch" ]; then
+        if [ "$release_branch" != "$orig_release_branch" ]; then
+            echo "staging_release_branch='$release_branch'"
+        fi
+        echo "release_branch='$orig_release_branch'"
+    fi
+    echo "release_tag='$tag'"
+    echo "upload_files='${staging_files[@]}'"
+    echo "source_repo='$orig_remote_url'"
+) > ../$metadata
+
 if $do_upload; then
-    $ECHO "== Upload tar, hash and announcement files to staging location"
+    $ECHO "== Upload tar, hash, announcement and metadata files to staging location"
 fi
 
 (
@@ -656,7 +683,7 @@ fi
     if [ -n "$staging_directory" ]; then
         echo "cd $staging_directory"
     fi
-    for uf in "${staging_files[@]}"; do
+    for uf in "${staging_files[@]}" "$metadata"; do
         echo "put ../$uf"
     done
 ) | upload_backend_$staging_backend "$staging_address" $do_upload
@@ -762,18 +789,7 @@ if $do_porcelain; then
     if [ -n "$release_clone" ]; then
         echo "clone_directory='$release_clone'"
     fi
-    echo "update_branch='$update_branch'"
-    if [ "$update_branch" != "$orig_update_branch" ]; then
-        echo "final_update_branch='$orig_update_branch'"
-    fi
-    if [ "$release_branch" != "$update_branch" ]; then
-        echo "release_branch='$release_branch'"
-        if [ "$release_branch" != "$orig_release_branch" ]; then
-            echo "final_release_branch='$orig_release_branch'"
-        fi
-    fi
-    echo "release_tag='$tag'"
-    echo "upload_files='${staging_files[@]}'"
+    echo "metadata='$metadata'"
 else
     cat <<EOF
 
@@ -1150,34 +1166,10 @@ in a form reminicent of shell variable assignments.  Currently supported are:
 The directory for the clone that this script creates.  This is not given when
 the option B<--clean-worktree> is used.
 
-=item B<update_branch>=I<branch>
+=item B<metadata>=I<file>
 
-The temporary update branch.  This is always given.
-
-=item B<final_update_branch>=I<branch>
-
-The final update branch that the temporary update branch should end up being
-merged into.  This is not given when the option B<--clean-worktree> is used.
-
-=item B<release_branch>=I<branch>
-
-The temporary release branch, only given if it differs from the update branch
-(i.e. B<--branch> was given or implied).
-
-=item B<final_release_branch>=I<branch>
-
-The final release branch that the temporary release branch should end up being
-merged into.  This is only given if it differs from the final update branch
-(i.e. B<--branch> was given or implied).
-
-=item B<release_tag>=I<tag>
-
-The release tag.  This is always given.
-
-=item B<upload_files>='I<files>'
-
-The space separated list of files that were or would have been uploaded
-to the staging location (depending on the presence of B<--no-upload>).
+The metadata file.  See L</FILES> for a description of all generated files
+as well as the contents of the metadata file.
 
 =back
 
@@ -1260,6 +1252,74 @@ Extra build metadata to be used by anyone for their own purposes.
 
 This is normally empty in the git workspace, but should always have the
 release date in the tar file of any release.
+
+=back
+
+=head1 FILES
+
+The following files are produced and normally uploaded to the staging
+address:
+
+=over 4
+
+=item F<openssl-{VERSION}.tar.gz>
+
+The source tarball itself.
+
+=item F<openssl-{VERSION}.tar.gz.sha1>, F<openssl-{VERSION}.tar.gz.sha256>
+
+The SHA1 and SHA256 checksums for F<openssl-{VERSION}.tar.gz>.
+
+=item F<openssl-{VERSION}.tar.gz.asc>
+
+The detached PGP signature for F<openssl-{VERSION}.tar.gz>.
+
+=item F<openssl-{VERSION}.txt.asc>
+
+The announcement text, clear signed with PGP.
+
+=item F<openssl-{VERSION}.dat>
+
+The metadata file for F<openssl-{VERSION}.tar.gz>.  It contains shell
+variable assignments with data that may be of interest for other scripts,
+such as a script to promote this release to an actual release:
+
+=over 4
+
+=item B<update_branch>=I<branch>
+
+The update branch.  This is always given.
+
+=item B<staging_update_branch>=I<branch>
+
+If a staging update branch was used (because B<--clean-worktree> wasn't
+given or because B<--branch-fmt> was used), it's given here.
+
+=item B<release_branch>=I<branch>
+
+The release branch, if it differs from the update branch (i.e. B<--branch>
+was given or implied).
+
+=item B<staging_release_branch>=I<branch>
+
+If a staging release branch was used (because B<--clean-worktree> wasn't
+given or because B<--branch-fmt> was used), it's given here.
+
+=item B<release_tag>=I<tag>
+
+The release tag.  This is always given.
+
+=item B<upload_files>='I<files>'
+
+The space separated list of files that were or would have been uploaded
+to the staging location (depending on the presence of B<--no-upload>).  This
+list doesn't include the metadata file itself.
+
+=item B<source_repo>='I<URL>'
+
+The URL of the source repository that this release was generated from.
+
+=back
 
 =back
 
