@@ -15,7 +15,7 @@ export LC_ALL=C
 
 usage () {
     cat <<EOF
-Usage: release.sh [ options ... ]
+Usage: stage-release.sh [ options ... ]
 
 --alpha         Start or increase the "alpha" pre-release tag.
 --next-beta     Switch to the "beta" pre-release tag after alpha release.
@@ -43,10 +43,10 @@ Usage: release.sh [ options ... ]
                 For the purpose of signing tags and tar files, use this
                 key (default: use the default e-mail address’ key).
 
---upload-address=<address>
-                The location to upload release files to (default:
+--staging-address=<address>
+                The staging location to upload release files to (default:
                 upload@dev.openssl.org)
---no-upload     Don't upload the release files.
+--no-upload     Don't upload the staging release files.
 --no-update     Don't perform 'make update' and 'make update-fips-checksums'.
 --quiet         Really quiet, only the final output will still be output.
 --verbose       Verbose output.
@@ -94,7 +94,7 @@ tagkey=' -s'
 gpgkey=
 reviewers=
 
-upload_address=upload@dev.openssl.org
+staging_address=upload@dev.openssl.org
 
 TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch' \
@@ -102,13 +102,13 @@ TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch-fmt:,tag-fmt:' \
               -l 'reviewer:' \
               -l 'local-user:' \
-              -l 'upload-address:' \
+              -l 'staging-address:' \
               -l 'no-upload,no-update' \
               -l 'quiet,verbose,debug' \
               -l 'porcelain' \
               -l 'force' \
               -l 'help,manual' \
-              -n release.sh -- - "$@")
+              -n stage-release.sh -- - "$@")
 eval set -- "$TEMP"
 while true; do
     case $1 in
@@ -158,9 +158,9 @@ while true; do
         gpgkey=" -u $1"
         shift
         ;;
-    --upload-address )
+    --staging-address )
         shift
-        upload_address="$1"
+        staging_address="$1"
         shift
         ;;
     --no-upload )
@@ -333,44 +333,44 @@ if ! $found; then
     exit 1
 fi
 
-# We turn upload_address into a few variables, which can be used
+# We turn staging_address into a few variables, which can be used
 # by backends that must understand a subset of the SFTP commands
-upload_directory=
-upload_backend=
-case "$upload_address" in
+staging_directory=
+staging_backend=
+case "$staging_address" in
     *:* )
         # Something with a colon is interpreted as the typical SCP
         # location.  We reinterpret that in our terms
-        upload_directory="${upload_address#*:}"
-        upload_address="${upload_address%%:*}"
-        upload_backend=sftp
+        staging_directory="${staging_address#*:}"
+        staging_address="${staging_address%%:*}"
+        staging_backend=sftp
         ;;
     *@* )
-        upload_backend=sftp
+        staging_backend=sftp
         ;;
     sftp://?*/* | sftp://?* )
         # First, remove the URI scheme
-        upload_address="${upload_address#sftp://}"
+        staging_address="${staging_address#sftp://}"
         # Now we know that we have a host, followed by a slash, followed by
         # a directory spec.  If there is no slash, there's no directory.
-        upload_directory="${upload_address#*/}"
-        if [ "$upload_directory" = "$upload_address" ]; then
+        staging_directory="${staging_address#*/}"
+        if [ "$staging_directory" = "$staging_address" ]; then
             # There was nothing with a slash to remove, so no directory.
-            upload_directory=
+            staging_directory=
         fi
-        upload_address="${upload_address%%/*}"
-        upload_backend=sftp
+        staging_address="${staging_address%%/*}"
+        staging_backend=sftp
         ;;
     sftp:* )
-        echo >&2 "Invalid upload address $upload_address"
+        echo >&2 "Invalid staging address $staging_address"
         exit 1
         ;;
     * )
-        if $do_upload && ! [ -d "$upload_address" ]; then
-           echo >&2 "Not an existing directory: $upload_address"
+        if $do_upload && ! [ -d "$staging_address" ]; then
+           echo >&2 "Not an existing directory: $staging_address"
            exit 1
         fi
-        upload_backend=file
+        staging_backend=file
         ;;
 esac
 
@@ -640,15 +640,11 @@ if ! $clean_worktree; then
     git push --follow-tags parent HEAD
 fi
 
-upload_files=( "$tgzfile" "$tgzfile.sha1" "/$tgzfile.sha256"
-               "$tgzfile.asc" "$announce.asc" )
-
-
-upload_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
-               "$tgzfile.asc" "$announce.asc" )
+staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
+                "$tgzfile.asc" "$announce.asc" )
 
 if $do_upload; then
-    $ECHO "== Upload tar, hash and announcement files"
+    $ECHO "== Upload tar, hash and announcement files to staging location"
 fi
 
 (
@@ -657,13 +653,13 @@ fi
     if [ "$VERBOSE" == ':' ]; then
         echo "progress"
     fi
-    if [ -n "$upload_directory" ]; then
-        echo "cd $upload_directory"
+    if [ -n "$staging_directory" ]; then
+        echo "cd $staging_directory"
     fi
-    for uf in "${upload_files[@]}"; do
+    for uf in "${staging_files[@]}"; do
         echo "put ../$uf"
     done
-) | upload_backend_$upload_backend "$upload_address" $do_upload
+) | upload_backend_$staging_backend "$staging_address" $do_upload
 
 # Post-release #######################################################
 
@@ -777,7 +773,7 @@ if $do_porcelain; then
         fi
     fi
     echo "release_tag='$tag'"
-    echo "upload_files='${upload_files[@]}'"
+    echo "upload_files='${staging_files[@]}'"
 else
     cat <<EOF
 
@@ -791,7 +787,7 @@ EOF
 
     if $do_upload; then
         cat <<EOF
-The following files were uploaded to $upload_address, please ensure they
+The following files were uploaded to $staging_address, please ensure they
 are dealt with appropriately:
 
 EOF
@@ -802,7 +798,7 @@ appropriately:
 
 EOF
     fi
-    for uf in "${upload_files[@]}"; do
+    for uf in "${staging_files[@]}"; do
         echo "    $uf"
     done
     cat <<EOF
@@ -940,11 +936,11 @@ cat <<EOF
 
 =head1 NAME
 
-release.sh - OpenSSL release script
+stage-release.sh - OpenSSL release staging script
 
 =head1 SYNOPSIS
 
-B<release.sh>
+B<stage-release.sh>
 [
 B<--alpha> |
 B<--next-beta> |
@@ -956,7 +952,7 @@ B<--branch-fmt>=I<fmt> |
 B<--tag-fmt>=I<fmt> |
 B<--local-user>=I<keyid> |
 B<--reviewer>=I<id> |
-B<--upload-address>=I<address> |
+B<--staging-address>=I<address> |
 B<--no-upload> |
 B<--no-update> |
 B<--quiet> |
@@ -969,29 +965,34 @@ B<--manual>
 
 =head1 DESCRIPTION
 
-B<release.sh> creates an OpenSSL release, given current worktree conditions.
-It will refuse to work unless the current branch is C<master> or a release
-branch (see L</RELEASE BRANCHES AND TAGS> below for a discussion on those).
+B<stage-release.sh> creates an OpenSSL release, given current worktree
+conditions.  It will refuse to work unless the current branch is C<master>
+or a release branch (see L</RELEASE BRANCHES AND TAGS> below for a
+discussion on those).
 
-B<release.sh> tries to be smart and figure out the next release if no hints
-are given through options, and will exit with an error in ambiguous cases.
+B<stage-release.sh> tries to be smart and figure out the next release if no
+hints are given through options, and will exit with an error in ambiguous
+cases.
 
-B<release.sh> finishes off with instructions on what to do next.  When
-finishing commands are given, they must be followed exactly.
+B<stage-release.sh> normally finishes off with instructions on what to do
+next.  When B<--porcelain> is given, it finishes off with script friendly
+data instead, see the description of that option.  When finishing commands
+are given, they must be followed exactly.
 
-B<release.sh> normally leaves behind a clone of the local repository, as a
-subdirectory in the current worktree, as well as an extra branch with the
-results of running this script in the local repository.  This extra branch
-is useful to create a pull request from, which will also be mentioned at the
-end of the run of B<release.sh>.  This local clone subdirectory as well as
-this extra branch can safely be removed after all instructions have been
-successfully followed.
+B<stage-release.sh> normally leaves behind a clone of the local repository,
+as a subdirectory in the current worktree, as well as an extra branch with
+the results of running this script in the local repository.  This extra
+branch is useful to create a pull request from, which will also be mentioned
+at the end of the run of B<stage-release.sh>.  This local clone subdirectory
+as well as this extra branch can safely be removed after all instructions
+have been successfully followed.
 
-When the option B<--clean-worktree> is given, B<release.sh> has a different
-behaviour.  In this case, it doesn't create that clone or any extra branch,
-and it will update the current branch of the worktree directly.  This is
-useful when it's desirable to push the changes directly to a remote repository
-without having to go through a pull request and approval process.
+When the option B<--clean-worktree> is given, B<stage-release.sh> has a
+different behaviour.  In this case, it doesn't create that clone or any
+extra branch, and it will update the current branch of the worktree
+directly.  This is useful when it's desirable to push the changes directly
+to a remote repository without having to go through a pull request and
+approval process.
 
 =head1 OPTIONS
 
@@ -1092,10 +1093,10 @@ Use I<keyid> as the local user for C<git tag> and for signing with C<gpg>.
 
 If not given, then the default e-mail address' key is used.
 
-=item B<--upload-address>=I<address>
+=item B<--staging-address>=I<address>
 
-The location that the release files are to be uploaded to.  Supported values
-are:
+The staging location that the release files are to be uploaded to.
+Supported values are:
 
 =over 4
 
@@ -1111,11 +1112,11 @@ into something that makes sense for SFTP.
 
 =back
 
-The default upload address is C<upload@dev.openssl.org>.
+The default staging address is C<upload@dev.openssl.org>.
 
 =item B<--no-upload>
 
-Don't upload the release files.
+Don't upload the release files to the staging location.
 
 =item B<--no-update>
 
@@ -1176,7 +1177,7 @@ The release tag.  This is always given.
 =item B<upload_files>='I<files>'
 
 The space separated list of files that were or would have been uploaded
-(depending on the presence of B<--no-upload>).  This is always given.
+to the staging location (depending on the presence of B<--no-upload>).
 
 =back
 
@@ -1208,7 +1209,7 @@ C<< openssl-I<VERSION> >> for regular releases, or
 C<< openssl-I<VERSION>-alphaI<n> >> for alpha releases
 and C<< openssl-I<VERSION>-betaI<n> >> for beta releases.
 
-B<release.sh> recognises both forms.
+B<stage-release.sh> recognises both forms.
 
 =head1 VERSION AND STATE
 
