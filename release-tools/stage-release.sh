@@ -42,6 +42,7 @@ Usage: stage-release.sh [ options ... ]
 --local-user=<keyid>
                 For the purpose of signing tags and tar files, use this
                 key (default: use the default e-mail address’ key).
+--unsigned      Do not sign anything.
 
 --staging-address=<address>
                 The staging location to upload release files to (default:
@@ -90,6 +91,7 @@ force=false
 do_help=false
 do_manual=false
 
+do_signed=true
 tagkey=' -s'
 gpgkey=
 reviewers=
@@ -101,7 +103,7 @@ TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'clean-worktree' \
               -l 'branch-fmt:,tag-fmt:' \
               -l 'reviewer:' \
-              -l 'local-user:' \
+              -l 'local-user:,unsigned' \
               -l 'staging-address:' \
               -l 'no-upload,no-update' \
               -l 'quiet,verbose,debug' \
@@ -154,9 +156,16 @@ while true; do
         ;;
     --local-user )
         shift
+        do_signed=true
         tagkey=" -u $1"
         gpgkey=" -u $1"
         shift
+        ;;
+    --unsigned )
+        shift
+        do_signed=false
+        tagkey=" -a"
+        gpgkey=
         ;;
     --staging-address )
         shift
@@ -640,8 +649,10 @@ cat "$RELEASE_AUX/$announce_template" \
 $VERBOSE "== Generating signatures: $tgzfile.asc $announce.asc"
 rm -f "../$tgzfile.asc" "../$announce.asc"
 $ECHO "Signing the release files.  You may need to enter a pass phrase"
-gpg$gpgkey --use-agent -sba "../$tgzfile"
-gpg$gpgkey --use-agent -sta --clearsign "../$announce"
+if $do_signed; then
+    gpg$gpgkey --use-agent -sba "../$tgzfile"
+    gpg$gpgkey --use-agent -sta --clearsign "../$announce"
+fi
 
 if ! $clean_worktree; then
     # Push everything to the parent repo
@@ -649,8 +660,12 @@ if ! $clean_worktree; then
     git push --follow-tags parent HEAD
 fi
 
-staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
-                "$tgzfile.asc" "$announce.asc" )
+if $do_signed; then
+    staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
+                    "$tgzfile.asc" "$announce.asc" )
+else
+    staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256" "$announce" )
+fi
 
 $VERBOSE "== Generating metadata file: $metadata"
 
@@ -967,6 +982,7 @@ B<--clean-worktree> |
 B<--branch-fmt>=I<fmt> |
 B<--tag-fmt>=I<fmt> |
 B<--local-user>=I<keyid> |
+B<--unsigned> |
 B<--reviewer>=I<id> |
 B<--staging-address>=I<address> |
 B<--no-upload> |
@@ -1108,6 +1124,11 @@ means retagging a release commit manually as well.
 Use I<keyid> as the local user for C<git tag> and for signing with C<gpg>.
 
 If not given, then the default e-mail address' key is used.
+
+=item B<--unsigned>
+
+Do not sign the tarball or announcement file.  This leaves it for other
+scripts to sign the files later.
 
 =item B<--staging-address>=I<address>
 
