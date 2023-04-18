@@ -313,6 +313,7 @@ if ! orig_remote_url=$(git remote get-url $orig_remote 2>/dev/null); then
     # If there is no registered remote, then $orig_remote is the URL
     orig_remote_url="$orig_remote"
 fi
+orig_head=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || git rev-parse HEAD)
 
 # Make sure it's a branch we recognise
 if (echo "$orig_branch" \
@@ -481,7 +482,6 @@ $DEBUG >&2 "DEBUG: Source directory is $SOURCEDIR"
 
 # We always expect to start from a state of development
 if [ "$TYPE" != 'dev' ]; then
-    upstream=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || echo 'HEAD^')
     if $clean_worktree; then
         cat >&2 <<EOF
 Not in a development branch.
@@ -489,7 +489,7 @@ Not in a development branch.
 Have a look at the git log, it may be that a previous crash left it in
 an intermediate state and that need to drop the top commit:
 
-git reset --hard $upstream
+git reset --hard $orig_head
 # WARNING! LOOK BEFORE YOU ACT, KNOW WHAT YOU DO
 EOF
     else
@@ -804,6 +804,7 @@ if $do_porcelain; then
     if [ -n "$release_clone" ]; then
         echo "clone_directory='$release_clone'"
     fi
+    echo "orig_head='$orig_head'"
     echo "metadata='$metadata'"
 else
     cat <<EOF
