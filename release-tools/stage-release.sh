@@ -265,7 +265,7 @@ trap "exec 42>&-; rm $VERBOSITY_FIFO" 0 2
 # Setup ##############################################################
 
 # Check that we have the scripts that define functions we use
-RELEASE_AUX=$(cd $(dirname $0)/release-aux; pwd)
+RELEASE_AUX=$(dirname $(realpath $(type -p $0)))/release-aux
 found=true
 for fn in "$RELEASE_AUX/release-version-fn.sh" \
           "$RELEASE_AUX/release-state-fn.sh" \
