@@ -69,8 +69,18 @@ m*)
     ;;
 esac
 
+REMOTE=$(git for-each-ref --format='%(push:remotename)' \
+             $(git rev-parse --symbolic-full-name $TARGET))
+# usually this will be 'upstream'
+if [ "$REMOTE" = "" ] ; then
+    echo Cannot find git remote for target branch $TARGET
+    exit 1
+fi
+git remote get-url $REMOTE | grep -q 'github.openssl.org:' \
+ || echo -e "WARNING: URL of remote '$REMOTE' of target branch '$TARGET' does not match 'github.openssl.org'\n"
+
+echo "Target remote and branch is: $REMOTE/$TARGET"
 echo "First commit to cherry-pick is: $id~$((num - 1))"
-echo "Target branch is: $TARGET"
 echo "Number of commits to pick: $num"
 echo
 echo "Commit(s) to be cherry-picked:"
