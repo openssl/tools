@@ -76,7 +76,7 @@ if [ "$REMOTE" = "" ] ; then
     echo Cannot find git remote for target branch $TARGET
     exit 1
 fi
-git remote get-url $REMOTE | grep -q -E 'github.openssl.org:(openssl|omc|otc)' \
+git remote get-url $REMOTE | grep -q 'github.openssl.org:' \
  || echo -e "WARNING: URL of remote '$REMOTE' of target branch '$TARGET' does not match 'github.openssl.org'\n"
 
 echo "Target remote and branch is: $REMOTE/$TARGET"
