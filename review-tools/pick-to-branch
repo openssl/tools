@@ -69,8 +69,8 @@ m*)
     ;;
 esac
 
-REMOTE=`git branch --list $TARGET -vv | sed 's/^\* //' \
- | awk '{ sub(/\[/, "", $3); sub(/\/.*/, "", $3);  print $3 }'`
+REMOTE=$(git for-each-ref --format='%(push:remotename)' \
+             $(git rev-parse --symbolic-full-name $TARGET))
 # usually this will be 'upstream'
 if [ "$REMOTE" = "" ] ; then
     echo Cannot find git remote for target branch $TARGET
