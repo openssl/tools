@@ -10,6 +10,7 @@ Option style arguments:
 --help              Print this help and exit
 --tools             Merge a tools PR (rather than openssl PR)
 --web               Merge a web PR (rather than openssl PR)
+--fuzz-corpora      Merge a PR against fuzz-corpora (rather than openssl PR)
 --remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
 --target <branch>   Merge target (rather than current branch), usually 'master'
 --ref <branch>      A synonym for --target
@@ -59,6 +60,9 @@ while [ $# -ne 0 ]; do
         ;;
     --web)
         WHAT=web ; BUILD=no ; shift
+        ;;
+    --fuzz-corpora)
+        WHAT=fuzz-corpora ; BUILD=no ; shift
         ;;
     --cherry-pick)
         shift;

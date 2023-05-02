@@ -36,6 +36,8 @@ foreach (@ARGV) {
         $args .= "--web ";
     } elsif (/^--tools$/) {
         $args .= "--tools ";
+    } elsif (/^--fuzz-corpora$/) {
+        $args .= "--fuzz-corpora ";
     } elsif (/^--verbose$/) {
         $args .= "--verbose ";
     } elsif (/^--noself$/) {

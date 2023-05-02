@@ -140,6 +140,12 @@ foreach (@ARGV) {
         # openssl/tools is governed by OTC
         $min_otc = 2;
         $min_omc = 0;
+    } elsif (/--fuzz-corpora$/) {
+        $WHAT = 'fuzz-corpora';
+        $min_authors = 1;
+        # openssl/fuzz-corpora is governed by OTC
+        $min_otc = 1;
+        $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
     }
