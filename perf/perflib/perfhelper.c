@@ -7,32 +7,27 @@
  * https://www.openssl.org/source/license.html
  */
 
+#include <string.h>
 #include <openssl/crypto.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
-int perflib_run_multi_thread_test(void (*f)(void), size_t threadcount,
-                                  OSSL_TIME *duration)
+char *perflib_mk_file_path(const char *dir, const char *file)
 {
-    OSSL_TIME start, end;
-    thread_t *threads;
-    size_t i;
+    const char *sep = "/";
+    size_t dirlen = dir != NULL ? strlen(dir) : 0;
+    size_t len = dirlen + strlen(sep) + strlen(file) + 1;
+    char *full_file = OPENSSL_zalloc(len);
 
-    threads = OPENSSL_malloc(sizeof(*threads) * threadcount);
-    if (threads == NULL)
-        return 0;
+    if (full_file != NULL) {
+        if (dir != NULL && dirlen > 0) {
+            OPENSSL_strlcpy(full_file, dir, len);
+            OPENSSL_strlcat(full_file, sep, len);
+        }
+        OPENSSL_strlcat(full_file, file, len);
+    }
 
-    start = ossl_time_now();
-
-    for (i = 0; i < threadcount; i++)
-        perflib_run_thread(&threads[i], f);
-
-    for (i = 0; i < threadcount; i++)
-        perflib_wait_for_thread(threads[i]);
-
-    end = ossl_time_now();
-    OPENSSL_free(threads);
-
-    *duration = ossl_time_subtract(end, start);
-
-    return 1;
+    return full_file;
 }
