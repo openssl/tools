@@ -1,5 +1,8 @@
 all: randbytes
 
+clean:
+	rm libperf.a *.o randbytes
+
 libperf.a: perflib/*.c perflib/*.h
 	gcc -I$(TARGET_OSSL_INCLUDE_PATH) -I. -c perflib/*.c
 	ar rcs libperf.a *.o
