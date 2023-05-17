@@ -7,7 +7,7 @@
  * https://www.openssl.org/source/license.html
  */
 
-#include "perflib/threads.h"
+#include "perflib/perflib.h"
 
 #if defined(_WIN32)
 
