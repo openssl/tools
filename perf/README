@@ -1,0 +1,46 @@
+Performance testing tools
+=========================
+
+This directory holds tools for carrying out performance tests on OpenSSL.
+
+The various performance test applications are held within this directory, and
+various helper files are held in perflib.
+
+The performance test applications are intended to be linked against a supported
+OpenSSL version, e.g. 3.1, 3.0, 1.1.1 - which is the version of OpenSSL that
+is to be tested. Typically we would expect the apps to be built multiple times
+(once for each target OpenSSL version to be tested).
+
+To build the tests we assume that the target OpenSSL has already been built.
+Two environment variables are required:
+
+TARGET_SSL_INCLUDE_PATH: Points to a directory where the OpenSSL include files
+are held (e.g. typically "include" under the build directory).
+
+TARGET_SSL_LIBRARY_PATH: Points to a directory where libcrypto.so and libssl.so
+are contained.
+
+To build:
+
+export TARGET_SSL_INCLUDE_PATH=/path/to/openssl/include
+export TARGET_SSL_LIBRARY_PATH=/path/to/openssl
+make
+
+The performance testing apps must be run ensuring that libcrypto.so and
+libssl.so are on the library path.
+
+For example:
+
+LD_LIBRARY_PATH=/path/to/openssl ./randbytes 10
+
+Each performance testing app will take different parameters. They are described
+individually below.
+
+randbytes
+---------
+
+The randbytes test repeated calls the RAND_bytes() function in blocks of 100
+calls, and 100 blocks per thread. The number of threads to use is provided as
+an argument and the test reports the average time take to execute a block of 100
+RAND_bytes() calls.
+
