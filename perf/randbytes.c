@@ -19,7 +19,7 @@
 
 int err = 0;
 
-void do_randbytes(void)
+void do_randbytes(size_t num)
 {
     int i;
     unsigned char buf[32];
