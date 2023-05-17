@@ -1,9 +1,17 @@
+/*
+ * Copyright 2023 The OpenSSL Project Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
-#include "perflib/threads.h"
-#include "perflib/time.h"
+#include "perflib/perflib.h"
 
 #define NUM_CALLS_PER_BLOCK         100
 #define NUM_CALL_BLOCKS_PER_THREAD  100
@@ -23,9 +31,8 @@ void do_randbytes(void)
 
 int main(int argc, char *argv[])
 {
-    int threadcount, i;
-    thread_t *threads;
-    OSSL_TIME start, end;
+    int threadcount;
+    OSSL_TIME duration;
     uint64_t us;
     double avcalltime;
 
@@ -40,30 +47,17 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    threads = OPENSSL_malloc(sizeof(*threads) * threadcount);
-    if (threads == NULL)
-    {
-        printf("malloc failure\n");
+    if (!perflib_run_multi_thread_test(do_randbytes, threadcount, &duration)) {
+        printf("Failed to run the test\n");
         return EXIT_FAILURE;
     }
-
-    start = ossl_time_now();
-
-    for (i = 0; i < threadcount; i++)
-        perflib_run_thread(&threads[i], do_randbytes);
-
-    for (i = 0; i < threadcount; i++)
-        perflib_wait_for_thread(threads[i]);
-
-    end = ossl_time_now();
-    OPENSSL_free(threads);
 
     if (err) {
         printf("Error during test\n");
         return EXIT_FAILURE;
     }
 
-    us = ossl_time2us(ossl_time_subtract(end, start));
+    us = ossl_time2us(duration);
 
     avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
 
