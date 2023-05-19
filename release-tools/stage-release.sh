@@ -264,8 +264,22 @@ trap "exec 42>&-; rm $VERBOSITY_FIFO" 0 2
 
 # Setup ##############################################################
 
+RELEASE_TOOLS=$(dirname $(realpath $(type -p $0)))
+RELEASE_AUX="$RELEASE_TOOLS/release-aux"
+
+# Check that we have external scripts that we use
+found=true
+for fn in "$RELEASE_TOOLS/do-copyright-year"; do
+    if ! [ -f "$fn" ]; then
+        echo >&2 "'$fn' is missing"
+        found=false
+    fi
+done
+if ! $found; then
+    exit 1
+fi
+
 # Check that we have the scripts that define functions we use
-RELEASE_AUX=$(dirname $(realpath $(type -p $0)))/release-aux
 found=true
 for fn in "$RELEASE_AUX/release-version-fn.sh" \
           "$RELEASE_AUX/release-state-fn.sh" \
@@ -538,6 +552,16 @@ $ECHO "== Configuring OpenSSL for update and release.  This may take a bit of ti
 ./Configure cc >&42
 
 $VERBOSE "== Checking source file updates and fips checksums"
+
+$RELEASE_TOOLS/do-copyright-year
+if [ -n "$(git status --porcelain --untracked-files=no --ignore-submodules=all)" ]; then
+    $VERBOSE "== Committing copyright year updates"
+    git add -u
+    git commit $git_quiet -m $'Copyright year updates\n\nRelease: yes'
+    if [ -n "$reviewers" ]; then
+        addrev --release --nopr $reviewers
+    fi
+fi
 
 make update >&42
 # As long as we're doing an alpha release, we can have symbols without specific
