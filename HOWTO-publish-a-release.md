@@ -12,9 +12,11 @@ Releases are staged by another procedure, separate from this.
     -   [Repositories](#repositories)
     -   [SSH access](#check-your-access)
 -   [Publish the release](#publish-the-release)
-    -   [on SFTP](#on-sftp) [only public releases]
-    -   [on Github](#on-github)
     -   [Update the source repositories](#update-the-source-repositories)
+    -   [Upload release files to OpenSSL downloads](#upload-release-files-to-openssl-downloads) [only public releases]
+    -   [Upload release files to Github](#upload-release-files-to-github)
+        -   [Web method](#web-method)
+        -   [GH CLI method](#gh-cli-method)
     -   [Update the release metadata](#update-the-release-metadata)
 -   [Post-publishing tasks](#post-publishing-tasks)
     -   [Check automations](#check-automations)
@@ -78,7 +80,14 @@ that user with sudo:
 
 # Publish the release
 
-## on SFTP
+## Update the source repositories
+
+Finish up by pushing your local changes to the appropriate source repo as
+instructed by `$TOOLS/release-tools/stage-release.sh`, which was performed
+when [staging the releases](HOWTO-stage-a-release.md).  You may want to
+sanity check the pushes by inserting the `-n` (dry-run) option.
+
+## Upload release files to OpenSSL downloads
 
 *BE CAREFUL*  This section makes everything visible and is therefore largely
 irreversible.  If you are performing a dry run then DO NOT perform any steps
@@ -111,50 +120,77 @@ The `do-release.pl` script will display the commands you will need to issue
 to send the announcement emails later.  Keep a note of those commands for
 future reference.
 
-For public releases (including security releases), verify that the tarballs
-are available via FTP:
+Verify that the tarballs are available for download:
 
     ls /srv/ftp/source
 
-For premium releases, verify that the tarballs are available via SFTP:
-
-    ls /srv/premium
-
-## on Github
+## Upload release files to Github
 
 Upload the release files to the "Releases" section on github.  Do this by 
 visiting the release URL that corresponds to the source repository that the
-release was made from:
+release was made from, or by using [the Github CLI tool](https://cli.github.com/]:
 
 -   For releases from `git@github.openssl.org:openssl/openssl.git` or
     `git@github.openssl.org:openssl/security.git`:
 
-    https://github.com/openssl/openssl/releases
+    URL: https://github.com/openssl/openssl/releases
+    
+    GH CLI `--repo`: github.com/openssl/openssl
 
 -   For releases from `git@github.openssl.org:openssl/premium.git`:
 
-    https://github.openssl.org/openssl/extended-releases/releases
+    URL: https://github.openssl.org/openssl/extended-releases/releases
 
-Click the "Draft a new release" button.  Give the release a title, e.g.
-"OpenSSL 3.1.0".  Give it a description.  Typically this will be the same
-text as is added in the `newsflash.txt` file to announce the release (see
-[Update the release data locally](#update-the-release-data-locally) below).
-Upload the four release files, e.g.
+    GH CLI `--repo`: github.openssl.org/openssl/openssl
+
+In both tools, you will need to make a title and a short description.
+
+For the title, use something like "OpenSSL 3.1.0".
+
+For the release notes [^1], we currently use the same text as is added in the
+`newsflash.txt` file to announce the release
+(see [Update the release data locally](#update-the-release-data-locally) below)
+
+[^1]: The release notes field has previously been described as "description"
+
+### Web method
+
+Click the "Draft a new release" button.  Give the release a title and a
+release note as recommended above.  Upload the four release files, e.g.
 
 -   `openssl-3.1.0.tar.gz`
 -   `openssl-3.1.0.tar.gz.asc`
 -   `openssl-3.1.0.tar.gz.sha1`
 -   `openssl-3.1.0.tar.gz.sha256`
 
-If this is an alpha or beta release check the "Set as a pre-release"
-checkbox.  Finish up by clicking "Publish release".
+If this is an alpha or beta release, check the "Set as a pre-release"
+checkbox.
 
-## Update the source repositories
+If this is the latest release version, check the "Set as the latest release"
+checkbox.
 
-Finish up by pushing your local changes to the appropriate source repo as
-instructed by `$TOOLS/release-tools/stage-release.sh`, which was performed
-when [staging the releases](HOWTO-stage-a-release.md).  You may want to
-sanity check the pushes by inserting the `-n` (dry-run) option.
+Finish up by clicking "Publish release".
+
+### GH CLI method
+
+This is an example:
+
+    gh release create \
+        --repo github.com/openssl/openssl --verify-tag --draft \
+        --title "OpenSSL 3.1.0" \
+        --notes "Final version of OpenSSL 3.1.0 is now available: please download and upgrade!"
+        openssl-3.1.0 \
+        openssl-3.1.0.tar.gz \
+        openssl-3.1.0.tar.gz.asc \
+        openssl-3.1.0.tar.gz.sha1 \
+        openssl-3.1.0.tar.gz.sha256 \
+
+The first non-option argument `openssl-3.1.0` is the tag, the rest are the
+files to upload.
+
+If this is an alpha or beta release, additionally use the option `--prerelease`.
+
+If this is the latest release version, additionally use `--latest`.
 
 ## Update the release metadata
 
@@ -200,7 +236,7 @@ in the release, have been updated.  This is done automatically by OpenSSL
 automation; if you see a problem, check if the web build job has been
 performed yet, you may have to wait a few minutes before it kicks in.
 
-Wait for a while for the Akamai flush to work (normally within a few minutes).
+Wait for a while for the CDN flush to work (normally within a few minutes).
 Have a look at the website and news announcement at:
 
 -   <https://www.openssl.org/>

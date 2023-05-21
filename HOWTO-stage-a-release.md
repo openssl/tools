@@ -142,7 +142,7 @@ for specific cases, and is also self-documented:
 
         $TOOLS/release-tools/stage-release.sh --manual
 
-It is generally called likt this:
+It is generally called like this:
 
     $TOOLS/release-tools/stage-release.sh --reviewer=NAME \
         --local-user=EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5
