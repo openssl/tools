@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
@@ -56,22 +57,32 @@ int main(int argc, char *argv[])
     char *privkey;
     int ret = EXIT_FAILURE;
     int i;
+    int argnext;
+    int terse = 0;
 
-    if (argc != 3) {
-        printf("Usage: handshake certsdir threadcount\n");
+    if ((argc != 3 && argc != 4)
+            || (argc == 4 && strcmp("--terse", argv[1]) != 0)) {
+        printf("Usage: handshake [--terse] certsdir threadcount\n");
         return EXIT_FAILURE;
     }
 
-    threadcount = atoi(argv[2]);
-    if (threadcount < 1) {
-        printf("threadcount must be > 0\n");
-        return EXIT_FAILURE;
+    if (argc == 4) {
+        terse = 1;
+        argnext = 2;
+    } else {
+        argnext = 1;
     }
 
-    cert = perflib_mk_file_path(argv[1], "servercert.pem");
-    privkey = perflib_mk_file_path(argv[1], "serverkey.pem");
+    cert = perflib_mk_file_path(argv[argnext], "servercert.pem");
+    privkey = perflib_mk_file_path(argv[argnext], "serverkey.pem");
     if (cert == NULL || privkey == NULL) {
         printf("Failed to allocate cert/privkey\n");
+        goto err;
+    }
+
+    threadcount = atoi(argv[++argnext]);
+    if (threadcount < 1) {
+        printf("threadcount must be > 0\n");
         goto err;
     }
 
@@ -105,8 +116,13 @@ int main(int argc, char *argv[])
     persec = ((NUM_HANDSHAKES_PER_THREAD * threadcount * OSSL_TIME_SECOND)
              / (double)ossl_time2ticks(duration));
 
-    printf("Average time per handshake: %ldus\n", ossl_time2us(av));
-    printf("Handshakes per second: %lf\n", persec);
+    if (terse) {
+        printf("%ld\n", ossl_time2us(av));
+        printf("%lf\n", persec);
+    } else {
+        printf("Average time per handshake: %ldus\n", ossl_time2us(av));
+        printf("Handshakes per second: %lf\n", persec);
+    }
 
     ret = EXIT_SUCCESS;
  err:

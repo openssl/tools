@@ -14,16 +14,16 @@ is to be tested. Typically we would expect the apps to be built multiple times
 To build the tests we assume that the target OpenSSL has already been built.
 Two environment variables are required:
 
-TARGET_SSL_INCLUDE_PATH: Points to a directory where the OpenSSL include files
+TARGET_OSSL_INCLUDE_PATH: Points to a directory where the OpenSSL include files
 are held (e.g. typically "include" under the build directory).
 
-TARGET_SSL_LIBRARY_PATH: Points to a directory where libcrypto.so and libssl.so
+TARGET_OSSL_LIBRARY_PATH: Points to a directory where libcrypto.so and libssl.so
 are contained.
 
 To build:
 
-export TARGET_SSL_INCLUDE_PATH=/path/to/openssl/include
-export TARGET_SSL_LIBRARY_PATH=/path/to/openssl
+export TARGET_OSSL_INCLUDE_PATH=/path/to/openssl/include
+export TARGET_OSSL_LIBRARY_PATH=/path/to/openssl
 make
 
 The performance testing apps must be run ensuring that libcrypto.so and
