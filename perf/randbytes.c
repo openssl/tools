@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
@@ -35,13 +36,23 @@ int main(int argc, char *argv[])
     OSSL_TIME duration;
     uint64_t us;
     double avcalltime;
+    int terse = 0;
+    int argnext;
 
-    if (argc != 2) {
-        printf("Usage: randbytes threadcount\n");
+    if ((argc != 2 && argc != 3)
+                || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
+        printf("Usage: randbytes [--terse] threadcount\n");
         return EXIT_FAILURE;
     }
 
-    threadcount = atoi(argv[1]);
+    if (argc == 3) {
+        terse = 1;
+        argnext = 2;
+    } else {
+        argnext = 1;
+    }
+
+    threadcount = atoi(argv[argnext]);
     if (threadcount < 1) {
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;
@@ -61,8 +72,11 @@ int main(int argc, char *argv[])
 
     avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
 
-    printf("Average time per %d RAND_bytes() calls: %lfus\n",
-           NUM_CALLS_PER_BLOCK, avcalltime);
+    if (terse)
+        printf("%lf\n", avcalltime);
+    else
+        printf("Average time per %d RAND_bytes() calls: %lfus\n",
+            NUM_CALLS_PER_BLOCK, avcalltime);
 
     return EXIT_SUCCESS;
 }
