@@ -712,6 +712,10 @@ $VERBOSE "== Generating metadata file: $metadata"
         echo "release_branch='$orig_release_branch'"
     fi
     echo "release_tag='$release_tag'"
+    echo "release_full_version='$FULL_VERSION'"
+    echo "release_version='$VERSION'"
+    echo "release_series='$SERIES'"
+    echo "release_text='$release_text'"
     echo "upload_files='${staging_files[@]}'"
     echo "source_repo='$orig_remote_url'"
 ) > ../$metadata
