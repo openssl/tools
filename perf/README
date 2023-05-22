@@ -34,7 +34,9 @@ For example:
 LD_LIBRARY_PATH=/path/to/openssl ./randbytes 10
 
 Each performance testing app will take different parameters. They are described
-individually below.
+individually below. All performance testing apps take the "--terse" option
+which has the affect of just printing bare performance numbers without any
+labels.
 
 randbytes
 ---------
@@ -44,3 +46,17 @@ calls, and 100 blocks per thread. The number of threads to use is provided as
 an argument and the test reports the average time take to execute a block of 100
 RAND_bytes() calls.
 
+handshake
+---------
+
+Performs a combined in-memory client and server handshake. Each thread performs
+1000 such handshakes. It takes 2 arguments:
+
+certsdir - A directory where 2 files exist (servercert.pem and serverkey.pem) for
+the server certificate and key. The test/certs directory of the main OpenSSL
+source repository contains such files for all supported branches.
+
+threadcount - The number of threads to perform handshakes on in the test
+
+The output is two values: the average time taken for a handshake in us, and the
+average handshakes per second performed over the course of the test.
