@@ -60,3 +60,14 @@ threadcount - The number of threads to perform handshakes on in the test
 
 The output is two values: the average time taken for a handshake in us, and the
 average handshakes per second performed over the course of the test.
+
+newrawkey
+---------
+
+The newrawkey test repeatedly calls the EVP_PKEY_new_raw_public_key_ex()
+function in blocks of 100 calls, and 100 blocks per thread. The number of
+threads to use is provided as an argument and the test reports the average time
+take to execute a block of 100 EVP_PKEY_new_raw_public_key_ex() calls.
+
+Note that this test does not support OpenSSL 1.1.1.
+
