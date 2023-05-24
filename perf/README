@@ -69,3 +69,14 @@ newly constructed read BIO and a newly constructed write BIO, and finally frees
 them again. It does this in blocks of 100 sets of calls, and 100 blocks per
 threads. The number of threads to use is provided as an argument and the test
 reports the average time taken to execute a block of 100 construction/free calls.
+
+newrawkey
+---------
+
+The newrawkey test repeatedly calls the EVP_PKEY_new_raw_public_key_ex()
+function in blocks of 100 calls, and 100 blocks per thread. The number of
+threads to use is provided as an argument and the test reports the average time
+take to execute a block of 100 EVP_PKEY_new_raw_public_key_ex() calls.
+
+Note that this test does not support OpenSSL 1.1.1.
+
