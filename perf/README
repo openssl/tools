@@ -60,3 +60,12 @@ threadcount - The number of threads to perform handshakes on in the test
 
 The output is two values: the average time taken for a handshake in us, and the
 average handshakes per second performed over the course of the test.
+
+sslnew
+------
+
+The sslnew test repeatedly constructs a new SSL object and associates it with a
+newly constructed read BIO and a newly constructed write BIO, and finally frees
+them again. It does this in blocks of 100 sets of calls, and 100 blocks per
+threads. The number of threads to use is provided as an argument and the test
+reports the average time taken to execute a block of 100 construction/free calls.
