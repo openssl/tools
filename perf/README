@@ -60,3 +60,12 @@ threadcount - The number of threads to perform handshakes on in the test
 
 The output is two values: the average time taken for a handshake in us, and the
 average handshakes per second performed over the course of the test.
+
+rsasign
+-------
+
+The rsasign test repeatedly calls the EVP_PKEY_sign_init()/EVP_PKEY_sign()
+functions in blocks of 100 calls, and 100 blocks per thread, using a 512 bit RSA
+key. The number of threads to use is provided as an argument and the test
+reports the average time take to execute a block of 100
+EVP_PKEY_sign_init()/EVP_PKEY_sign() calls.
