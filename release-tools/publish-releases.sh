@@ -171,6 +171,22 @@ while true; do
             do_upload=false
             shift
             ;;
+        --help )
+            usage
+            exit 0
+            ;;
+        --manual )
+            sed -e '1,/^### BEGIN MANUAL/d' \
+                -e '/^### END MANUAL/,$d' \
+                < "$0" \
+                | pod2man \
+                | man -l -
+            exit 0
+            ;;
+        -- )
+            shift
+            break
+            ;;
         * )
             echo >&2 "Unknown option $1"
             exit 1
@@ -638,3 +654,294 @@ if $do_update; then
         cd data
         git push $git_quiet
     )
+
+exit 0
+
+# cat is inconsequential, it's only there to fend off zealous shell parsers
+# that parse all the way here.
+cat <<EOF
+### BEGIN MANUAL
+=pod
+
+=head1 NAME
+
+publish-release.sh - OpenSSL release publishing script
+
+=head1 SYNOPSIS
+
+B<publish-release.sh>
+[
+B<--all>
+B<--version>=I<x.y.z>
+B<--staging-location>=I<location>
+B<--staging-repository>=I<git URI>
+B<--upload-location>=I<location>
+B<--gh-release-repository>=I<gh URI>
+B<--data-repository>=I<git URI>
+B<--public>
+B<--premium>
+B<--security>
+B<--custom>
+B<--email>=I<address>
+B<--reviewer>="I<OpenSSL id>"
+B<--no-file-upload>
+B<--no-gh-upload>
+B<--no-upload>
+B<--no-update>
+B<--no-mail>
+B<--quiet>
+B<--verbose>
+B<--debug>
+B<--help>
+B<--manual>
+
+]
+
+=head1 DESCRIPTION
+
+B<publish-release.sh> publishes releases created by B<stage-release.sh>,
+given an indication of what versions should be released (where B<--all> is a
+possibility), and what type of release that is being done (B<--public>,
+B<--premium> or B<--security>).
+
+This must currently be run on the machine where release files are staged,
+as determined when F<stage-release.sh> was run, and relies on the source
+repository being frozen in the time fram where both F<stage-release.sh> and
+this script are run.  OpenSSL's official machine for running this script is
+C<dev.openssl.org>.
+
+Depending on the type of release, different file locations and git(hub)
+repositories may be involved:
+
+=over 4
+
+=item B<--public> releases
+
+Only non-premium versions may be released this way.
+
+Public releases are made from a non-security staging git repository
+and are published in a public download location as well as a public github
+repository.
+
+=item B<--premium> releases
+
+Only premium versions may be released this way.
+
+Premium releases are made from a non-security staging git repository (which
+can be the same as for public releases), and are published in a premium
+github repository.
+
+=item B<--security> releases
+
+Any version may be released this way
+
+Security releases are made from a security staging git repository (which
+I<must> be different from the one used for public and premium releases),
+and are published in a public download location as well as a public github
+repository, or in a premium github repository, depending on the version
+being released.
+
+=back
+
+Versions are considered public and what versions are determined premium is
+a hardcoded condition.  To change it, you must modify the array
+C<release_types> in this script.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--all>, B<--version>=I<x.y.z>
+
+B<--all> means to try to publish all staged release versions.  B<--version>
+means try to publish that specific version.  B<--version> may be specified
+multiple times to release multiple precise versions.
+
+=item B<--public>, B<--premium>, B<--security>
+
+The type for release that's to be made.  This determines certain defaults
+and assumptions, as shown with other options below.
+
+=item B<--staging-location>=I<location>
+
+The location where release files are located.  Only a local directory is
+supported for the moment.  In this location, all files matching
+F<openssl-*.dat> are looked at, with the assumption that they are produced
+by F<stage-release.sh>.  They should contain all the necessary information
+to be able to release the version it contains, among other the source
+repository and release branch that it was staged from.
+
+Built-in default: /sftp/upload/incoming
+
+=item B<--staging-repository>=I<git URI>
+
+The repository where the release branches and commits that correspond to
+the versions to be released are staged.  It's assumed that the commits that
+F<stage-release.sh> has produced have been pushed there.
+
+For each release branch in this repository, the added commits must be on
+top of the head of the corresponding branch source repository (as given by
+information found in the F<openssl-*.dat> file, see B<--staging-location>
+above).
+
+Built-in default:
+
+=over 4
+
+=item For B<--public> and B<--premium> releases
+
+C<git@github.openssl.org:openssl/staging.git>
+
+=item For B<--security> releases
+
+C<git@github.openssl.org:openssl/staging-security.git>
+
+=back
+
+=item B<--upload-location>=I<location>
+
+Where to move the release files to publish them.  Doing this also implies
+moving older release files to an archiving subdirectory.
+
+Currently, only local directories are supported.
+
+=over 4
+
+=item Built-in default, public and public security release only:
+
+C</srv/ftp/source>
+
+=back
+
+=item B<--gh-release-repository>=I<gh URI>
+
+A github repository where to publish releases.  This is done with the C<gh
+release> command, and therefore requires that the github CLI is installed,
+see L<https://cli.github.com/>.
+
+Built-in default:
+
+=over 4
+
+=item For B<--public> and public B<--security> releases
+
+C<github.com/openssl/openssl>
+
+=item For B<--premium> and premium B<--security> releases
+
+C<github.openssl.org/openssl/extended-releases>
+
+=back
+
+=item B<--data-repository>=I<git URI>
+
+The repository where F<newsflash.txt> is stored.  This will be affected for
+all releases that are made.
+
+Built-in default: C<git@github.openssl.org:omc/data.git>
+
+=item B<--email>=I<address>
+
+The email address of the person running this script.  This enables signing
+tags and release files in case they aren't already signed.
+
+This only matters if the release files found in the staging location
+(B<--staging-location>) haven't been signed yet.
+
+=item B<--reviewer>="I<OpenSSL id>"
+
+The OpenSSL identity (as determined by OpenSSL's person db) of the person
+that reviews the staged commits found in the staging repository (see
+B<--staging-repository>).
+
+This only matters if the release files found in the staging location
+(B<--staging-location>) haven't been signed yet.
+
+=item B<--no-file-upload>, B<--no-gh-upload>, B<--no-upload>, B<--no-mail>
+
+Turn certain actions off.  This is useful for some testing purposes.
+
+=item B<--quiet>, B<--verbose>
+
+Make this script quieter than normal, or more verbose.
+
+=item B<--debug>
+
+Make this script display diverse debug messages.  These may be quite
+obscure unless you know this script well.
+
+=item B<--help>
+
+Display a short usage description.
+
+=item B<--manual>
+
+Display this manual.
+
+=back
+
+=head1 ENVIRONMENT
+
+For circumstances that differ from the defaults, it's also possible to
+make adjustments with these environment variables.  Each of these replace
+the built-in default for the specific options that are mentioned in the
+description.
+
+=over 4
+
+=item B<STAGING_LOCATION>
+
+Default B<--staging-location>.
+
+=item B<PUBLIC_STAGING_REPOSITORY>
+
+Default B<--staging-repository> for B<--public> releases.
+
+=item B<PREMIUM_STAGING_REPOSITORY>
+
+Default B<--staging-repository> for B<--premium> releases.
+
+=back
+
+Under normal circumstances, B<PUBLIC_STAGING_REPOSITORY> and
+B<PREMIUM_STAGING_REPOSITORY> are the same.
+
+=over 4
+
+=item B<SECURITY_STAGING_REPOSITORY>
+
+Default B<--staging-repository> for B<--security> releases.
+
+=item B<PUBLIC_RELEASE_LOCATION>
+
+Default B<--upload-location> where public B<--public> and B<--security>
+releases are published.
+
+=item B<PUBLIC_RELEASE_REPOSITORY>
+
+Default B<--gh-release-repository> where B<--public> and public
+B<--security> releases are published.
+
+=item B<PREMIUM_RELEASE_REPOSITORY>
+
+Default B<--gh-release-repository> where B<--premium> and premium
+B<--security> releases are published.
+
+=item B<DATA_REPOSITORY>
+
+Default B<--data-repository>.
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright 2023 The OpenSSL Project Authors. All Rights Reserved.
+
+Licensed under the Apache License 2.0 (the "License").  You may not use
+this file except in compliance with the License.  You can obtain a copy
+in the file LICENSE in the source distribution or at
+L<https://www.openssl.org/source/license.html>.
+
+=cut
+### END MANUAL
+EOF
