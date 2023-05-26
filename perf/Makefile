@@ -1,7 +1,7 @@
-all: randbytes handshake sslnew newrawkey
+all: randbytes handshake sslnew newrawkey rsasign
 
 clean:
-	rm libperf.a *.o randbytes handshake sslnew newrawkey
+	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign
 
 libperf.a: perflib/*.c perflib/*.h
 	gcc -I$(TARGET_OSSL_INCLUDE_PATH) -I. -c perflib/*.c
@@ -18,3 +18,6 @@ sslnew: sslnew.c libperf.a
 
 newrawkey:	newrawkey.c libperf.a
 	gcc -L$(TARGET_OSSL_LIBRARY_PATH) -L. -I$(TARGET_OSSL_INCLUDE_PATH) -I. -o newrawkey newrawkey.c -lperf -lcrypto
+
+rsasign: rsasign.c libperf.a
+	gcc -L$(TARGET_OSSL_LIBRARY_PATH) -L. -I$(TARGET_OSSL_INCLUDE_PATH) -I. -o rsasign rsasign.c -lperf -lcrypto
