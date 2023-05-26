@@ -47,8 +47,22 @@ git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
 	    if [ -d "$FILE" ]; then continue; fi
 	    (( count++ ))
 	    spin $count
-	    sed -E -f /tmp/sed$$ -i "$FILE"
-	    git add "$FILE"
+	    # To avoid touching the original files when they aren't modified:
+	    #
+	    # 1. Copy the file, to make sure all permissions and other
+	    #	 copyable attributes are copied as well
+	    # 2. Run sed on the copy
+	    # 3. IF the copy has been modified, move it back to the original,
+	    #	 add and commit.
+	    TMPFILE="$(dirname "$FILE")"/"__$(basename "$FILE").new"
+	    cp "$FILE" "$TMPFILE"
+	    sed -E -f /tmp/sed$$ -i "$TMPFILE"
+	    if cmp -s "$FILE" "$TMPFILE"; then
+		rm "$TMPFILE"
+	    else
+		mv "$TMPFILE" "$FILE"
+		git add "$FILE"
+	    fi
 	done
 	endspin "Files considered: $count"
     )
