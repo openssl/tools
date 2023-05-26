@@ -88,3 +88,13 @@ functions in blocks of 100 calls, and 100 blocks per thread, using a 512 bit RSA
 key. The number of threads to use is provided as an argument and the test
 reports the average time take to execute a block of 100
 EVP_PKEY_sign_init()/EVP_PKEY_sign() calls.
+
+x509storeissuer
+---------------
+
+Runs the function call X509_STORE_CTX_get1_issuer() repeatedly in a loop (which
+is used in certificate chain building as part of a verify operation). The test
+assumes that the default certificates directly exists but is empty. For a
+default configuration this is "/usr/local/ssl/certs". The test takes the number
+of threads to use as an argument and the test reports the average time take to
+execute a block of 100 X509_STORE_CTX_get1_issuer() calls.
