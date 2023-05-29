@@ -15,24 +15,28 @@
 #include "perflib/perflib.h"
 
 #define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  100
+#define NUM_CALL_BLOCKS_PER_THREAD  1000
 #define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
 
 static int err = 0;
 static X509_STORE *store = NULL;
 static X509 *x509 = NULL;
+OSSL_TIME *times;
 
 static void do_x509storeissuer(size_t num)
 {
     int i;
     X509_STORE_CTX *ctx = X509_STORE_CTX_new();
     X509 *issuer = NULL;
+    OSSL_TIME start, end;
 
     if (ctx == NULL || !X509_STORE_CTX_init(ctx, store, x509, NULL)) {
         printf("Failed to initialise X509_STORE_CTX\n");
         err = 1;
         goto err;
     }
+
+    start = ossl_time_now();
 
     for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
         /*
@@ -49,14 +53,18 @@ static void do_x509storeissuer(size_t num)
         issuer = NULL;
     }
 
+    end = ossl_time_now();
+    times[num] = ossl_time_divide(ossl_time_subtract(end, start),
+                                  NUM_CALL_BLOCKS_PER_THREAD);
+
  err:
     X509_STORE_CTX_free(ctx);
 }
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
-    OSSL_TIME duration;
+    int threadcount, i;
+    OSSL_TIME duration, av;
     uint64_t us;
     double avcalltime;
     int terse = 0;
@@ -109,6 +117,12 @@ int main(int argc, char *argv[])
     BIO_free(bio);
     bio = NULL;
 
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        goto err;
+    }
+
     if (!perflib_run_multi_thread_test(do_x509storeissuer, threadcount, &duration)) {
         printf("Failed to run the test\n");
         goto err;
@@ -119,15 +133,16 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    us = ossl_time2us(duration);
-
-    avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
+    av = times[0];
+    for (i = 1; i < threadcount; i++)
+        av = ossl_time_add(av, times[i]);
+    av = ossl_time_divide(av, threadcount);
 
     if (terse)
-        printf("%lf\n", avcalltime);
+        printf("%ld\n", ossl_time2us(av));
     else
-        printf("Average time per %d X509_STORE_CTX_get1_issuer() calls: %lfus\n",
-               NUM_CALLS_PER_BLOCK, avcalltime);
+        printf("Average time per %d X509_STORE_CTX_get1_issuer() calls: %ldus\n",
+               NUM_CALLS_PER_BLOCK, ossl_time2us(av));
 
     ret = EXIT_SUCCESS;
  err:
@@ -135,5 +150,6 @@ int main(int argc, char *argv[])
     X509_free(x509);
     BIO_free(bio);
     OPENSSL_free(cert);
+    OPENSSL_free(times);
     return ret;
 }
