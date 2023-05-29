@@ -20,6 +20,7 @@
 #define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
 
 static int err = 0;
+OSSL_TIME *times;
 
 static int doit(OSSL_PROVIDER *provider, void *vcount)
 {
@@ -34,6 +35,9 @@ static void do_providerdoall(size_t num)
     int i;
     unsigned char buf[32];
     int count;
+    OSSL_TIME start, end;
+
+    start = ossl_time_now();
 
     for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
         count = 0;
@@ -42,16 +46,20 @@ static void do_providerdoall(size_t num)
             break;
         }
     }
+
+    end = ossl_time_now();
+
+    times[num] = ossl_time_divide(ossl_time_subtract(end, start),
+                                  NUM_CALL_BLOCKS_PER_THREAD);
 }
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
-    OSSL_TIME duration;
-    uint64_t us;
-    double calltime;
+    int threadcount, i;
+    OSSL_TIME duration, av;
     int terse = 0;
     int argnext;
+    int ret = EXIT_FAILURE;
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -72,25 +80,35 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        goto err;
+    }
+
     if (!perflib_run_multi_thread_test(do_providerdoall, threadcount, &duration)) {
         printf("Failed to run the test\n");
-        return EXIT_FAILURE;
+        goto err;
     }
 
     if (err) {
         printf("Error during test\n");
-        return EXIT_FAILURE;
+        goto err;
     }
 
-    us = ossl_time2us(duration);
-
-    calltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
+    av = times[0];
+    for (i = 1; i < threadcount; i++)
+        av = ossl_time_add(av, times[i]);
+    av = ossl_time_divide(av, threadcount);
 
     if (terse)
-        printf("%lf\n", calltime);
+        printf("%ld\n", ossl_time2us(av));
     else
-        printf("Total time divided by num blocks of %d OSSL_PROVIDER_do_all() calls: %lfus\n",
-               NUM_CALLS_PER_BLOCK, calltime);
+        printf("Average time per %d OSSL_PROVIDER_do_all() calls: %ldus\n",
+               NUM_CALLS_PER_BLOCK, ossl_time2us(av));
 
-    return EXIT_SUCCESS;
+    ret = EXIT_SUCCESS;
+ err:
+    OPENSSL_free(times);
+    return ret;
 }
