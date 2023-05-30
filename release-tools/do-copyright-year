@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2018 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2018-2023 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -66,7 +66,5 @@ git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
 	done
 	endspin "Files considered: $count"
     )
-echo Files changed: $(git status --porcelain | grep '^ *M' | wc -l)
-echo Committing change locally.
-git commit -m $'Update copyright year\n\nRelease: yes'
+echo Files changed: $(git status --porcelain --untracked-files=no --ignore-submodules=all | grep '^ *M' | wc -l)
 rm -f $ss
