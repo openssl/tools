@@ -33,12 +33,25 @@ static void do_handshake(size_t num)
     for (i = 0; i < NUM_HANDSHAKES_PER_THREAD; i++) {
         ret = perflib_create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
                                          NULL, NULL);
+        if (ret != 1) {
+            fprintf(stderr, "Failed to create SSL objects\n");
+            err = 1;
+            break;
+        }
+        
         ret &= perflib_create_ssl_connection(serverssl, clientssl,
                                              SSL_ERROR_NONE);
+        if (ret != 1) {
+            fprintf(stderr, "Failed to create SSL connection\n");
+            err = 1;
+            break;
+        }
         perflib_shutdown_ssl_connection(serverssl, clientssl);
         serverssl = clientssl = NULL;
     }
-
+    
+    SSL_free(serverssl);
+    SSL_free(clientssl);
     end = ossl_time_now();
     times[num] = ossl_time_subtract(end, start);
 
