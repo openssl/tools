@@ -34,7 +34,7 @@
 #
 # SERIES                The current release series.  It is computed from
 #                       MAJOR, MINOR and (possibly) FIX
-# VERSION               The current version number.  It is copmuted from
+# VERSION               The current version number.  It is computed from
 #                       MAJOR, MINOR, (possibly) FIX and PATCH
 # FULL_VERSION          Like VERSION, but with metadata (PRE_RELEASE_TAG,
 #                       BUILD_METADATA) added
