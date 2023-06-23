@@ -283,6 +283,7 @@ fi
 found=true
 for fn in "$RELEASE_AUX/release-version-fn.sh" \
           "$RELEASE_AUX/release-state-fn.sh" \
+          "$RELEASE_AUX/release-data-fn.sh" \
           "$RELEASE_AUX/string-fn.sh" \
           "$RELEASE_AUX/upload-fn.sh"; do
     if ! [ -f "$fn" ]; then
@@ -297,6 +298,7 @@ fi
 # Load version functions
 . $RELEASE_AUX/release-version-fn.sh
 . $RELEASE_AUX/release-state-fn.sh
+. $RELEASE_AUX/release-data-fn.sh
 # Load string manipulation functions
 . $RELEASE_AUX/string-fn.sh
 # Load upload backend functions
@@ -532,10 +534,10 @@ update_branch=$(format_string "$branch_fmt" \
                               "v=$FULL_VERSION")
     
 # Make the release tag and branch name according to our current data
-tag=$(format_string "$tag_fmt" \
-                    "b=$orig_release_branch" \
-                    "t=$(std_tag_name)" \
-                    "v=$FULL_VERSION")
+release_tag=$(format_string "$tag_fmt" \
+                            "b=$orig_release_branch" \
+                            "t=$(std_tag_name)" \
+                            "v=$FULL_VERSION")
 release_branch=$(format_string "$branch_fmt" \
                                "b=$orig_release_branch" \
                                "t=$(std_tag_name)" \
@@ -599,8 +601,9 @@ if [ -n "$PRE_LABEL" ]; then
     release_text="$SERIES$_BUILD_METADATA $PRE_LABEL $PRE_NUM"
     announce_template=openssl-announce-pre-release.tmpl
 else
+    release_type=$(std_release_type $VERSION)
     release_text="$release"
-    announce_template=openssl-announce-release.tmpl
+    announce_template=openssl-announce-release-$release_type.tmpl
 fi
 $VERBOSE "== Updated version information to $release"
 
@@ -621,8 +624,8 @@ git commit $git_quiet -m "Prepare for release of $release_text"$'\n\nRelease: ye
 if [ -n "$reviewers" ]; then
     addrev --release --nopr $reviewers
 fi
-$ECHO "Tagging release with tag $tag.  You may need to enter a pass phrase"
-git tag$tagkey "$tag" -m "OpenSSL $release release tag"
+$ECHO "Tagging release with tag $release_tag.  You may need to enter a pass phrase"
+git tag$tagkey "$release_tag" -m "OpenSSL $release release tag"
 
 tarfile=openssl-$release.tar
 tgzfile=$tarfile.gz
@@ -662,6 +665,7 @@ $VERBOSE "== Generating announcement text: $announce"
 # Hack the announcement template
 cat "$RELEASE_AUX/$announce_template" \
     | sed -e "s|\\\$release_text|$release_text|g" \
+          -e "s|\\\$release_tag|$release_tag|g" \
           -e "s|\\\$release|$release|g" \
           -e "s|\\\$series|$SERIES|g" \
           -e "s|\\\$label|$PRE_LABEL|g" \
@@ -707,7 +711,7 @@ $VERBOSE "== Generating metadata file: $metadata"
         fi
         echo "release_branch='$orig_release_branch'"
     fi
-    echo "release_tag='$tag'"
+    echo "release_tag='$release_tag'"
     echo "upload_files='${staging_files[@]}'"
     echo "source_repo='$orig_remote_url'"
 ) > ../$metadata
@@ -884,7 +888,7 @@ Push them to github, make PRs from them and have them approved.
 
     Update branch: $update_branch
     Release branch: $release_branch
-    Tag: $tag
+    Tag: $release_tag
 
 When merging everything into the main repository, do it like this:
 
@@ -893,7 +897,7 @@ When merging everything into the main repository, do it like this:
     git push git@github.openssl.org:openssl/openssl.git \\
         $update_branch:$orig_update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tag
+        $release_tag
 EOF
     elif [ "$update_branch" != "$orig_update_branch" ]; then
         # "Normal" scenario without --branch
@@ -903,14 +907,14 @@ repository.  Push them to github, make PRs from them and have them
 approved.
 
     Release/update branch: $update_branch
-    Tag: $tag
+    Tag: $release_tag
 
 When merging everything into the main repository, do it like this:
 
     git push git@github.openssl.org:openssl/openssl.git \\
         $update_branch:$orig_update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tag
+        $release_tag
 EOF
     elif [ "$release_branch" != "$update_branch" ]; then
         # --clean-worktree and --branch scenario
@@ -921,7 +925,7 @@ PRs from them and have them approved:
 
     Updated branch: $update_branch
     Release branch: $release_branch
-    Tag: $tag
+    Tag: $release_tag
 
 When merging everything into the main repository, do it like this:
 
@@ -930,7 +934,7 @@ When merging everything into the main repository, do it like this:
     git push git@github.openssl.org:openssl/openssl.git \\
         $update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tag
+        $release_tag
 EOF
     else
         # --clean-worktree without --branch scenario
@@ -940,14 +944,14 @@ branch has been updated.  Push them to github, make PRs from them and
 have them approved.
 
     Release/update branch: $update_branch
-    Tag: $tag
+    Tag: $release_tag
 
 When merging everything into the main repository, do it like this:
 
     git push git@github.openssl.org:openssl/openssl.git \\
         $update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
-        $tag
+        $release_tag
 EOF
     fi
 
