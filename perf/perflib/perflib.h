@@ -33,6 +33,7 @@ typedef pthread_t thread_t;
 int perflib_run_multi_thread_test(void (*f)(size_t), size_t threadcount,
                                   OSSL_TIME *duration);
 char *perflib_mk_file_path(const char *dir, const char *file);
+char *perflib_glue_strings(const char *list[], size_t *out_len);
 
 int perflib_create_ssl_ctx_pair(const SSL_METHOD *sm, const SSL_METHOD *cm,
                                 int min_proto_version, int max_proto_version,

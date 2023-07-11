@@ -1,7 +1,7 @@
-all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall
+all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall pemread
 
 clean:
-	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall
+	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall pemread
 
 libperf.a: perflib/*.c perflib/*.h
 	gcc -I$(TARGET_OSSL_INCLUDE_PATH) -I. -c perflib/*.c
@@ -27,3 +27,6 @@ x509storeissuer: x509storeissuer.c libperf.a
 
 providerdoall:	providerdoall.c libperf.a
 	gcc -L$(TARGET_OSSL_LIBRARY_PATH) -L. -I$(TARGET_OSSL_INCLUDE_PATH) -I. -o providerdoall providerdoall.c -lperf -lcrypto
+
+pemread:	pemread.c libperf.a
+	gcc -L$(TARGET_OSSL_LIBRARY_PATH) -L. -I$(TARGET_OSSL_INCLUDE_PATH) -I. -o pemread pemread.c -lperf -lcrypto
