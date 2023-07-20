@@ -34,6 +34,8 @@ const char *pemdataraw[] = {
     NULL
 };
 
+static int threadcount;
+
 void do_pemread(size_t num)
 {
     EVP_PKEY *key;
@@ -60,7 +62,7 @@ void do_pemread(size_t num)
      * Technically this includes the EVP_PKEY_free() in the timing - but I
      * think we can live with that
      */
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_THREAD / threadcount; i++) {
         key = PEM_read_bio_PrivateKey(pem, NULL, NULL, NULL);
         if (key == NULL) {
             printf("Failed to create key: %d\n", i);
@@ -77,7 +79,6 @@ void do_pemread(size_t num)
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
     OSSL_TIME duration;
     uint64_t us;
     double avcalltime;
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
 
     us = ossl_time2us(duration);
 
-    avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
+    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_THREAD;
 
     if (terse)
         printf("%lf\n", avcalltime);
