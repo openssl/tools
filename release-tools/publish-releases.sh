@@ -21,9 +21,9 @@ EOF
 # The staging repository is determined by the staging type, unless given
 # explicitly by command line options
 declare -A staging_repositories=(
-    [public]='git@github.openssl.org:openssl/staging.git'
-    [premium]='git@github.openssl.org:openssl/staging.git'
-    [security]='git@github.openssl.org:openssl/staging-security.git'
+    [public]=${PUBLIC_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging.git'}
+    [premium]=${PREMIUM_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging.git'}
+    [security]=${SECURITY_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging-security.git'}
 )
 
 # Public or premium release?  Let the version numbers determine it!
@@ -36,11 +36,11 @@ declare -A release_types=(
 # of the release that's being prepared, unless given explicitly by command
 # line options
 declare -A upload_locations=(
-    [public]=/srv/ftp/source
+    [public]=${PUBLIC_RELEASE_LOCATION:-/srv/ftp/source}
 )
 declare -A gh_release_repositories=(
-    [public]=github.com/openssl/openssl
-    [premium]=github.openssl.org/openssl/extended-releases
+    [public]=${PUBLIC_RELEASE_REPOSITORY:-github.com/openssl/openssl}
+    [premium]=${PREMIUM_RELEASE_REPOSITORY:-github.openssl.org/openssl/extended-releases}
 )
 
 # The staging type can be one of 'public', 'premium', 'security' and
@@ -52,10 +52,10 @@ declare -A gh_release_repositories=(
 
 staging_type=public
 staging_repository=
-staging_location=/sftp/upload/incoming
+staging_location=${STAGING_LOCATION:-/sftp/upload/incoming}
 upload_location=
 gh_release_repository=
-data_repository=git@github.openssl.org:omc/data.git
+data_repository=${DATA_REPOSITORY:-git@github.openssl.org:omc/data.git}
 email=
 do_all_versions=false
 do_versions=()
@@ -364,7 +364,7 @@ for d in "${data_files[@]}"; do
         fi
         # ... including that the release tag exists in the staging repo
         if ! ( cd staging; git rev-parse $git_quiet --verify $release_tag ); then
-            echo >&2 "Warning: $release_tag doesn't exist in $staging_repository.  Skipping..."
+            echo >&2 "Warning: $release_tag does not exist in $staging_repository.  Skipping..."
             echo >&2 "(this is probably due to using the wrong staging type)"
             exit 0
         fi

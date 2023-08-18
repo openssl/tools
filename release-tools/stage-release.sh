@@ -44,8 +44,9 @@ Usage: stage-release.sh [ options ... ]
                 key (default: use the default e-mail address’ key).
 --unsigned      Do not sign anything.
 
---staging-address=<address>
-                The staging location to upload release files to (default:
+--staging-location=<location>
+                The staging location to upload release files to.  This may
+                be a local directory, or an SCP style location.  (default:
                 upload@dev.openssl.org)
 --no-upload     Don't upload the staging release files.
 --no-update     Don't perform 'make update' and 'make update-fips-checksums'.
@@ -96,7 +97,7 @@ tagkey=' -s'
 gpgkey=
 reviewers=
 
-staging_address=upload@dev.openssl.org
+staging_location=${STAGING_LOCATION:-upload@dev.openssl.org}
 
 TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch' \
@@ -104,7 +105,7 @@ TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
               -l 'branch-fmt:,tag-fmt:' \
               -l 'reviewer:' \
               -l 'local-user:,unsigned' \
-              -l 'staging-address:' \
+              -l 'staging-location:' \
               -l 'no-upload,no-update' \
               -l 'quiet,verbose,debug' \
               -l 'porcelain' \
@@ -167,9 +168,9 @@ while true; do
         tagkey=" -a"
         gpgkey=
         ;;
-    --staging-address )
+    --staging-location )
         shift
-        staging_address="$1"
+        staging_location="$1"
         shift
         ;;
     --no-upload )
@@ -366,16 +367,16 @@ if ! $found; then
     exit 1
 fi
 
-# We turn staging_address into a few variables, which can be used
+# We turn staging_location into a few variables, which can be used
 # by backends that must understand a subset of the SFTP commands
 staging_directory=
 staging_backend=
-case "$staging_address" in
+case "$staging_location" in
     *:* )
         # Something with a colon is interpreted as the typical SCP
         # location.  We reinterpret that in our terms
-        staging_directory="${staging_address#*:}"
-        staging_address="${staging_address%%:*}"
+        staging_directory="${staging_location#*:}"
+        staging_location="${staging_location%%:*}"
         staging_backend=sftp
         ;;
     *@* )
@@ -383,24 +384,24 @@ case "$staging_address" in
         ;;
     sftp://?*/* | sftp://?* )
         # First, remove the URI scheme
-        staging_address="${staging_address#sftp://}"
+        staging_location="${staging_location#sftp://}"
         # Now we know that we have a host, followed by a slash, followed by
         # a directory spec.  If there is no slash, there's no directory.
-        staging_directory="${staging_address#*/}"
-        if [ "$staging_directory" = "$staging_address" ]; then
+        staging_directory="${staging_location#*/}"
+        if [ "$staging_directory" = "$staging_location" ]; then
             # There was nothing with a slash to remove, so no directory.
             staging_directory=
         fi
-        staging_address="${staging_address%%/*}"
+        staging_location="${staging_location%%/*}"
         staging_backend=sftp
         ;;
     sftp:* )
-        echo >&2 "Invalid staging address $staging_address"
+        echo >&2 "Invalid staging location $staging_location"
         exit 1
         ;;
     * )
-        if $do_upload && ! [ -d "$staging_address" ]; then
-           echo >&2 "Not an existing directory: $staging_address"
+        if $do_upload && ! [ -d "$staging_location" ]; then
+           echo >&2 "Not an existing directory: $staging_location"
            exit 1
         fi
         staging_backend=file
@@ -736,7 +737,7 @@ fi
     for uf in "${staging_files[@]}" "$metadata"; do
         echo "put ../$uf"
     done
-) | upload_backend_$staging_backend "$staging_address" $do_upload
+) | upload_backend_$staging_backend "$staging_location" $do_upload
 
 # Post-release #######################################################
 
@@ -854,7 +855,7 @@ EOF
 
     if $do_upload; then
         cat <<EOF
-The following files were uploaded to $staging_address, please ensure they
+The following files were uploaded to $staging_location, please ensure they
 are dealt with appropriately:
 
 EOF
@@ -1020,7 +1021,7 @@ B<--tag-fmt>=I<fmt> |
 B<--local-user>=I<keyid> |
 B<--unsigned> |
 B<--reviewer>=I<id> |
-B<--staging-address>=I<address> |
+B<--staging-location>=I<location> |
 B<--no-upload> |
 B<--no-update> |
 B<--quiet> |
@@ -1166,7 +1167,7 @@ If not given, then the default e-mail address' key is used.
 Do not sign the tarball or announcement file.  This leaves it for other
 scripts to sign the files later.
 
-=item B<--staging-address>=I<address>
+=item B<--staging-location>=I<location>
 
 The staging location that the release files are to be uploaded to.
 Supported values are:
@@ -1179,13 +1180,13 @@ an existing local directory
 
 =item -
 
-something that can be interpreted as an SCP/SFTP address.  In this case,
+something that can be interpreted as an SCP/SFTP location.  In this case,
 SFTP will always be used.  Typical SCP remote file specs will be translated
 into something that makes sense for SFTP.
 
 =back
 
-The default staging address is C<upload@dev.openssl.org>.
+The default staging location is C<upload@dev.openssl.org>.
 
 =item B<--no-upload>
 
@@ -1315,7 +1316,7 @@ release date in the tar file of any release.
 =head1 FILES
 
 The following files are produced and normally uploaded to the staging
-address:
+location:
 
 =over 4
 
@@ -1377,6 +1378,17 @@ list doesn't include the metadata file itself.
 The URL of the source repository that this release was generated from.
 
 =back
+
+=back
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item B<STAGING_LOCATION>
+
+A staging location (the same sort of value as explained with
+B<--staging-location> above).  Useful for testing environments.
 
 =back
 
