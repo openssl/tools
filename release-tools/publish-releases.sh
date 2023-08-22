@@ -275,6 +275,23 @@ cd "$workdir"
 
 $VERBOSE "-- Temporary work directory is $workdir"
 
+# gpg is damn annoying re password prompting, and git even more so re
+# allowing additional options for gpg.  To resolve all the issues, we
+# need a temporary script that fixes things to work.  When there's a
+# $DISPLAY, we don't need to do any magic.
+if [ -n "$DISPLAY" ]; then
+    GPG=gpg
+else
+    GPGSCRIPT=$(mktemp)
+    chmod u+x $GPGSCRIPT
+    cat >> $GPGSCRIPT <<'_____'
+#! /bin/bash
+
+gpg --pinentry-mode loopback "$@"
+_____
+    GPG=${GPGSCRIPT}
+fi
+
 # Verbosity feed for certain commands
 VERBOSITY_FIFO=/tmp/openssl-$$.fifo
 mkfifo -m 600 $VERBOSITY_FIFO
@@ -282,7 +299,7 @@ mkfifo -m 600 $VERBOSITY_FIFO
 exec 42>$VERBOSITY_FIFO
 
 # Cleanup trap
-trap "exec 42>&-; rm $VERBOSITY_FIFO; rm -rf '$workdir'" 0 2
+trap "exec 42>&-; rm $VERBOSITY_FIFO; rm -rf '$workdir'; if [ -n x$GPGSCRIPT ]; then rm $GPGSCRIPT; fi" 0 2
 
 # The staging repository is determined by the staging type, so will
 # always be the same for all releases prepared in a run of this script
@@ -496,17 +513,17 @@ for d in "${data_files[@]}"; do
                 if [[ "$f" == *.tar.gz ]]; then
                     # Found the tarball.  Sign it!
                     $VERBOSE "--   Signing $staging_location/$f"
-                    gpg --yes --pinentry-mode loopback $gpg_key \
-                        -o "$staging_location"/"$f.asc" \
-                        -sba "$staging_location"/"$f"
+                    $GPG $gpg_key --yes \
+                         -o "$staging_location"/"$f.asc" \
+                         -sba "$staging_location"/"$f"
                     new_upload_files+=("$staging_location"/"$f"
                                        "$staging_location"/"$f.asc")
                 elif [[ "$f" == *.txt ]]; then
                     # Found the announcement text.  Sign it!
                     $VERBOSE "--   Signing $staging_location/$f"
-                    gpg --yes --pinentry-mode loopback $gpg_key \
-                        -o "$staging_location"/"$f.asc" \
-                        -sta --clearsign "$staging_location"/"$f"
+                    $GPG $gpg_key --yes \
+                         -o "$staging_location"/"$f.asc" \
+                         -sta --clearsign "$staging_location"/"$f"
                     new_upload_files+=("$staging_location"/"$f.asc")
                 else
                     new_upload_files+=("$staging_location"/"$f")
@@ -521,7 +538,7 @@ for d in "${data_files[@]}"; do
                 m="$( git cat-file -p $release_tag \
                           | sed -e '1,/^ *$/d' \
                                 -e '/^-----BEGIN PGP SIGNATURE-----$/,$d' )"
-                git tag$tag_key -m "$m" -f $release_tag $release_tag^{}
+                git -c gpg.program="$GPG" tag$tag_key -m "$m" -f $release_tag $release_tag^{}
             )
         fi
 

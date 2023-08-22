@@ -256,12 +256,29 @@ case "$next_method+$next_method2" in
         ;;
 esac
 
+# gpg is damn annoying re password prompting, and git even more so re
+# allowing additional options for gpg.  To resolve all the issues, we
+# need a temporary script that fixes things to work.  When there's a
+# $DISPLAY, we don't need to do any magic.
+if [ -n "$DISPLAY" ]; then
+    GPG=gpg
+else
+    GPGSCRIPT=$(mktemp)
+    chmod u+x $GPGSCRIPT
+    cat >> $GPGSCRIPT <<'_____'
+#! /bin/bash
+
+gpg --pinentry-mode loopback "$@"
+_____
+    GPG=${GPGSCRIPT}
+fi
+
 # Verbosity feed for certain commands
 VERBOSITY_FIFO=/tmp/openssl-$$.fifo
 mkfifo -m 600 $VERBOSITY_FIFO
 ( cat $VERBOSITY_FIFO | while read L; do $VERBOSE "> $L"; done ) &
 exec 42>$VERBOSITY_FIFO
-trap "exec 42>&-; rm $VERBOSITY_FIFO" 0 2
+trap "exec 42>&-; rm $VERBOSITY_FIFO; if [ -n x$GPGSCRIPT ]; then rm $GPGSCRIPT; fi" 0 2
 
 # Setup ##############################################################
 
@@ -626,7 +643,7 @@ if [ -n "$reviewers" ]; then
     addrev --release --nopr $reviewers
 fi
 $ECHO "Tagging release with tag $release_tag.  You may need to enter a pass phrase"
-git tag$tagkey "$release_tag" -m "OpenSSL $release release tag"
+git -c gpg.program="$GPG" tag$tagkey "$release_tag" -m "OpenSSL $release release tag"
 
 tarfile=openssl-$release.tar
 tgzfile=$tarfile.gz
@@ -681,8 +698,8 @@ $VERBOSE "== Generating signatures: $tgzfile.asc $announce.asc"
 rm -f "../$tgzfile.asc" "../$announce.asc"
 $ECHO "Signing the release files.  You may need to enter a pass phrase"
 if $do_signed; then
-    gpg$gpgkey --use-agent -sba "../$tgzfile"
-    gpg$gpgkey --use-agent -sta --clearsign "../$announce"
+    $GPG$gpgkey --yes -sba "../$tgzfile"
+    $GPG$gpgkey --yes -sta --clearsign "../$announce"
 fi
 
 if ! $clean_worktree; then
