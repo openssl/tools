@@ -394,6 +394,26 @@ for d in "${data_files[@]}"; do
             exit 0
         fi
 
+        # Check if the staged release is signed.  If it is, then we're not
+        # signing in this script.  The check is very simple: if there is any
+        # release file ending with .asc, it's considered signed, and it's
+        # assumed that the release tag is signed as well.
+        release_is_signed=/usr/bin/false
+        for uf in $upload_files; do
+            if [[ "$uf" =~ \.asc$ ]]; then
+                release_is_signed=/usr/bin/true
+                if [ -n "$email" -o -n "$reviewer" ]; then
+                    echo >&2 "Warning: the staged files are signed, which means that nothing will be signed now,"
+                    echo >&2 "         and no review records will be added"
+                    tag_key=' -a'
+                    gpg_key=''
+                    reviewers=''
+                    email=''
+                fi
+                break
+            fi
+        done
+
         # Determine the upload location and gh release repository
         # (we're in a subprocess, so it's safe to assign these variables
         # here, as those assignments these will be lost when the next
@@ -452,79 +472,59 @@ for d in "${data_files[@]}"; do
         #
         #####
 
-        $ECHO "-- Adding reviewer records for: $reviewers"
+        if [ -n "$reviewers" ]; then
+            $ECHO "-- Adding reviewer records for: $reviewers"
 
-        ub=$update_branch
-        if [ -n "$staging_update_branch" ]; then
-            ub=${staging_update_branch}
-        fi
-        (
-            cd staging
-            $DEBUG >&2 "DEBUG: Running addrev on $source_remote_name/$update_branch..$ub"
-            DATA=$(realpath ../data) addrev --nopr $reviewers \
-                $source_remote_name/$update_branch..$ub
-        )
-
-        # - [TEMPORARY] Some of the staged release files are expected to be
-        #   unsigned, or to be signed with a key that isn't suitable for
-        #   publishing, because the signer isn't specified in OpenSSL's
-        #   doc/fingerprints.txt.
-        #   Therefore, they must be signed (possibly resigned) now.
-        # - [TEMPORARY] The staging repository has a tag that's expected to
-        #   be unsigned or to be signed with a key that isn't suitable for
-        #   publishing, because the signer isn't specified in OpenSSL's
-        #   doc/fingerprints.txt.
-        #   Therefore, that tag must be signed (possibly resigned) now.
-        #
-        # These fixups will be removed when we have fully moved to using a
-        # team key for signing the releases.
-
-        $ECHO "-- (Re-)signing release files and release tag"
-        $ECHO "-- You may be asked for your GPG key passphrase"
-
-        new_upload_files=()
-        for f in $upload_files; do
-            if [[ "$f" == *.tar.gz ]]; then
-                # Found the tarball.  Sign it!
-                $VERBOSE "--   (Re-)signing $staging_location/$f"
-                gpg --yes --pinentry-mode loopback $gpg_key \
-                    -o "$staging_location"/"$f.asc" \
-                    -sba "$staging_location"/"$f"
-                new_upload_files+=("$staging_location"/"$f"
-                                   "$staging_location"/"$f.asc")
-            elif [[ "$f" == *.txt.asc ]]; then
-                # Found the announcement text, already signed.  Re-sign it!
-                ff=$(basename "$f" .asc)
-                $VERBOSE "--   (Re-)signing $staging_location/$ff"
-                # Extract the unsigned text
-                gpg --yes --pinentry-mode loopback $gpg_key \
-                    -o "$staging_location"/"$ff" \
-                    "$staging_location"/"$f"
-                # ... then sign it
-                gpg --yes --pinentry-mode loopback $gpg_key \
-                    -o "$staging_location"/"$f" \
-                    -sta --clearsign "$staging_location"/"$ff"
-                new_upload_files+=("$staging_location"/"$f")
-            elif [[ "$f" == *.txt ]]; then
-                # Found the announcement text.  Sign it!
-                $VERBOSE "--   (Re-)signing $staging_location/$f"
-                gpg --yes --pinentry-mode loopback $gpg_key \
-                    -o "$staging_location"/"$f.asc" \
-                    -sta --clearsign "$staging_location"/"$f"
-                new_upload_files+=("$staging_location"/"$f.asc")
-            else
-                new_upload_files+=("$staging_location"/"$f")
+            ub=$update_branch
+            if [ -n "$staging_update_branch" ]; then
+                ub=${staging_update_branch}
             fi
-        done
+            (
+                cd staging
+                $DEBUG >&2 "DEBUG: Running addrev on $source_remote_name/$update_branch..$ub"
+                DATA=$(realpath ../data) addrev --nopr $reviewers \
+                    $source_remote_name/$update_branch..$ub
+            )
+        fi
 
-        (
-            $VERBOSE "--   (Re-)signing the release tag $release_tag"
-            cd staging
-            m="$( git cat-file -p $release_tag \
-                      | sed -e '1,/^ *$/d' \
-                            -e '/^-----BEGIN PGP SIGNATURE-----$/,$d' )"
-            git tag$tag_key -m "$m" -f $release_tag $release_tag^{}
-        )
+        if [ -n "$email" ]; then
+
+            $ECHO "-- Signing release files and release tag"
+            $ECHO "-- You may be asked for your GPG key passphrase"
+
+            new_upload_files=()
+            for f in $upload_files; do
+                if [[ "$f" == *.tar.gz ]]; then
+                    # Found the tarball.  Sign it!
+                    $VERBOSE "--   Signing $staging_location/$f"
+                    gpg --yes --pinentry-mode loopback $gpg_key \
+                        -o "$staging_location"/"$f.asc" \
+                        -sba "$staging_location"/"$f"
+                    new_upload_files+=("$staging_location"/"$f"
+                                       "$staging_location"/"$f.asc")
+                elif [[ "$f" == *.txt ]]; then
+                    # Found the announcement text.  Sign it!
+                    $VERBOSE "--   Signing $staging_location/$f"
+                    gpg --yes --pinentry-mode loopback $gpg_key \
+                        -o "$staging_location"/"$f.asc" \
+                        -sta --clearsign "$staging_location"/"$f"
+                    new_upload_files+=("$staging_location"/"$f.asc")
+                else
+                    new_upload_files+=("$staging_location"/"$f")
+                fi
+            done
+
+            (
+                $VERBOSE "--   Signing the release tag $release_tag"
+                cd staging
+                # We do a little more than necessary to weed out the
+                # existing tag message
+                m="$( git cat-file -p $release_tag \
+                          | sed -e '1,/^ *$/d' \
+                                -e '/^-----BEGIN PGP SIGNATURE-----$/,$d' )"
+                git tag$tag_key -m "$m" -f $release_tag $release_tag^{}
+            )
+        fi
 
         # Done with the fixups
 
