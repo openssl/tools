@@ -43,12 +43,7 @@ declare -A gh_release_repositories=(
     [premium]=${PREMIUM_RELEASE_REPOSITORY:-github.openssl.org/openssl/extended-releases}
 )
 
-# The staging type can be one of 'public', 'premium', 'security' and
-# 'custom'
-# All except 'custom' have pre-determined locations and repositories (which
-# can be modified by command line options).  With the 'custom' staging type,
-# all hands are off, and all locations and repositories MUST be given on the
-# command line
+# The staging type must be one of 'public', 'premium' and 'security'
 
 staging_type=public
 staging_repository=
@@ -75,7 +70,7 @@ TEMP=$(getopt -l 'all,version:' \
               -l 'staging-location:,staging-repository:' \
               -l 'upload-location:,gh-release-repository:' \
               -l 'data-repository:' \
-              -l 'public,premium,security,custom' \
+              -l 'public,premium,security' \
               -l 'email:,reviewer:' \
               -l 'no-file-upload,no-gh-upload,no-upload,no-update,no-mail' \
               -l 'quiet,verbose,debug' \
@@ -118,7 +113,7 @@ while true; do
             shift
             shift
             ;;
-        --public | --premium | --security | --custom )
+        --public | --premium | --security )
            staging_type=${1#--}
            shift
            ;;
@@ -218,16 +213,6 @@ fi
 # There must also be a PGP key tied to the email address
 if ! gpg -K -u $email >/dev/null 2>&1; then
     check_messages+=( "There is no private key for $email present" )
-fi
-
-if [ "$staging_type" = "custom" ]; then
-    if [ -z "$staging_location" ]; then
-        check_messages+=( "You MUST specify a release file staging location with --staging-location" )
-    fi
-    if [ -z "$staging_repository" ]; then
-        check_messages+=( "You MUST specify a staging repository with --staging-repository" )
-    fi
-    # $upload_location and $gh_release_repository may still be empty
 fi
 
 if [ -n "$staging_repository" ]; then
@@ -396,30 +381,28 @@ for d in "${data_files[@]}"; do
         fi
 
         # Determine the release type and associated variables from version
-        # numbers, unless the staging type is 'custom'
-        if [ "$staging_type" != "custom" ]; then
-            for rt in "${!release_types[@]}"; do
-                re="${release_types[$rt]}"
-                if [[ "$release_version" =~ $re ]]; then
-                    release_type=$rt
-                    break
-                fi
-            done
-            if [ -z "$release_type" ]; then
-                echo >&2 "Warning: OpenSSL $version is staged, but is not supported for release.  Skipping..."
-                exit 0
+        # numbers
+        for rt in "${!release_types[@]}"; do
+            re="${release_types[$rt]}"
+            if [[ "$release_version" =~ $re ]]; then
+                release_type=$rt
+                break
             fi
+        done
+        if [ -z "$release_type" ]; then
+            echo >&2 "Warning: OpenSSL $version is staged, but is not supported for release.  Skipping..."
+            exit 0
+        fi
 
-            # Determine the upload location and gh release repository
-            # (we're in a subprocess, so it's safe to assign these variables
-            # here, as those assignments these will be lost when the next
-            # release is to be processed)
-            if [ -z "$upload_location" ]; then
-                upload_location="${upload_locations[$release_type]}"
-            fi
-            if [ -z "$upload_location" ]; then
-                gh_release_repository="${gh_release_repositories[$release_type]}"
-            fi
+        # Determine the upload location and gh release repository
+        # (we're in a subprocess, so it's safe to assign these variables
+        # here, as those assignments these will be lost when the next
+        # release is to be processed)
+        if [ -z "$upload_location" ]; then
+            upload_location="${upload_locations[$release_type]}"
+        fi
+        if [ -z "$gh_release_repository" ]; then
+            gh_release_repository="${gh_release_repositories[$release_type]}"
         fi
 
         # The source repo is going to get massaged, let's make sure to save
@@ -681,7 +664,6 @@ B<--data-repository>=I<git URI>
 B<--public>
 B<--premium>
 B<--security>
-B<--custom>
 B<--email>=I<address>
 B<--reviewer>="I<OpenSSL id>"
 B<--no-file-upload>
