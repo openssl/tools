@@ -21,8 +21,7 @@ EOF
 # The staging repository is determined by the staging type, unless given
 # explicitly by command line options
 declare -A staging_repositories=(
-    [public]=${PUBLIC_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging.git'}
-    [premium]=${PREMIUM_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging.git'}
+    [ordinary]=${ORDINARY_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging.git'}
     [security]=${SECURITY_STAGING_REPOSITORY:-'git@github.openssl.org:openssl/staging-security.git'}
 )
 
@@ -43,9 +42,9 @@ declare -A gh_release_repositories=(
     [premium]=${PREMIUM_RELEASE_REPOSITORY:-github.openssl.org/openssl/extended-releases}
 )
 
-# The staging type must be one of 'public', 'premium' and 'security'
+# The staging type must be one of 'ordinary' or 'security'
 
-staging_type=public
+staging_type=ordinary
 staging_repository=
 staging_location=${STAGING_LOCATION:-/sftp/upload/incoming}
 upload_location=
@@ -70,7 +69,7 @@ TEMP=$(getopt -l 'all,version:' \
               -l 'staging-location:,staging-repository:' \
               -l 'upload-location:,gh-release-repository:' \
               -l 'data-repository:' \
-              -l 'public,premium,security' \
+              -l 'ordinary,security' \
               -l 'email:,reviewer:' \
               -l 'no-file-upload,no-gh-upload,no-upload,no-update,no-mail' \
               -l 'quiet,verbose,debug' \
@@ -113,7 +112,7 @@ while true; do
             shift
             shift
             ;;
-        --public | --premium | --security )
+        --ordinary | --security )
            staging_type=${1#--}
            shift
            ;;
@@ -588,7 +587,7 @@ for d in "${data_files[@]}"; do
             # Move old files, only for public releases
             if [[ "$release_type" == "public" \
                       && -d "$upload_location/old/$release_series" ]]; then
-            $VERBOSE "--   Moving away older release files"
+                $VERBOSE "--   Moving away older release files"
                 mv $upload_location/openssl-$release_series* \
                    $upload_location/old/$release_series/
             fi
@@ -656,14 +655,13 @@ B<publish-release.sh>
 [
 B<--all>
 B<--version>=I<x.y.z>
+B<--ordinary>
+B<--security>
 B<--staging-location>=I<location>
 B<--staging-repository>=I<git URI>
 B<--upload-location>=I<location>
 B<--gh-release-repository>=I<gh URI>
 B<--data-repository>=I<git URI>
-B<--public>
-B<--premium>
-B<--security>
 B<--email>=I<address>
 B<--reviewer>="I<OpenSSL id>"
 B<--no-file-upload>
@@ -681,52 +679,38 @@ B<--manual>
 
 =head1 DESCRIPTION
 
-B<publish-release.sh> publishes releases created by B<stage-release.sh>,
+B<publish-release.sh> publishes releases that staged with B<stage-release.sh>,
 given an indication of what versions should be released (where B<--all> is a
-possibility), and what type of release that is being done (B<--public>,
-B<--premium> or B<--security>).
+possibility), and what type of release that this was staged for (B<--ordinary>,
+B<--security>).
 
 This must currently be run on the machine where release files are staged,
 as determined when F<stage-release.sh> was run, and relies on the source
-repository being frozen in the time fram where both F<stage-release.sh> and
+repository being frozen in the time frame where both F<stage-release.sh> and
 this script are run.  OpenSSL's official machine for running this script is
 C<dev.openssl.org>.
 
-Depending on the type of release, different file locations and git(hub)
+Depending on the staging type, different file locations and git(hub)
 repositories may be involved:
 
 =over 4
 
-=item B<--public> releases
+=item Release versions that are staged B<--ordinary>
 
-Only non-premium versions may be released this way.
-
-Public releases are made from a non-security staging git repository
-and are published in a public download location as well as a public github
-repository.
-
-=item B<--premium> releases
-
-Only premium versions may be released this way.
-
-Premium releases are made from a non-security staging git repository (which
-can be the same as for public releases), and are published in a premium
-github repository.
+Releases are published from an ordinary (non-security) staging git repository.
 
 =item B<--security> releases
 
-Any version may be released this way
-
-Security releases are made from a security staging git repository (which
-I<must> be different from the one used for public and premium releases),
-and are published in a public download location as well as a public github
-repository, or in a premium github repository, depending on the version
-being released.
+Releases are published from a security staging git repository.
 
 =back
 
-Versions are considered public and what versions are determined premium is
-a hardcoded condition.  To change it, you must modify the array
+Release versions that are public will be published to a public download
+location as well as a public github repository.  Release versions that are
+premium will be published to a premium github repository.
+
+What versions are considered public and what versions are determined premium is
+subject to a hardcoded condition.  To change it, you must modify the array
 C<release_types> in this script.
 
 =head1 OPTIONS
@@ -739,10 +723,10 @@ B<--all> means to try to publish all staged release versions.  B<--version>
 means try to publish that specific version.  B<--version> may be specified
 multiple times to release multiple precise versions.
 
-=item B<--public>, B<--premium>, B<--security>
+=item B<--ordinary>, B<--security>
 
-The type for release that's to be made.  This determines certain defaults
-and assumptions, as shown with other options below.
+The type for staging repository used for releases.  This determines certain
+defaults and assumptions, as shown with other options below.
 
 =item B<--staging-location>=I<location>
 
@@ -770,7 +754,7 @@ Built-in default:
 
 =over 4
 
-=item For B<--public> and B<--premium> releases
+=item For B<--ordinary> releases
 
 C<git@github.openssl.org:openssl/staging.git>
 
@@ -789,7 +773,7 @@ Currently, only local directories are supported.
 
 =over 4
 
-=item Built-in default, public and public security release only:
+=item Built-in default, used public (including public security) release only:
 
 C</srv/ftp/source>
 
@@ -805,11 +789,11 @@ Built-in default:
 
 =over 4
 
-=item For B<--public> and public B<--security> releases
+=item For public (including public security) releases:
 
 C<github.com/openssl/openssl>
 
-=item For B<--premium> and premium B<--security> releases
+=item For premium (including premium security) releases:
 
 C<github.openssl.org/openssl/extended-releases>
 
@@ -875,20 +859,9 @@ description.
 
 Default B<--staging-location>.
 
-=item B<PUBLIC_STAGING_REPOSITORY>
+=item B<ORDINARY_STAGING_REPOSITORY>
 
-Default B<--staging-repository> for B<--public> releases.
-
-=item B<PREMIUM_STAGING_REPOSITORY>
-
-Default B<--staging-repository> for B<--premium> releases.
-
-=back
-
-Under normal circumstances, B<PUBLIC_STAGING_REPOSITORY> and
-B<PREMIUM_STAGING_REPOSITORY> are the same.
-
-=over 4
+Default B<--staging-repository> for B<--ordinary> releases.
 
 =item B<SECURITY_STAGING_REPOSITORY>
 
@@ -896,18 +869,18 @@ Default B<--staging-repository> for B<--security> releases.
 
 =item B<PUBLIC_RELEASE_LOCATION>
 
-Default B<--upload-location> where public B<--public> and B<--security>
+Default B<--upload-location> where public (including public security)
 releases are published.
 
 =item B<PUBLIC_RELEASE_REPOSITORY>
 
-Default B<--gh-release-repository> where B<--public> and public
-B<--security> releases are published.
+Default B<--gh-release-repository> where public (including public security)
+releases are published.
 
 =item B<PREMIUM_RELEASE_REPOSITORY>
 
-Default B<--gh-release-repository> where B<--premium> and premium
-B<--security> releases are published.
+Default B<--gh-release-repository> where premium (including premium security)
+releases are published.
 
 =item B<DATA_REPOSITORY>
 
