@@ -220,13 +220,13 @@ else
     srs=( "${staging_repositories[@]}" )
 fi
 for sr in "${srs[@]}"; do
-    if [ -z "$(git ls-remote "$sr" 2>/dev/null)" ]; then
+    if ! git ls-remote "$sr" >/dev/null 2>&1; then
         check_messages+=( "Can't access the staging repository '$sr'" )
     fi
 done
 
 if [ -n "$data_repository" ]; then
-    if [ -z "$(git ls-remote "$data_repository" 2>/dev/null)" ]; then
+    if ! git ls-remote "$data_repository" >/dev/null 2>&1; then
         check_messages+=( "Can't access the data repository '$data_repository'" )
     fi
 fi
