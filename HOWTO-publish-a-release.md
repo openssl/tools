@@ -294,23 +294,29 @@ Then copy the result to the temporary directory on dev.openssl.org:
 To finish, log in on dev.openssl.org and send the signed Security
 Advisory by email as the user that signed the advisory.
 
-For all releases, send it to the default set of public mailing lists:
+For all releases, send it to the default set of public mailing lists,
+replacing `YOU@openssl.org` with your email address:
 
-    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
+    EMAIL="YOU@openssl.org" REPLYTO="openssl@openssl.org" \
+        mutt -s "OpenSSL Security Advisory" \
             openssl-project openssl-users openssl-announce \
             </tmp/secadv_FILENAME.txt.asc
 
 Finally, We also send it separately to oss-security (to avoid cross-posting
-with our own lists):
+with our own lists), remember to replace `YOU@openssl.org` with your email
+address:
 
-    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
+    EMAIL="YOU@openssl.org" REPLYTO="openssl@openssl.org" \
+        mutt -s "OpenSSL Security Advisory" \
             oss-security@lists.openwall.com \
             </tmp/secadv_FILENAME.txt.asc
 
 For premium releases, send them to support-announce as well *and
-separately*:
+separately*, remember to replace `YOU@openssl.org` with your email
+address:
 
-    REPLYTO="openssl@openssl.org" mutt -s "OpenSSL Security Advisory" \
+    EMAIL="YOU@openssl.org" REPLYTO="openssl@openssl.org" \
+        mutt -s "OpenSSL Security Advisory" \
             support-announce </tmp/secadv_FILENAME.txt.asc
 
 When done, remove the email file:
