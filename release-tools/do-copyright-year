@@ -33,9 +33,11 @@ collect_files() {
     git diff-tree -r --name-status `git rev-list -1 --before=$NYD HEAD`..HEAD | \
     grep -v '^ *D'
 
-    # Always update the end year in README.md. It might be listed twice,
-    # but this is hardly a problem, just slightly suboptimal.
-    echo 'X       README.md'
+    # Always update the end year in README.md and/or README.
+    # It might be listed twice, but this is hardly a problem,
+    # just slightly suboptimal.
+    [[ -f README.md ]] && echo 'X       README.md'
+    [[ -f README ]]    && echo 'X       README'
 }
 
 process_files() {
