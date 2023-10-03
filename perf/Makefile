@@ -1,7 +1,7 @@
-all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall pemread
+all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall pemread rwlocks
 
 clean:
-	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall pemread
+	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall pemread rwlocks
 
 #-Wl,-rpath,$(TARGET_OSSL_LIBRARY_PATH)
 
@@ -36,3 +36,6 @@ providerdoall:	providerdoall.c libperf.a
 
 pemread:	pemread.c libperf.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o pemread pemread.c -lperf -lcrypto
+
+rwlocks: rwlocks.c libperf.a
+	gcc $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o rwlocks rwlocks.c -lperf -lcrypto
