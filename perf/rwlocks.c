@@ -15,9 +15,7 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_THREAD  1000
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_RUN 1000000
 
 int threadcount = 0;
 int err = 0;
@@ -37,8 +35,8 @@ void do_rw_wlock(size_t num)
     unsigned long *newval, *oldval;
     int local_write_lock_calls = 0;
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
-        newval = OPENSSL_malloc(sizeof(int));        
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
+        newval = OPENSSL_malloc(sizeof(int));
         CRYPTO_THREAD_write_lock(lock);
         if (dataval == NULL)
             *newval = 1;
@@ -54,9 +52,11 @@ void do_rw_wlock(size_t num)
     CRYPTO_THREAD_write_lock(lock);
     write_lock_calls += local_write_lock_calls;
     writers--;
-    if (writers == 0)
+    if (writers == 0) {
         writer_end = ossl_time_now();
-    CRYPTO_THREAD_unlock(lock); 
+        OPENSSL_free(dataval); /* free last allocation */
+    }
+    CRYPTO_THREAD_unlock(lock);
 }
 
 void do_rw_rlock(size_t num)
@@ -65,7 +65,7 @@ void do_rw_rlock(size_t num)
     unsigned long last_val = 0;
     int local_read_lock_calls = 0;
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         CRYPTO_THREAD_read_lock(lock);
         if (dataval != NULL) {
             if (last_val != 0 && last_val > *dataval)
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     char *writeenv;
 
     if ((argc != 2 && argc != 3)
-       || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
+        || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
         printf("Usage: rwlocks [--terse] threadcount\n");
         return EXIT_FAILURE;
     }
@@ -122,11 +122,11 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    writeenv=getenv("LOCK_WRITERS");
+    writeenv = getenv("LOCK_WRITERS");
     if (writeenv == NULL) {
         writers = threadcount / 2;
     } else {
-        writers=atoi(writeenv);
+        writers = atoi(writeenv);
         if (writers == 0)
             writers = threadcount / 2;
     }
@@ -140,9 +140,10 @@ int main(int argc, char *argv[])
     readers = threadcount - writers;
 
     if (!terse)
-        printf("Running rwlock test with %d writers and %d readers\n", writers, readers);
+        printf("Running rwlock test with %d writers and %d readers\n",
+               writers, readers);
 
-    start = ossl_time_now(); 
+    start = ossl_time_now();
 
     if (!perflib_run_multi_thread_test(do_rwlocks, threadcount, &duration)) {
         printf("Failed to run the test\n");
@@ -158,19 +159,21 @@ int main(int argc, char *argv[])
     avwcalltime = (double)us / (double)write_lock_calls;
 
     if (!terse)
-        printf("total write lock/unlock calls %d in %lf us\n", write_lock_calls, (double)us);
+        printf("total write lock/unlock calls %d in %lf us\n",
+               write_lock_calls, (double)us);
 
     us = ossl_time2us(ossl_time_subtract(reader_end, start));
     avrcalltime = (double)us / (double)read_lock_calls;
     if (!terse)
-        printf("total read lock/unlock calls %d %lf us\n", read_lock_calls, (double)us);
+        printf("total read lock/unlock calls %d %lf us\n",
+               read_lock_calls, (double)us);
 
-    if (terse)
+    if (terse) {
         printf("%lf %lf\n", avwcalltime, avrcalltime);
-    else {
-        printf("Average time per CRYPTO_THREAD_write_lock/unlock call pair: %lfus\n",
+    } else {
+        printf("Average time per write_lock/unlock call pair: %lfus\n",
                avwcalltime);
-        printf("Average time per CRYPTO_THREAD_read_lock/unlock call pair: %lfus\n",
+        printf("Average time per read_lock/unlock call pair: %lfus\n",
                avrcalltime);
     }
 

@@ -118,3 +118,11 @@ a memory BIO with a private RSA key. It does 100000 repetitions divided evenly
 among each thread. The number of threads to use is provided as an argument and
 the test reports the average time take to execute a block of 1000
 PEM_read_bio_PrivateKey() calls.
+
+rwlocks
+-------------
+the rwlocks test creates the command line specified number of threads, splitting
+them evenly between read and write functions (though this is adjustable via the
+LOCK_WRITERS environment variable).  Threads then iteratively acquire a shared
+rwlock to read or update some shared data.  The number of read and write
+lock/unlock pairs are reported as a performance measurement
