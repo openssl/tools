@@ -16,8 +16,8 @@ tests_recursive('t');
 
 resources (
    license    => 'http://www.apache.org/licenses/LICENSE-2.0',
-   repository => 'https://github.com/openssl/omc-tools.git',
-   bugtracker => 'https://github.com/openssl/omc-tools/issues',
+   repository => 'https://github.com/openssl/tools.git',
+   bugtracker => 'https://github.com/openssl/tools/issues',
 );
 
 configure_requires (
