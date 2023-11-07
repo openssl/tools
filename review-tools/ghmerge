@@ -40,7 +40,7 @@ TARGET=""
 BUILD=yes
 [ -z ${CC+x} ] && CC="ccache gcc" # opensslbuild will otherwise use "ccache clang-3.6"
 
-if [ ! -d .git ] ; then
+if [ ! -e .git ] ; then
     echo Not at a top-level git directory
     exit 1
 fi
