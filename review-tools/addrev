@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+my $gitaddrev = $ENV{GITADDREV} || "gitaddrev";
+
 my $args = "";
 my $filterargs = "";
 my $list_reviewers = 0;
@@ -67,7 +69,7 @@ foreach (@ARGV) {
 $filterargs = "HEAD^.." if $filterargs eq "";
 
 if ($list_reviewers) {
-    system("gitaddrev --list");
+    system("$gitaddrev --list");
     exit(0);
 }
 if ($help) {
@@ -87,7 +89,7 @@ if ($useself) {
 
 my $err = "/tmp/addrev$$";
 $ENV{FILTER_BRANCH_SQUELCH_WARNING} = 1;
-system("git filter-branch -f --tag-name-filter cat --msg-filter \"gitaddrev $args\" $filterargs || (echo addrev failed; exit 1)");
+system("git filter-branch -f --tag-name-filter cat --msg-filter \"$gitaddrev $args\" $filterargs || (echo addrev failed; exit 1)");
 die if $?;
 
 sub usage {
