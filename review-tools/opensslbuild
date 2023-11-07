@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # Script to build openssl and run regression tests.
 # Usage:
 #       opensslbuild [-c] [-x] [config_args...]

@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 # Script to fetch and rebase openssl branches
 
 test -f ./config || {

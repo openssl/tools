@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 function usage_exit {
     >&2 echo "Usage: ghmerge <options including prnum and reviewer(s)>
