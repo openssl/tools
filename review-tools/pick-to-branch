@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 function usage {
     echo "Usage: pick-to-branch [<id> | h | HEAD ] <target> [<num>]
