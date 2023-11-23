@@ -74,7 +74,7 @@ process_files() {
     endspin "Files considered: $count"
 }
 
-echo Updating copryight
+echo Updating copyright
 collect_files | process_files
 echo Files changed: $(git status --porcelain --untracked-files=no --ignore-submodules=all | grep '^ *M' | wc -l)
 rm -f $ss
