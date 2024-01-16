@@ -204,7 +204,7 @@ NOTE: The reporter may have written something good enough in their report to
 serve as inspiration (it may even be good enough to copy verbatim).
 
 It's ***strongly** recommended* to put together an early advisory text,
-before publishing the fixes (as part of a release, or for LOW severity
+before publishing the fixes (as part of a release, or for Low severity
 issues, as individual PRs), or even before planning to publish them.  In
 essence, as early as possible.
 
@@ -234,13 +234,13 @@ publishing the security advisory.  We **strongly** recommend against that,
 though, among others because release and publishing time often a stressful
 moment.  In the end, it's your judgement call.*
 
-### Create the fix (LOW severity issue)
+### Create the fix (Low severity issue)
 
 *Creating the fix is to be done by the original reporter, or the investigator,
 or anyone that wants to pitch in, or someone that the OTC assigns during the
 next following OTC meeting*
 
-LOW severity issues are usually treated like any public bug fix on [public
+Low severity issues are usually treated like any public bug fix on [public
 openssl/openssl repository], except for creating (described in [Write a
 security advisory text] below) and publishing (described in [Publish the
 security advisories] below) the security advisory.
@@ -248,7 +248,7 @@ security advisories] below) the security advisory.
 An exception can be made if a release is imminent.  In that case, it can be
 handled as part of the release, the same way as the higher level issue fixes.
 
-### Create and collect the fix (MODERATE / HIGH / CRITICAL severity issue)
+### Create and collect the fix (Moderate / High / Critical severity issue)
 
 *Creating the fix is to be done by the original reporter, or the investigator,
 or anyone that wants to pitch in, or someone that the OTC assigns during the
@@ -257,7 +257,7 @@ next following OTC meeting*
 *Collecting the fix is to be done by the investigator, anyone who wants to
 pitch in, or someone that the OTC assigns during the next OTC meeting*
 
-Fixes for MODERATE / HIGH / CRITICAL severity issues are collected as PRs --
+Fixes for Moderate / High / Critical severity issues are collected as PRs --
 usually one per issue.  For public releases, they must be submitted to the
 [private openssl/security repository], while for premium releases, they must be
 submitted to the [private openssl/premium repository].
@@ -279,7 +279,7 @@ Make sure that the commit that contains the actual fix has the CVE ID in its
 commit message.  A PR may contain other commits, e.g. for adding test cases,
 or doing additional hardening inspired by the original problem.
 
-## Making a release (MODERATE / HIGH / CRITICAL severity issues)
+## Making a release (Moderate / High / Critical severity issues)
 
 Most of the release mechanics are found in [HOWTO-make-a-release.md] and
 will not be repeated here.
@@ -349,10 +349,10 @@ Depending on the severity of the issue, update releases may need to be
 planned and carried out promptly.  This is determined by the highest
 severity issue currently raised:
 
--   For MODERATE severity issues, plan to merge the fixes as part of the
+-   For Moderate severity issues, plan to merge the fixes as part of the
     next update release.
 
--   For HIGH / CRITICAL severity issues, plan for an update release as
+-   For High / Critical severity issues, plan for an update release as
     immediately as possible (within 4 weeks after the issue have been
     raised)
 
@@ -361,14 +361,14 @@ includes a date when that release is done.
 
 ### Write a security advisory text
 
-Security advisory texts are usually associated with a release.  For LOW
+Security advisory texts are usually associated with a release.  For Low
 security issues, they are usually associated with the PR that fixes the
 issue.
 
 In all cases, a security advisory must be written.  This is a text file,
 initially saved as `draft-advisories/secadv_{YYYYMMDD}.txt` in the
 [private otc/security repository], where `{YYYYMMDD}` is the release date,
-or for a LOW security issue, the date the fixing PR is merged.
+or for a Low security issue, the date the fixing PR is merged.
 
 This file shall be formatted according to following template:
 
@@ -400,11 +400,11 @@ Where:
     advisory texts (the `draft-advisories/CVE-{YYYY}-{NNNN}.txt` that are
     discussed in [Write an early advisory text] above) for which fixes are
     included in this release.  *This must include the early advisory texts
-    for LOW severity issues for which the fixes have already been pushed to
+    for Low severity issues for which the fixes have already been pushed to
     the release branch*
 
     It's *recommended* to have them sorted by severity classification (order
-    CRITICAL to LOW), and by date within each classification. 
+    Critical to Low), and by date within each classification. 
 
 -   `{YYYYMMDD}` is replaced with the date in numeric form, for example
     "20000229" for 29 February 2000.
@@ -450,25 +450,41 @@ Example security advisory:
 
 ### Pre-notification
 
-A week before the release date, pre-notify the public, our support customers
-and pre-notification vendors that there will be an update release that
-includes security related fixes.
-
--   The public pre-notification goes to <openssl-announce@openssl.org>
-    [Example](https://mta.openssl.org/pipermail/openssl-announce/2020-April/000170.html)
-
--   The pre-notification to our support customers goes to
-    <support-announce@openssl.org>, see
-    [Special handling of support customers] below.
+Two weeks before the release date pre-notify our extended support customers and
+pre-notification vendors that there will be an update release that includes
+security related fixes.
 
 -   The pre-notification to OS distro vendors goes to
     <distros@vs.openwall.org> and a small selection of friends, see the
     example in [Special handling of vendors] below.
 
+-   The pre-notification to our extended support customers goes to
+    <extended-support-announce@openssl.org>, see [Special handling of support
+    customers] below.
+
+A week before the release date announce the release to our support customers,
+the public, and the oss-security list.
+
+-   The announcement to our support customers goes to
+    <support-announce@openssl.org>, see [Special handling of support
+    customers] below.
+
+-   The public announcement goes to <openssl-announce@openssl.org>,
+    <openssl-users@openssl.org> and <openssl-project@openssl.org>
+    [Example](https://mta.openssl.org/pipermail/openssl-announce/2020-April/000170.html)
+
+-   If the releases will contain security fixes then we also send an
+    announcement to the <oss-security@lists.openwall.com> list
+
 ### Special handling of support customers
 
-Write an email text and save it in `securityissues/` in the
-[private omc/omc repository].
+Using `securityissues/premiumemail-template.txt` found in the [omc/data
+repository] as a template, write a pre-notification email text for our
+support customers, and save it in that same directory (`securityissues/` in
+the [private omc/data repository]).
+
+The template includes relevant email header fields, and should be preserved
+as is in the saved email file.
 
 This email must include the advisory text, an end of embargo date, and ask
 who wants to be sent the patch that fixes the issues.  Record those who want
@@ -476,13 +492,19 @@ to receive the patch in the email file mentioned above (in `securityissues/`).
 
 See previous files in `securityissues/` there as examples.
 
+After having sent the email, <osf-contact@openssl.org> must be monitored for
+responses from those who want to receive the patch; they must be recorded in
+the `prenotified-customers.md` file in the [private omc/data repository].
+
 ### Special handling of vendors
 
 Vendors plus a small selection of friends are handled a bit specially, as
 they can opt in for collaborating with us on a per update release basis.
 
-To handle this, start with sending them an email that is the pre-notification
-plus some text to give them collaboration options.
+To handle this, write a pre-notification email text for them, using
+`securityissues/vendoremail-template.txt` found in the [private omc/data repository]
+as a template, and save it in that same directory (`securityissues/` in the
+[private omc/data repository]).
 
 Example (note the `[vs]` in the subject line, this is essential):
 
@@ -533,11 +555,11 @@ it every time.)*
 
 ## Post-release actions
 
-Note that this includes publishing LOW severity CVEs previous to a release.
+Note that this includes publishing Low severity CVEs previous to a release.
 
 ### Publish the security advisories
 
-*(For LOW severity issues, this includes the initial publication of its
+*(For Low severity issues, this includes the initial publication of its
 security advisory, which is not part of a release process)*
 
 -   Prepare the security advisory text:
@@ -567,7 +589,7 @@ security advisory, which is not part of a release process)*
         `vulnerabilities-json/CVE-YYYY-NNNN.json` in a checkout of the
         [private omc/data repository].
 
-    -   For LOW severity issues *that end up in a release*, update the
+    -   For Low severity issues *that end up in a release*, update the
         already existing `vulnerabilities-json/CVE-YYYY-NNNN.json` by
         changing the "lessThan" value `{major}.{minor}.{patch}-dev` to
         `{major}.{minor}.{patch}`.
@@ -596,6 +618,5 @@ Finish by publishing all the applicable
 [private openssl/premium repository]: https://github.openssl.org/openssl/premium
 [private openssl/openssl repository]: https://github.openssl.org/openssl/openssl
 [private omc/data repository]: https://github.openssl.org/omc/data
-[private omc/omc repository]: https://github.openssl.org/omc/omc
 [private cvepool.md]: https://github.openssl.org/otc/security/cvepool.md
 [private prenotified vendors log]: https://github.openssl.org/otc/security/prenotified-vendors.md
