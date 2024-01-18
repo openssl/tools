@@ -15,9 +15,10 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  100
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_BLOCK         1000
+#define NUM_CALL_BLOCKS_PER_RUN     100
+#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+
 
 int err = 0;
 
@@ -62,7 +63,7 @@ void do_pemread(size_t num)
      * Technically this includes the EVP_PKEY_free() in the timing - but I
      * think we can live with that
      */
-    for (i = 0; i < NUM_CALLS_PER_THREAD / threadcount; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         key = PEM_read_bio_PrivateKey(pem, NULL, NULL, NULL);
         if (key == NULL) {
             printf("Failed to create key: %d\n", i);
@@ -116,7 +117,7 @@ int main(int argc, char *argv[])
 
     us = ossl_time2us(duration);
 
-    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_THREAD;
+    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
 
     if (terse)
         printf("%lf\n", avcalltime);

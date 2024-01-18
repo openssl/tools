@@ -13,9 +13,10 @@
 #include <openssl/evp.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  100
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_BLOCK         1000
+#define NUM_CALL_BLOCKS_PER_RUN     100
+#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+
 
 int err = 0;
 
@@ -25,12 +26,14 @@ static unsigned char buf[32] = {
     0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
 };
 
+static int threadcount;
+
 void do_newrawkey(size_t num)
 {
     int i;
     EVP_PKEY *pkey;
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         pkey = EVP_PKEY_new_raw_public_key_ex(NULL, "X25519", NULL, buf,
                                               sizeof(buf));
         if (pkey == NULL)
@@ -42,7 +45,6 @@ void do_newrawkey(size_t num)
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
     OSSL_TIME duration;
     uint64_t us;
     double avcalltime;
@@ -80,7 +82,7 @@ int main(int argc, char *argv[])
 
     us = ossl_time2us(duration);
 
-    avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
+    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
 
     if (terse)
         printf("%lf\n", avcalltime);

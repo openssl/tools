@@ -15,9 +15,9 @@
 #include <openssl/provider.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  100
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_BLOCK         1000
+#define NUM_CALL_BLOCKS_PER_RUN     100
+#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
 
 static int err = 0;
 OSSL_TIME *times;
@@ -30,6 +30,8 @@ static int doit(OSSL_PROVIDER *provider, void *vcount)
     return 1;
 }
 
+static int threadcount;
+
 static void do_providerdoall(size_t num)
 {
     int i;
@@ -39,7 +41,7 @@ static void do_providerdoall(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         count = 0;
         if (!OSSL_PROVIDER_do_all(NULL, doit, &count) || count != 1) {
             err = 1;
@@ -50,12 +52,12 @@ static void do_providerdoall(size_t num)
     end = ossl_time_now();
 
     times[num] = ossl_time_divide(ossl_time_subtract(end, start),
-                                  NUM_CALL_BLOCKS_PER_THREAD);
+                                  NUM_CALL_BLOCKS_PER_RUN);
 }
 
 int main(int argc, char *argv[])
 {
-    int threadcount, i;
+    int i;
     OSSL_TIME duration, av;
     int terse = 0;
     int argnext;
@@ -99,7 +101,6 @@ int main(int argc, char *argv[])
     av = times[0];
     for (i = 1; i < threadcount; i++)
         av = ossl_time_add(av, times[i]);
-    av = ossl_time_divide(av, threadcount);
 
     if (terse)
         printf("%ld\n", ossl_time2us(av));
