@@ -16,9 +16,9 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  100
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_BLOCK         1000
+#define NUM_CALL_BLOCKS_PER_RUN     100
+#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
 
 int err = 0;
 EVP_PKEY *rsakey = NULL;
@@ -37,6 +37,8 @@ static const char *rsakeypem =
 
 static const char *tbs = "0123456789abcdefghij"; /* Length of SHA1 digest */
 
+static int threadcount;
+
 void do_rsasign(size_t num)
 {
     int i;
@@ -45,7 +47,7 @@ void do_rsasign(size_t num)
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(rsakey, NULL);
     size_t siglen = sizeof(sig);
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN; i++) {
         if (EVP_PKEY_sign_init(ctx) <= 0
                 || EVP_PKEY_sign(ctx, sig, &siglen, tbs, SHA_DIGEST_LENGTH) <= 0) {
             err = 1;
@@ -57,7 +59,6 @@ void do_rsasign(size_t num)
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
     OSSL_TIME duration;
     uint64_t us;
     double avcalltime;
@@ -111,7 +112,7 @@ int main(int argc, char *argv[])
 
     us = ossl_time2us(duration);
 
-    avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
+    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
 
     if (terse)
         printf("%lf\n", avcalltime);

@@ -13,13 +13,15 @@
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
-#define NUM_HANDSHAKES_PER_THREAD         1000
+#define NUM_HANDSHAKES_PER_RUN        100000
 
 int err = 0;
 
 static SSL_CTX *sctx = NULL, *cctx = NULL;
 
 OSSL_TIME *times;
+
+static int threadcount;
 
 static void do_handshake(size_t num)
 {
@@ -30,7 +32,7 @@ static void do_handshake(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_HANDSHAKES_PER_THREAD; i++) {
+    for (i = 0; i < NUM_HANDSHAKES_PER_RUN / threadcount; i++) {
         ret = perflib_create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
                                          NULL, NULL);
         ret &= perflib_create_ssl_connection(serverssl, clientssl,
@@ -48,7 +50,6 @@ static void do_handshake(size_t num)
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
     double persec;
     OSSL_TIME duration, av;
     uint64_t us;
@@ -111,9 +112,9 @@ int main(int argc, char *argv[])
     av = times[0];
     for (i = 1; i < threadcount; i++)
         av = ossl_time_add(av, times[i]);
-    av = ossl_time_divide(av, NUM_HANDSHAKES_PER_THREAD * threadcount);
+    av = ossl_time_divide(av, NUM_HANDSHAKES_PER_RUN);
 
-    persec = ((NUM_HANDSHAKES_PER_THREAD * threadcount * OSSL_TIME_SECOND)
+    persec = ((NUM_HANDSHAKES_PER_RUN * OSSL_TIME_SECOND)
              / (double)ossl_time2ticks(duration));
 
     if (terse) {

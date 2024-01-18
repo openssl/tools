@@ -41,16 +41,16 @@ labels.
 randbytes
 ---------
 
-The randbytes test repeated calls the RAND_bytes() function in blocks of 100
-calls, and 100 blocks per thread. The number of threads to use is provided as
-an argument and the test reports the average time take to execute a block of 100
-RAND_bytes() calls.
+The randbytes test does 10000 calls of the RAND_bytes() function divided
+evenly among multiple threads. The number of threads to use is provided as
+an argument and the test reports the average time take to execute a block of
+1000 RAND_bytes() calls.
 
 handshake
 ---------
 
-Performs a combined in-memory client and server handshake. Each thread performs
-1000 such handshakes. It takes 2 arguments:
+Performs a combined in-memory client and server handshake. In total 100000
+handshakes are performed divided evenly among each thread. It takes 2 arguments:
 
 certsdir - A directory where 2 files exist (servercert.pem and serverkey.pem) for
 the server certificate and key. The test/certs directory of the main OpenSSL
@@ -58,25 +58,28 @@ source repository contains such files for all supported branches.
 
 threadcount - The number of threads to perform handshakes on in the test
 
-The output is two values: the average time taken for a handshake in us, and the
-average handshakes per second performed over the course of the test.
+The output is two values: the average time taken for a single handshake in us,
+and the average number of simultaneous handshakes per second performed over the
+course of the test.
 
 sslnew
 ------
 
 The sslnew test repeatedly constructs a new SSL object and associates it with a
 newly constructed read BIO and a newly constructed write BIO, and finally frees
-them again. It does this in blocks of 100 sets of calls, and 100 blocks per
-threads. The number of threads to use is provided as an argument and the test
-reports the average time taken to execute a block of 100 construction/free calls.
+them again. It does 100000 repetitions divided evenly among each thread.
+The number of threads to use is provided as an argument and the test
+reports the average time taken to execute a block of 1000 construction/free
+calls.
 
 newrawkey
 ---------
 
 The newrawkey test repeatedly calls the EVP_PKEY_new_raw_public_key_ex()
-function in blocks of 100 calls, and 100 blocks per thread. The number of
-threads to use is provided as an argument and the test reports the average time
-take to execute a block of 100 EVP_PKEY_new_raw_public_key_ex() calls.
+function. It does 100000 repetitions divided evenly among each thread. The
+number of threads to use is provided as an argument and the test reports the
+average time take to execute a block of 1000 EVP_PKEY_new_raw_public_key_ex()
+calls.
 
 Note that this test does not support OpenSSL 1.1.1.
 
@@ -84,9 +87,9 @@ rsasign
 -------
 
 The rsasign test repeatedly calls the EVP_PKEY_sign_init()/EVP_PKEY_sign()
-functions in blocks of 100 calls, and 100 blocks per thread, using a 512 bit RSA
-key. The number of threads to use is provided as an argument and the test
-reports the average time take to execute a block of 100
+functions, using a 512 bit RSA key. It does 100000 repetitions divided evenly
+among each thread. The number of threads to use is provided as an argument and
+the test reports the average time take to execute a block of 1000
 EVP_PKEY_sign_init()/EVP_PKEY_sign() calls.
 
 x509storeissuer
@@ -97,12 +100,21 @@ is used in certificate chain building as part of a verify operation). The test
 assumes that the default certificates directly exists but is empty. For a
 default configuration this is "/usr/local/ssl/certs". The test takes the number
 of threads to use as an argument and the test reports the average time take to
-execute a block of 100 X509_STORE_CTX_get1_issuer() calls.
+execute a block of 1000 X509_STORE_CTX_get1_issuer() calls.
 
 providerdoall
 -------------
 
-The providerdoall test repeatedly calls the OSSL_PROVIDER_do_all() function in
-blocks of 100 calls, and 100 blocks per thread. The number of threads to use is
-provided as an argument and the test reports the average time take to execute a
-block of 100 OSSL_PROVIDER_do_all() calls.
+The providerdoall test repeatedly calls the OSSL_PROVIDER_do_all() function.
+It does 100000 repetitions divided evenly among each thread. The number of
+threads to use is provided as an argument and the test reports the average time
+take to execute a block of 1000 OSSL_PROVIDER_do_all() calls.
+
+pemread
+-------------
+
+The pemread test repeatedly calls the PEM_read_bio_PrivateKey() function on
+a memory BIO with a private RSA key. It does 100000 repetitions divided evenly
+among each thread. The number of threads to use is provided as an argument and
+the test reports the average time take to execute a block of 1000
+PEM_read_bio_PrivateKey() calls.

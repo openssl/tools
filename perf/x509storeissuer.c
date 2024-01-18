@@ -14,14 +14,16 @@
 #include <openssl/x509.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  1000
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_BLOCK         1000
+#define NUM_CALL_BLOCKS_PER_RUN     100
+#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
 
 static int err = 0;
 static X509_STORE *store = NULL;
 static X509 *x509 = NULL;
 OSSL_TIME *times;
+
+static int threadcount;
 
 static void do_x509storeissuer(size_t num)
 {
@@ -38,7 +40,7 @@ static void do_x509storeissuer(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         /*
          * We actually expect this to fail. We've not configured any
          * certificates inside our store. We're just testing calling this
@@ -55,7 +57,7 @@ static void do_x509storeissuer(size_t num)
 
     end = ossl_time_now();
     times[num] = ossl_time_divide(ossl_time_subtract(end, start),
-                                  NUM_CALL_BLOCKS_PER_THREAD);
+                                  NUM_CALL_BLOCKS_PER_RUN);
 
  err:
     X509_STORE_CTX_free(ctx);
@@ -136,7 +138,6 @@ int main(int argc, char *argv[])
     av = times[0];
     for (i = 1; i < threadcount; i++)
         av = ossl_time_add(av, times[i]);
-    av = ossl_time_divide(av, threadcount);
 
     if (terse)
         printf("%ld\n", ossl_time2us(av));

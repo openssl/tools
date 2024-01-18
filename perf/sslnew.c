@@ -14,12 +14,14 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         100
-#define NUM_CALL_BLOCKS_PER_THREAD  100
-#define NUM_CALLS_PER_THREAD        (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_THREAD)
+#define NUM_CALLS_PER_BLOCK         1000
+#define NUM_CALL_BLOCKS_PER_RUN     100
+#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
 
 int err = 0;
 static SSL_CTX *ctx;
+
+static int threadcount;
 
 void do_sslnew(size_t num)
 {
@@ -27,7 +29,7 @@ void do_sslnew(size_t num)
     SSL *s;
     BIO *rbio, *wbio;
 
-    for (i = 0; i < NUM_CALLS_PER_THREAD; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         s = SSL_new(ctx);
         rbio = BIO_new(BIO_s_mem());
         wbio = BIO_new(BIO_s_mem());
@@ -47,7 +49,6 @@ void do_sslnew(size_t num)
 
 int main(int argc, char *argv[])
 {
-    int threadcount;
     OSSL_TIME duration;
     uint64_t us;
     double avcalltime;
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
 
     us = ossl_time2us(duration);
 
-    avcalltime = (double)us / (NUM_CALL_BLOCKS_PER_THREAD * threadcount);
+    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
 
     if (terse)
         printf("%lf\n", avcalltime);
