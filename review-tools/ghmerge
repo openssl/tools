@@ -152,7 +152,7 @@ if ! wget --quiet $PR_URL -O /tmp/gh$$; then
     echo "Error getting $PR_URL"
     exit 1
 fi
-set -- `python -c '
+set -- `python3 -c '
 from __future__ import print_function
 import json, sys;
 input = json.load(sys.stdin)
