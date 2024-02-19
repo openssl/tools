@@ -19,8 +19,6 @@ int err = 0;
 
 static SSL_CTX *sctx = NULL, *cctx = NULL;
 
-OSSL_TIME *times;
-
 static int threadcount;
 
 static void do_handshake(size_t num)
@@ -28,9 +26,6 @@ static void do_handshake(size_t num)
     SSL *clientssl = NULL, *serverssl = NULL;
     int ret = 1;
     int i;
-    OSSL_TIME start, end;
-
-    start = ossl_time_now();
 
     for (i = 0; i < NUM_HANDSHAKES_PER_RUN / threadcount; i++) {
         ret = perflib_create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
@@ -40,9 +35,6 @@ static void do_handshake(size_t num)
         perflib_shutdown_ssl_connection(serverssl, clientssl);
         serverssl = clientssl = NULL;
     }
-
-    end = ossl_time_now();
-    times[num] = ossl_time_subtract(end, start);
 
     if (!ret)
         err = 1;
@@ -87,12 +79,6 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
-    if (times == NULL) {
-        printf("Failed to create times array\n");
-        goto err;
-    }
-
     if (!perflib_create_ssl_ctx_pair(TLS_server_method(), TLS_client_method(),
                                      0, 0, &sctx, &cctx, cert, privkey)) {
         printf("Failed to create SSL_CTX pair\n");
@@ -109,13 +95,15 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    av = times[0];
-    for (i = 1; i < threadcount; i++)
-        av = ossl_time_add(av, times[i]);
-    av = ossl_time_divide(av, NUM_HANDSHAKES_PER_RUN);
+    av = ossl_time_divide(duration, NUM_HANDSHAKES_PER_RUN);
 
-    persec = ((NUM_HANDSHAKES_PER_RUN * OSSL_TIME_SECOND)
-             / (double)ossl_time2ticks(duration));
+    /*
+     * this is a bit odd, as we need to convert the duration
+     * to a number of seconds.  To do that we need to divide
+     * the number of us in duration by 10^6, which is OSSL_TIME_MS
+     */
+    persec = ((NUM_HANDSHAKES_PER_RUN)
+             / ((double)(ossl_time2us(duration)) / OSSL_TIME_MS));
 
     if (terse) {
         printf("%ld\n", ossl_time2us(av));
@@ -129,7 +117,6 @@ int main(int argc, char *argv[])
  err:
     OPENSSL_free(cert);
     OPENSSL_free(privkey);
-    OPENSSL_free(times);
     SSL_CTX_free(sctx);
     SSL_CTX_free(cctx);
     return ret;
