@@ -65,7 +65,7 @@ static void do_x509storeissuer(size_t num)
 
 int main(int argc, char *argv[])
 {
-    int threadcount, i;
+    int i;
     OSSL_TIME duration, av;
     uint64_t us;
     double avcalltime;
