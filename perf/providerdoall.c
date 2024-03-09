@@ -15,9 +15,7 @@
 #include <openssl/provider.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_RUN     100
-#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+#define NUM_CALLS_PER_TEST         100000
 
 static int err = 0;
 OSSL_TIME *times;
@@ -41,7 +39,7 @@ static void do_providerdoall(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
+    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
         count = 0;
         if (!OSSL_PROVIDER_do_all(NULL, doit, &count) || count != 1) {
             err = 1;
@@ -50,15 +48,14 @@ static void do_providerdoall(size_t num)
     }
 
     end = ossl_time_now();
-
-    times[num] = ossl_time_divide(ossl_time_subtract(end, start),
-                                  NUM_CALL_BLOCKS_PER_RUN);
+    times[num] = ossl_time_subtract(end, start);
 }
 
 int main(int argc, char *argv[])
 {
     int i;
-    OSSL_TIME duration, av;
+    OSSL_TIME duration, us;
+    double av;
     int terse = 0;
     int argnext;
     int ret = EXIT_FAILURE;
@@ -98,15 +95,18 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    av = times[0];
+    us = times[0];
     for (i = 1; i < threadcount; i++)
-        av = ossl_time_add(av, times[i]);
+        us = ossl_time_add(us, times[i]);
+    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
+
+    av = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
 
     if (terse)
-        printf("%ld\n", ossl_time2us(av));
+        printf("%lf\n", av);
     else
-        printf("Average time per %d OSSL_PROVIDER_do_all() calls: %ldus\n",
-               NUM_CALLS_PER_BLOCK, ossl_time2us(av));
+        printf("Average time per OSSL_PROVIDER_do_all() calls: %lfus\n",
+               av);
 
     ret = EXIT_SUCCESS;
  err:

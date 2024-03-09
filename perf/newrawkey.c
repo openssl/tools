@@ -13,10 +13,9 @@
 #include <openssl/evp.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_RUN     100
-#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+#define NUM_CALLS_PER_TEST         100000
 
+OSSL_TIME *times;
 
 int err = 0;
 
@@ -32,8 +31,11 @@ void do_newrawkey(size_t num)
 {
     int i;
     EVP_PKEY *pkey;
+    OSSL_TIME start, end;
 
-    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
+    start = ossl_time_now();
+
+    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
         pkey = EVP_PKEY_new_raw_public_key_ex(NULL, "X25519", NULL, buf,
                                               sizeof(buf));
         if (pkey == NULL)
@@ -41,15 +43,20 @@ void do_newrawkey(size_t num)
         else
             EVP_PKEY_free(pkey);
     }
+
+    end = ossl_time_now();
+    times[num] = ossl_time_subtract(end, start);
 }
 
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
-    uint64_t us;
-    double avcalltime;
+    OSSL_TIME us;
+    double av;
     int terse = 0;
     int argnext;
+    size_t i;
+    int rc = EXIT_FAILURE;
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -70,25 +77,45 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        return EXIT_FAILURE;
+    }
+
     if (!perflib_run_multi_thread_test(do_newrawkey, threadcount, &duration)) {
         printf("Failed to run the test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
     if (err) {
         printf("Error during test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
-    us = ossl_time2us(duration);
+    us = times[0];
+    for (i = 1; i < threadcount; i++)
+        us = ossl_time_add(us, times[i]);
+    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
 
-    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
+    /*
+     * EVP_PKEY_new_raw_public_key is pretty fast, running in
+     * only a few us.  But ossl_time2us does integer division
+     * and so because the average us computed above is less than
+     * the value of OSSL_TIME_US, we wind up with truncation to
+     * zero in the math.  Instead, manually do the division, casting
+     * our values as doubles so that we comput the proper time
+     */
+    av = (double)ossl_time2ticks(us)/(double)OSSL_TIME_US;
 
     if (terse)
-        printf("%lf\n", avcalltime);
+        printf("%lf\n", av);
     else
-        printf("Average time per %d EVP_PKEY_new_raw_public_key_ex() calls: %lfus\n",
-               NUM_CALLS_PER_BLOCK, avcalltime);
+        printf("Average time per EVP_PKEY_new_raw_public_key_ex() calls: %lfus\n",
+               av);
 
-    return EXIT_SUCCESS;
+    rc = EXIT_SUCCESS;
+out:
+    OPENSSL_free(times);
+    return rc;
 }
