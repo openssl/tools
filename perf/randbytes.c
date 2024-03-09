@@ -14,9 +14,9 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_RUN     100
-#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+#define NUM_CALLS_PER_TEST         100000
+
+OSSL_TIME *times = NULL;
 
 int err = 0;
 
@@ -26,19 +26,27 @@ void do_randbytes(size_t num)
 {
     int i;
     unsigned char buf[32];
+    OSSL_TIME start, end;
 
-    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++)
+    start = ossl_time_now();
+
+    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++)
         if (!RAND_bytes(buf, sizeof(buf)))
             err = 1;
+
+    end = ossl_time_now();
+    times[num] = ossl_time_subtract(end, start);
 }
 
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
-    uint64_t us;
+    OSSL_TIME us;
     double avcalltime;
     int terse = 0;
     int argnext;
+    int rc = EXIT_FAILURE;
+    size_t i;
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -59,25 +67,37 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        return EXIT_FAILURE;
+    }
+
     if (!perflib_run_multi_thread_test(do_randbytes, threadcount, &duration)) {
         printf("Failed to run the test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
     if (err) {
         printf("Error during test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
-    us = ossl_time2us(duration);
+    us = times[0];
+    for (i = 1; i < threadcount; i++)
+        us = ossl_time_add(us, times[i]);
+    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
 
-    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
+    avcalltime = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per %d RAND_bytes() calls: %lfus\n",
-            NUM_CALLS_PER_BLOCK, avcalltime);
+        printf("Average time per RAND_bytes() call: %lfus\n",
+               avcalltime);
 
+    rc = EXIT_SUCCESS;
+out:
+    OPENSSL_free(times);
     return EXIT_SUCCESS;
 }
