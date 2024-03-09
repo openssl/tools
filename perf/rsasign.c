@@ -16,9 +16,7 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_RUN     100
-#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+#define NUM_CALLS_PER_TEST         100000
 
 int err = 0;
 EVP_PKEY *rsakey = NULL;
@@ -39,6 +37,8 @@ static const char *tbs = "0123456789abcdefghij"; /* Length of SHA1 digest */
 
 static int threadcount;
 
+static OSSL_TIME *times = NULL;
+
 void do_rsasign(size_t num)
 {
     int i;
@@ -46,25 +46,34 @@ void do_rsasign(size_t num)
     unsigned char sig[64];
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(rsakey, NULL);
     size_t siglen = sizeof(sig);
+    OSSL_TIME start, end;
 
-    for (i = 0; i < NUM_CALLS_PER_RUN; i++) {
+    start = ossl_time_now();
+
+    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
         if (EVP_PKEY_sign_init(ctx) <= 0
                 || EVP_PKEY_sign(ctx, sig, &siglen, tbs, SHA_DIGEST_LENGTH) <= 0) {
             err = 1;
             break;
         }
     }
+
+    end = ossl_time_now();
+    times[num] = ossl_time_subtract(end, start);
+
     EVP_PKEY_CTX_free(ctx);
 }
 
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
-    uint64_t us;
+    OSSL_TIME us;
     double avcalltime;
     int terse = 0;
     int argnext;
     BIO *membio = NULL;
+    int rc = EXIT_FAILURE;
+    size_t i;
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -95,30 +104,42 @@ int main(int argc, char *argv[])
     BIO_free(membio);
     if (rsakey == NULL) {
         printf("Failed to load the RSA key\n");
-        return EXIT_FAILURE;
+        goto out;
+    }
+
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        goto out;
     }
 
     if (!perflib_run_multi_thread_test(do_rsasign, threadcount, &duration)) {
         printf("Failed to run the test\n");
-        EVP_PKEY_free(rsakey);
-        return EXIT_FAILURE;
+        goto out;
     }
-    EVP_PKEY_free(rsakey);
 
     if (err) {
         printf("Error during test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
-    us = ossl_time2us(duration);
+    us = times[0];
+    for (i = 1; i < threadcount; i++)
+        us = ossl_time_add(us, times[i]);
+    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
 
-    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
+    avcalltime = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per %d RSA signature operations: %lfus\n",
-               NUM_CALLS_PER_BLOCK, avcalltime);
+        printf("Average time per RSA signature operations: %lfus\n",
+               avcalltime);
 
-    return EXIT_SUCCESS;
+    rc = EXIT_SUCCESS;
+
+out:
+    EVP_PKEY_free(rsakey);
+    OPENSSL_free(times);
+    return rc;
 }
