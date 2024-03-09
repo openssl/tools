@@ -15,10 +15,9 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_RUN     100
-#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+#define NUM_CALLS_PER_TEST         100000
 
+static OSSL_TIME *times = NULL;
 
 int err = 0;
 
@@ -44,6 +43,7 @@ void do_pemread(size_t num)
     int i;
     char *pemdata;
     size_t len;
+    OSSL_TIME start, end;
 
     pemdata = perflib_glue_strings(pemdataraw, &len);
     if (pemdata == NULL) {
@@ -59,11 +59,13 @@ void do_pemread(size_t num)
         return;
     }
 
+    start = ossl_time_now();
+
     /*
      * Technically this includes the EVP_PKEY_free() in the timing - but I
      * think we can live with that
      */
-    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
+    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
         key = PEM_read_bio_PrivateKey(pem, NULL, NULL, NULL);
         if (key == NULL) {
             printf("Failed to create key: %d\n", i);
@@ -75,16 +77,21 @@ void do_pemread(size_t num)
         BIO_reset(pem);
     }
 
+    end = ossl_time_now();
+    times[num] = ossl_time_subtract(end, start);
+
     BIO_free(pem);
 }
 
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
-    uint64_t us;
+    OSSL_TIME us;
     double avcalltime;
     int terse = 0;
     int argnext;
+    int rc = EXIT_FAILURE;
+    size_t i;
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -105,25 +112,37 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        return EXIT_FAILURE;
+    }
+
     if (!perflib_run_multi_thread_test(do_pemread, threadcount, &duration)) {
         printf("Failed to run the test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
     if (err) {
         printf("Error during test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
-    us = ossl_time2us(duration);
+    us = times[0];
+    for (i = 1; i < threadcount; i++)
+        us = ossl_time_add(us, times[i]);
+    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
 
-    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
+    avcalltime = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per %d PEM_read_bio_PrivateKey() calls: %lfus\n",
-               NUM_CALLS_PER_BLOCK, avcalltime);
+        printf("Average time per PEM_read_bio_PrivateKey() calls: %lfus\n",
+               avcalltime);
 
-    return EXIT_SUCCESS;
+    rc = EXIT_SUCCESS;
+out:
+    OPENSSL_free(times);
+    return rc;
 }
