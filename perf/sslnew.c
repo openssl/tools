@@ -14,22 +14,24 @@
 #include <openssl/crypto.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_BLOCK         1000
-#define NUM_CALL_BLOCKS_PER_RUN     100
-#define NUM_CALLS_PER_RUN           (NUM_CALLS_PER_BLOCK * NUM_CALL_BLOCKS_PER_RUN)
+#define NUM_CALLS_PER_TEST         100000
 
 int err = 0;
 static SSL_CTX *ctx;
 
 static int threadcount;
+static OSSL_TIME *times = NULL;
 
 void do_sslnew(size_t num)
 {
     int i;
     SSL *s;
     BIO *rbio, *wbio;
+    OSSL_TIME start, end;
 
-    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
+    start = ossl_time_now();
+
+    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
         s = SSL_new(ctx);
         rbio = BIO_new(BIO_s_mem());
         wbio = BIO_new(BIO_s_mem());
@@ -45,15 +47,20 @@ void do_sslnew(size_t num)
 
         SSL_free(s);
     }
+
+    end = ossl_time_now();
+    times[num] = ossl_time_subtract(end, start);
 }
 
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
-    uint64_t us;
+    OSSL_TIME us;
     double avcalltime;
     int terse = 0;
     int argnext;
+    int rc = EXIT_FAILURE;
+    size_t i;
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -74,34 +81,42 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("Failed to create times array\n");
+        return EXIT_FAILURE;
+    }
+
     ctx = SSL_CTX_new(TLS_server_method());
     if (ctx == NULL) {
         printf("Failure to create SSL_CTX\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
     if (!perflib_run_multi_thread_test(do_sslnew, threadcount, &duration)) {
-        SSL_CTX_free(ctx);
         printf("Failed to run the test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
-
-    SSL_CTX_free(ctx);
 
     if (err) {
         printf("Error during test\n");
-        return EXIT_FAILURE;
+        goto out;
     }
 
-    us = ossl_time2us(duration);
+    us = times[0];
+    for (i = 1; i < threadcount; i++)
+        us = ossl_time_add(us, times[i]);
+    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
 
-    avcalltime = (double)us / NUM_CALL_BLOCKS_PER_RUN;
+    avcalltime = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per %d SSL/BIO creation calls: %lfus\n",
-            NUM_CALLS_PER_BLOCK, avcalltime);
-
-    return EXIT_SUCCESS;
+        printf("Average time per SSL/BIO creation call: %lfus\n",
+               avcalltime);
+out:
+    SSL_CTX_free(ctx);
+    OPENSSL_free(times);
+    return rc;
 }
