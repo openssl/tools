@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per RSA signature operations: %lfus\n",
+        printf("Average time per RSA signature operation: %lfus\n",
                avcalltime);
 
     rc = EXIT_SUCCESS;

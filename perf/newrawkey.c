@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", av);
     else
-        printf("Average time per EVP_PKEY_new_raw_public_key_ex() calls: %lfus\n",
+        printf("Average time per EVP_PKEY_new_raw_public_key_ex() call: %lfus\n",
                av);
 
     rc = EXIT_SUCCESS;
