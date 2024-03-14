@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", av);
     else
-        printf("Average time per OSSL_PROVIDER_do_all() calls: %lfus\n",
+        printf("Average time per OSSL_PROVIDER_do_all() call: %lfus\n",
                av);
 
     ret = EXIT_SUCCESS;

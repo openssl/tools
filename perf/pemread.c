@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per PEM_read_bio_PrivateKey() calls: %lfus\n",
+        printf("Average time per PEM_read_bio_PrivateKey() call: %lfus\n",
                avcalltime);
 
     rc = EXIT_SUCCESS;
