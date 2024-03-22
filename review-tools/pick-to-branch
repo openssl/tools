@@ -48,9 +48,6 @@ case $b in
 *1*0*2*)
     TARGET=OpenSSL_1_0_2-stable
     ;;
-*1*1*0*)
-    TARGET=OpenSSL_1_1_0-stable
-    ;;
 *1*1*1*)
     TARGET=OpenSSL_1_1_1-stable
     ;;
@@ -62,6 +59,9 @@ case $b in
     ;;
 *3*2*)
     TARGET=openssl-3.2
+    ;;
+*3*3*)
+    TARGET=openssl-3.3
     ;;
 m*)
     TARGET=master
