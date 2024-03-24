@@ -1,0 +1,8 @@
+#!/bin/bash
+
+INSTDIR=$(dirname $0)
+source $INSTDIR/triage-common.sh
+
+tool_startup
+list_untriaged_issues
+

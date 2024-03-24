@@ -1,0 +1,14 @@
+Openssl wrangler triage tools
+
+
+This is a set of tools that will enable individual executing the bug wrangler
+role to do their job (hopefully) more efficiently and consistently.  It creates
+a series of git extension to review bugs on the command line and process them in
+such a way that you don't need to remember all the individual steps you need to
+take to produce a particular outcome within our process.
+
+INSTALLATION
+Just add this directory to your PATH.  That will enable access to the following
+git extension:
+git triage
+

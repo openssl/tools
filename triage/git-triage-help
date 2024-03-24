@@ -1,0 +1,88 @@
+#!/bin/bash
+
+TMPFILE=$(mktemp /tmp/gittriage.XXXXXX)
+
+function cleanup {
+    rm -f $TMPFILE
+}
+
+trap cleanup EXIT
+
+cat << EOF > $TMPFILE
+.TH git-triage
+
+.SH NAME
+git triage \- list and evaluate issues in a repository
+
+.SH SYNOPSIS
+.B git triage [subcommand] [options]
+.RI
+
+.SH DESCRIPTION
+The git triage commands is intended to make the role of the bug wrangler in the
+openssl project easier and more consistent.  It is meant to isolate the
+determined disposition of an issue from the specific labels/states needed in a
+given issue to arrive at said disposition.  Ideally a user should be able to
+use this tool to list untriaged issues, set a determined disposition on an issue
+or request more information to make that determination.
+
+.SH SUBCOMMANDS
+.TP
+\fBhelp\fR
+Print this man page
+.TP
+\fBrefresh\fR
+Delete the git config stored project identifiers that are cached
+.TP
+\fBlist\fR
+List the untriaged issues in a repository
+.TP
+\fBvalues\fR
+List the currently available options for various values
+.TP
+\fBevaluate [options]\fR
+set the disposition of a given issue.  See options below for valid dispositions
+
+.SH EVALUATE OPTIONS
+.TP
+\fBissue=<number>\fR
+Select the issue to evaluate
+.TP
+\fBtype=[bug|feature|documentation|cleanup|performance|refactor|question]\fR
+Set the type of issue to triage this as
+.TP
+\fBurgent=[yes|no]\fR
+Boolean to indicate the issue is urgent (CI breakage). Defaults to no 
+.TP
+\fBimportant=[yes|no]\fR
+Boolean to indicate the issue is important.  Required
+.TP
+\fBregression=[yes|no]\fR
+Boolean to mark the issue as a regression. Required
+.TP
+\fBtarget=[openssl|community|followup|resolve]\fR
+.P
+Tells triage how to target the issue. If openssl is selected, then the issue
+will be placed on the backlog for openssl staff to evaluate further
+
+If community is selected, the issue will be marked as needing community
+contributions to complete
+
+If followup is selected, a comment is added to the issue requesting further
+input to properly evaluate the issue, and is left on the list of issues to
+triage
+
+If resolve is selected, the issues is labeled as resolved, but not closed.
+This label can be used in subsequent searches for closing later after a
+period of time has passed for the reporter to contest the resolution
+
+.TP
+\fBrelease=[<release selection>|future|list]\fR
+.P
+selects the target release for an issue.  Must be any of the defined release
+targets.  If future is selected, the issue is placed in the general backlog.
+If list is selected, the list of available releaes targets is printed and no
+action is taken
+EOF
+
+man $TMPFILE

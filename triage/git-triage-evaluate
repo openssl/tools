@@ -1,0 +1,250 @@
+#!/bin/bash
+
+INSTDIR=$(dirname $0)
+source $INSTDIR/triage-common.sh
+
+
+VALID_TYPES=(bug feature documentation cleanup performance refactor question)
+TYPE=none
+
+ISSUE=unknown
+
+function parse_options {
+    # get the other options
+    while true
+    do
+        OPTION=$1
+        if [ -z "$OPTION" ]
+        then
+            return
+        fi
+        KEY=$(echo $1 | awk -F'=' '{print $1}')
+        VALUE=$(echo $1 | awk -F'=' '{print $2}')
+        case $KEY in
+        issue)
+            ISSUE=$VALUE
+            ;;
+        release)
+            RELEASE=$VALUE
+            ;;
+        target)
+            TARGET=$VALUE
+            ;;
+        resolution)
+            RESOLUTION=$VALUE
+            ;;
+        resolution_id)
+            RESOLUTION_ID=$VALUE
+            ;;
+        urgent)
+            IS_URGENT=$VALUE
+            ;;
+        important)
+            IS_IMPORTANT=$VALUE
+            ;;
+        regression)
+            IS_REGRESSION=$VALUE
+            ;;
+        priority)
+            PRIORITY=$VALUE
+            ;;
+        type)
+            TYPE=$VALUE
+            ;;
+        *)
+            echo "$KEY is not a valid option"
+            exit 1
+            ;;
+        esac
+        shift
+    done
+}
+
+function validate_target {
+    #check to ensure target is valid
+    for item in "${VALID_TARGETS[@]}"
+    do
+        if [ "$TARGET" == "$item" ]
+        then
+            return
+        fi
+    done
+    echo "please select target from one of [${VALID_TARGETS[@]}]"
+    exit 1
+}
+
+function validate_release {
+    for item in "${GH_RELEASE_LIST[@]}"
+    do
+        if [ "$RELEASE" == "$item" ]
+        then
+            return
+        fi
+    done
+    echo "please select a release from one of [${GH_RELEASE_LIST[@]}]"
+    exit 1
+}
+
+function validate_priority {
+    for item in "${VALID_PRIORITIES[@]}"
+    do
+        if [ "$PRIORITY" == "$item" ]
+        then
+            return
+        fi
+    done
+    echo "please select a priority from one of [${VALID_PRIORITIES[@]}]"
+    exit 1
+}
+
+function validate_issue {
+    gh issue view $ISSUE --json id >/dev/null 2>&1
+    if [ $? -ne 0 ]
+    then
+        echo "Unable to find issue $ISSUE"
+        exit 1;
+    fi
+}
+
+function validate_resolution {
+    for item in "${VALID_RESOLUTIONS[@]}"
+    do
+        if [ "$RESOLUTION" == "$item" ]
+        then
+            if [ "$RESOLUTION" == "duplicate" -a $RESOLUTION_ID -eq 0 ]
+            then
+                echo "A resolution of duplicate requires a resolution_id value"
+                exit 1
+            fi
+	    # map label names
+	    case "$RESOLUTION" in
+	    notabug)
+		RESOLUTION="not a bug"
+		;;
+	    wontfix)
+		RESOLUTION="wont fix"
+		;;
+	    *)
+		;;
+	    esac
+            return
+        fi
+    done
+    echo "$RESOLUTION is an invalid resolution value"
+    exit 1
+}
+
+function validate_type {
+    for item in "${VALID_TYPES[@]}"
+    do
+        if [ "$TYPE" == "$item" ]
+        then
+            return
+        fi
+    done
+    echo "please select an issue type from [${VALID_TYPES[@]}]"
+    exit 1
+}
+
+function validate_labels {
+    if [ "$IS_IMPORTANT" == "unknown" ]
+    then
+        echo "Please select important=[yes|no]"
+        exit 1
+    fi
+
+    if [ "$IS_REGRESSION" == "unknown" ]
+    then
+        echo "Please select regression=[yes|no]"
+        exit 1
+    fi
+}
+
+function validate_options {
+    validate_issue
+    validate_target
+    validate_type
+    validate_labels
+    if [ "$TARGET" == "openssl" ]
+    then
+        validate_release
+        validate_priority
+    fi
+    if [ "$TARGET" == "resolve" ]
+    then
+        validate_resolution
+    fi
+}
+
+function process_issue {
+    local labels
+
+    # Start by determining what label(s) we need
+    if [ "$TARGET" == "followup" ]
+    then
+        echo "Opening issue in a web browser so you can add a comment"
+        gh issue view $ISSUE -w
+        exit 0
+    fi
+
+    LABEL_LIST=""
+    # Add our triage labels
+    if [ "$IS_REGRESSION" == "yes" ]
+    then
+        LABEL_LIST="severity: regression"
+    fi
+    if [ "$IS_URGENT" == "yes" ]
+    then
+        LABEL_LIST="$LABEL_LIST,severity: urgent"
+    fi
+    if [ "$IS_IMPORTANT" == "yes" ]
+    then
+        LABEL_LIST="$LABEL_LIST,severity: important"
+    fi
+
+    LABEL_LIST="$LABEL_LIST,triaged: $TYPE"
+
+    if [ "$TARGET" == "community" ]
+    then
+        echo "Marking this issue as needing community resolution"
+        LABEL_LIST="$LABEL_LIST,help wanted"
+        LABEL_LIST=$(echo $LABEL_LIST | sed -e"s/^,\+//" -e"s/,\{2,\}/,/g" -e"s/,\+$//")
+        gh issue edit $ISSUE --add-label "$LABEL_LIST" 
+        exit 0
+    fi
+    if [ "$TARGET" == "resolve" ]
+    then
+        echo "Marking this issue as resolved with a resolution status of $RESOLUTION"
+        if [ "$RESOLUTION" == "duplicate" ]
+        then
+            gh issue comment $ISSUE --body "Marking this issue as a duplicate of #$RESOLUTION_ID"
+        fi
+        LABEL_LIST="$LABEL_LIST,resolved: $RESOLUTION"
+        LABEL_LIST=$(echo $LABEL_LIST | sed -e"s/^,\+//" -e"s/,\{2,\}/,/g" -e"s/,\+$//")
+        gh issue edit $ISSUE --add-label "$LABEL_LIST" 
+    fi
+    if [ "$TARGET" == "openssl" ]
+    then
+        echo "Marking this issue as needing openssl work"
+        LABEL_LIST=$(echo $LABEL_LIST | sed -e"s/^,\+//" -e"s/,\{2,\}/,/g" -e"s/,\+$//")
+        gh issue edit $ISSUE --add-label "$LABEL_LIST"
+        ISSUE_URL=$(gh issue view $ISSUE --json url --jq '.url')
+        echo "Adding issue to project board"
+        ISSUE_ID=$(gh project item-add --owner openssl 2 --url $ISSUE_URL --format json --jq '.id')
+        echo "Gathering project field info"
+        PROPOSED_RELEASE_ID=$(gh project field-list --owner openssl 2 --format json --jq ".fields[] | select(.name == \"Proposed Release\") | .options[] | select(.name == \"$RELEASE\") | .id")
+        PRIORITY_ID=$(gh project field-list --owner openssl 2 --format json --jq ".fields[] | select(.name == \"Priority\") | .options[] | select(.name == \"$PRIORITY\") | .id")
+
+        echo "Setting proposed release for issue"
+        gh project item-edit --id $ISSUE_ID --project-id $GH_PROJECT_ID --field-id $GH_PROPOSED_RELEASE_FIELD --single-select-option-id $PROPOSED_RELEASE_ID
+
+        echo "Setting priority for issue"
+        gh project item-edit --id $ISSUE_ID --project-id $GH_PROJECT_ID --field-id $GH_PRIORITY_FIELD --single-select-option-id $PRIORITY_ID
+    fi
+}
+
+tool_startup
+load_github_ids
+parse_options $*
+validate_options
+process_issue

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+INSTDIR=$(dirname $0)
+source $INSTDIR/triage-common.sh
+
+tool_startup
+load_github_ids
+
+echo "Valid Releases"
+echo "${GH_RELEASE_LIST[@]}"
+echo
+echo "Valid Types"
+echo "${VALID_TYPES[@]}"
+echo
+echo "Valid Targets"
+echo "${VALID_TARGETS[@]}"
+echo
+echo "Valid Resolutions"
+echo "${VALID_RESOLUTIONS[@]}"

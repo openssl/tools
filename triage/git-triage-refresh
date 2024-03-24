@@ -1,0 +1,12 @@
+#!/bin/bash
+
+INSTDIR=$(dirname $0)
+source $INSTDIR/triage-common.sh
+
+tool_startup
+git config --local --unset triage.gh-project-id
+git config --local --unset triage.gh-proposed-release-field
+git config --local --unset triage.gh-priority-field
+git config --local --unset triage.gh-release-list
+echo "Cached project information flushed"
+

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if [ -z "$1" ]
+then
+    echo "No subcommand provided"
+    echo "Run git triage help for a list of commands"
+    exit 0
+fi
+
+SUBCOMMAND=$1
+shift
+
+which git-triage-$SUBCOMMAND > /dev/null 2>&1
+if [ $? -ne 0 ]
+then
+    TCMD=$(which git-triage)
+    TDIR=$(dirname $TCMD)
+    echo "Please select from the following subcommands:"
+    for i in $(ls $TDIR/git-triage-*)
+    do
+        CBASE=$(basename $i | sed -e"s/.*git-triage-//")
+        echo $CBASE
+    done
+    exit 1;
+fi
+
+
+exec git-triage-$SUBCOMMAND $*
