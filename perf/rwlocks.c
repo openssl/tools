@@ -35,7 +35,7 @@ void do_rw_wlock(size_t num)
     unsigned long *newval, *oldval;
     int local_write_lock_calls = 0;
 
-    for (i = 0; i < NUM_CALLS_PER_RUN/threadcount; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         newval = OPENSSL_malloc(sizeof(int));
         CRYPTO_THREAD_write_lock(lock);
         if (dataval == NULL)
@@ -65,7 +65,7 @@ void do_rw_rlock(size_t num)
     unsigned long last_val = 0;
     int local_read_lock_calls = 0;
 
-    for (i = 0; i < NUM_CALLS_PER_RUN/threadcount; i++) {
+    for (i = 0; i < NUM_CALLS_PER_RUN / threadcount; i++) {
         CRYPTO_THREAD_read_lock(lock);
         if (dataval != NULL) {
             if (last_val != 0 && last_val > *dataval)
