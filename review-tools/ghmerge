@@ -147,8 +147,9 @@ if [ "$PRNUM" = "" -o "$TEAM" = "" ] ; then
     usage_exit
 fi
 
+PR_URL_CONTENTS=$(mktemp /tmp/gh.XXXXXX)
 PR_URL=https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM
-if ! wget --quiet $PR_URL -O /tmp/gh$$; then
+if ! wget --quiet $PR_URL -O $PR_URL_CONTENTS; then
     echo "Error getting $PR_URL"
     exit 1
 fi
@@ -157,14 +158,37 @@ from __future__ import print_function
 import json, sys;
 input = json.load(sys.stdin)
 print(str(input["head"]["label"]).replace(":", " "),
-      str(input["head"]["repo"]["ssh_url"]))'        </tmp/gh$$`
+      str(input["head"]["repo"]["ssh_url"]))'        <$PR_URL_CONTENTS`
 WHO=$1
 BRANCH=$2
 REPO=$3
-rm /tmp/gh$$
 
 if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
     echo "Could not determine from $PR_URL which branch of whom to fetch from where"
+    exit 1
+fi
+
+REPO_CHECK=$(python3 -c '
+from __future__ import print_function
+import json, sys
+rtm_set=0
+urgent_set=0
+input = json.load(sys.stdin)
+# Dont do this check if its not for the openssl repo
+if (input["base"]["repo"]["name"] != "openssl"):
+    sys.exit(0)
+for l in input["labels"]:
+    if (l["name"] == "approval: ready to merge"):
+        rtm_set=1
+    if (l["name"] == "severity: urgent"):
+        urgent_set=1
+if (rtm_set == 0 and urgent_set == 0):
+    print("Not ready to merge")
+' <$PR_URL_CONTENTS)
+
+if [ "$REPO_CHECK" == "Not ready to merge" ]
+then
+    >&2 echo "This pr has neither the urgen or ready to merge flag set, Won't merge"
     exit 1
 fi
 
@@ -175,6 +199,7 @@ WORK="copy-of-${WHO}-${BRANCH}"
 (git branch | grep -q "$WORK") && (echo "Branch already exists: $WORK"; exit 1)
 
 function cleanup {
+    rm -f $PR_URL_CONTENTS
     rv=$?
     echo # make sure to enter new line, needed, e.g., after Ctrl-C
     [ $rv -ne 0 ] && echo -e "\nghmerge failed"
