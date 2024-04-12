@@ -188,7 +188,7 @@ if (rtm_set == 0 and urgent_set == 0):
 
 if [ "$REPO_CHECK" == "Not ready to merge" ]
 then
-    >&2 echo "This pr has neither the urgen or ready to merge flag set, Won't merge"
+    >&2 echo "This pr has neither the urgent or ready to merge flag set, Won't merge"
     exit 1
 fi
 
