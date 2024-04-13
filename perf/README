@@ -110,15 +110,6 @@ It does 100000 repetitions divided evenly among each thread. The number of
 threads to use is provided as an argument and the test reports the average time
 take to execute a block of 1000 OSSL_PROVIDER_do_all() calls.
 
-pemread
--------------
-
-The pemread test repeatedly calls the PEM_read_bio_PrivateKey() function on
-a memory BIO with a private RSA key. It does 100000 repetitions divided evenly
-among each thread. The number of threads to use is provided as an argument and
-the test reports the average time take to execute a block of 1000
-PEM_read_bio_PrivateKey() calls.
-
 rwlocks
 -------------
 the rwlocks test creates the command line specified number of threads, splitting
@@ -126,3 +117,17 @@ them evenly between read and write functions (though this is adjustable via the
 LOCK_WRITERS environment variable).  Threads then iteratively acquire a shared
 rwlock to read or update some shared data.  The number of read and write
 lock/unlock pairs are reported as a performance measurement
+
+pkeyread
+--------
+
+The pkeyread test repeatedly calls the PEM_read_bio_PrivateKey() function on a
+memory BIO with a private key of desired type, when it is running in pem mode
+(-f pem).  If test is running in der mode (-f der) it calls to
+d2i_PrivateKey_ex() function to repeatedly read private key of desired type.
+It does 100000 repetitions divided evenly among each thread. The number of
+threads to use is provided by option -t. The test reports average time per
+call. Use option -k to select key type for benchmark.  The list of keys for
+testing is as follows: dh, dhx, dsa, ec, rsa, xkey.  To run bencmark for all
+keys and formats using 4 threads run pkeyread as follows:
+    ./pkeyread -f all -k all -t 4
