@@ -30,7 +30,19 @@ Examples:
   ghmerge --nobuild --target openssl-3.0 --cherry-pick 3 16051 paulidale"
     exit 9
 }
+
+function check_tools {
+    command -v jq >/dev/null 2>&1
+    if [ $? -ne 0 ]
+    then
+        >&2 echo "You must install the jq utility for ghmerge to work"
+        exit 1
+    fi
+}
+
 set -o errexit
+
+check_tools
 
 WHAT=""
 PICK=no
@@ -160,12 +172,9 @@ if ! wget --quiet $PR_URL -O $PR_URL_CONTENTS; then
     echo "Error getting $PR_URL"
     exit 1
 fi
-set -- `python3 -c '
-from __future__ import print_function
-import json, sys;
-input = json.load(sys.stdin)
-print(str(input["head"]["label"]).replace(":", " "),
-      str(input["head"]["repo"]["ssh_url"]))'        <$PR_URL_CONTENTS`
+
+set -- $(jq -r '[.head.user.login, .head.ref, .head.repo.ssh_url] | join(" ")' $PR_URL_CONTENTS)
+
 WHO=$1
 BRANCH=$2
 REPO=$3
@@ -175,29 +184,19 @@ if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
     exit 1
 fi
 
-REPO_CHECK=$(python3 -c '
-from __future__ import print_function
-import json, sys
-rtm_set=0
-urgent_set=0
-input = json.load(sys.stdin)
-# Dont do this check if its not for the openssl repo
-if (input["base"]["repo"]["name"] != "openssl"):
-    sys.exit(0)
-for l in input["labels"]:
-    if (l["name"] == "approval: ready to merge"):
-        rtm_set=1
-    if (l["name"] == "severity: urgent"):
-        urgent_set=1
-if (rtm_set == 0 and urgent_set == 0):
-    print("Not ready to merge")
-' <$PR_URL_CONTENTS)
+TARGET_REPO=$(jq -r '.base.repo.name' $PR_URL_CONTENTS)
+RTM_LABEL=$(jq -r '.labels[] | select(.name == "approval: ready to merge") | .name' $PR_URL_CONTENTS)
+URGENT_LABEL=$(jq -r '.labels[] | select(.name == "severity: urgent") | .name' $PR_URL_CONTENTS)
 
-if [ "$REPO_CHECK" == "Not ready to merge" ]
+if [ "$TARGET_REPO" != "openssl" ]
 then
-    >&2 echo "This pr has neither the urgent or ready to merge flag set, Won't merge"
+    >&2 echo "Skipping ready to merge check for non-openssl repo"
+elif [ -z "$RTM_LABEL" -a -z "$URGENT_LABEL" ]
+then
+    >&2 echo "This PR has neither the ready to merge or urgent label set, can't merge"
     exit 1
 fi
+
 
 ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
 STASH_OUT=`git stash`
