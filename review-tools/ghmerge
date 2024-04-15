@@ -32,7 +32,7 @@ Examples:
 }
 
 function check_tools {
-    which jq >/dev/null 2>&1
+    command -v jq >/dev/null 2>&1
     if [ $? -ne 0 ]
     then
         >&2 echo "You must install the jq utility for ghmerge to work"
