@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
      * and so because the average us computed above is less than
      * the value of OSSL_TIME_US, we wind up with truncation to
      * zero in the math.  Instead, manually do the division, casting
-     * our values as doubles so that we comput the proper time
+     * our values as doubles so that we compute the proper time
      */
     av = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) /(double)OSSL_TIME_US;
 
