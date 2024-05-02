@@ -54,7 +54,7 @@ static void do_providerdoall(size_t num)
 int main(int argc, char *argv[])
 {
     int i;
-    OSSL_TIME duration, us;
+    OSSL_TIME duration, ttime;
     double av;
     int terse = 0;
     int argnext;
@@ -95,12 +95,11 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    us = times[0];
+    ttime = times[0];
     for (i = 1; i < threadcount; i++)
-        us = ossl_time_add(us, times[i]);
-    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
+        ttime = ossl_time_add(ttime, times[i]);
 
-    av = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
+    av = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", av);

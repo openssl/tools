@@ -51,7 +51,7 @@ static void do_handshake(size_t num)
 int main(int argc, char *argv[])
 {
     double persec;
-    OSSL_TIME duration, av;
+    OSSL_TIME duration, ttime;
     uint64_t us;
     double avcalltime;
     char *cert;
@@ -109,19 +109,19 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    av = times[0];
+    ttime = times[0];
     for (i = 1; i < threadcount; i++)
-        av = ossl_time_add(av, times[i]);
-    av = ossl_time_divide(av, NUM_HANDSHAKES_PER_RUN);
+        ttime = ossl_time_add(ttime, times[i]);
 
+    avcalltime = ((double)ossl_time2ticks(ttime) / (double)NUM_HANDSHAKES_PER_RUN) / (double)OSSL_TIME_US;
     persec = ((NUM_HANDSHAKES_PER_RUN * OSSL_TIME_SECOND)
              / (double)ossl_time2ticks(duration));
 
     if (terse) {
-        printf("%ld\n", ossl_time2us(av));
+        printf("%lf\n", avcalltime);
         printf("%lf\n", persec);
     } else {
-        printf("Average time per handshake: %ldus\n", ossl_time2us(av));
+        printf("Average time per handshake: %lfus\n", avcalltime);
         printf("Handshakes per second: %lf\n", persec);
     }
 

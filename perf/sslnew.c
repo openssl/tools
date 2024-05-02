@@ -55,7 +55,7 @@ void do_sslnew(size_t num)
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
-    OSSL_TIME us;
+    OSSL_TIME ttime;
     double avcalltime;
     int terse = 0;
     int argnext;
@@ -103,12 +103,11 @@ int main(int argc, char *argv[])
         goto out;
     }
 
-    us = times[0];
+    ttime = times[0];
     for (i = 1; i < threadcount; i++)
-        us = ossl_time_add(us, times[i]);
-    us = ossl_time_divide(us, NUM_CALLS_PER_TEST);
+        ttime = ossl_time_add(ttime, times[i]);
 
-    avcalltime = (double)ossl_time2ticks(us) / (double)OSSL_TIME_US;
+    avcalltime = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", avcalltime);
