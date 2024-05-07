@@ -1,7 +1,7 @@
-all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread
+all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
 
 clean:
-	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread
+	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
 
 #-Wl,-rpath,$(TARGET_OSSL_LIBRARY_PATH)
 
@@ -12,6 +12,9 @@ LDFLAGS += -L$(TARGET_OSSL_LIBRARY_PATH) -L.
 libperf.a: perflib/*.c perflib/*.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c perflib/*.c
 	ar rcs libperf.a *.o
+
+evp_fetch:	evp_fetch.c libperf.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o evp_fetch evp_fetch.c -lperf -lcrypto
 
 randbytes:	randbytes.c libperf.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o randbytes randbytes.c -lperf -lcrypto
