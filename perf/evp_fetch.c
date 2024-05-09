@@ -15,7 +15,7 @@
 #include <openssl/core_names.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_TEST         100000
+#define NUM_CALLS_PER_TEST         1000000
 
 OSSL_TIME *times;
 
@@ -33,8 +33,25 @@ typedef enum {
     FETCH_CIPHER,
     FETCH_KDF,
     FETCH_MAC,
-    FETCH_RAND
+    FETCH_RAND,
+    FETCH_END
 } fetch_type_t;
+
+struct fetch_type_map {
+    char *name;
+    fetch_type_t id;
+};
+
+struct fetch_type_map type_map[] = {
+    { "MD"    , FETCH_MD },
+    { "CIPHER", FETCH_CIPHER },
+    { "KDF"   , FETCH_KDF },
+    { "MAC"   , FETCH_MAC },
+    { "RAND"  , FETCH_RAND }
+};
+
+fetch_type_t exclusive_fetch_type = FETCH_END;
+char *exclusive_fetch_alg = NULL;
 
 struct fetch_data_entry {
     fetch_type_t ftype;
@@ -69,68 +86,77 @@ static struct fetch_data_entry fetch_entries[] = {
 #ifndef OPENSSL_NO_POLY1305
     {FETCH_MAC, OSSL_MAC_NAME_POLY1305, NULL},
 #endif
-    {FETCH_RAND, "CTR-DRBG", NULL}
 };
 
 void do_fetch(size_t num)
 {
     OSSL_TIME start, end;
     size_t i, j;
+    const char *fetch_alg = NULL;
 
     start = ossl_time_now();
 
     for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
-        j = i % ARRAY_SIZE(fetch_entries);
+        /*
+         * If we set a fetch type, always use that
+         */
+        if (exclusive_fetch_type == FETCH_END) {
+            j = i % ARRAY_SIZE(fetch_entries);
+            fetch_alg = fetch_entries[j].alg;
+        } else {
+            j = exclusive_fetch_type;
+            fetch_alg = exclusive_fetch_alg;
+        }
 
         if (err == 1)
             return;
 
         switch (fetch_entries[j].ftype) {
         case FETCH_MD:
-            EVP_MD *md = EVP_MD_fetch(ctx, fetch_entries[j].alg,
+            EVP_MD *md = EVP_MD_fetch(ctx, fetch_alg,
                                       fetch_entries[j].propq);
             if (md == NULL) {
-                fprintf(stderr, "Failed to fetch %s\n", fetch_entries[j].alg);
+                fprintf(stderr, "Failed to fetch %s\n", fetch_alg);
                 err = 1;
                 return;
             }
             EVP_MD_free(md);
             break;
         case FETCH_CIPHER:
-            EVP_CIPHER *cph = EVP_CIPHER_fetch(ctx, fetch_entries[j].alg,
+            EVP_CIPHER *cph = EVP_CIPHER_fetch(ctx, fetch_alg,
                                                fetch_entries[j].propq);
             if (cph == NULL) {
-                fprintf(stderr, "Failed to fetch %s\n", fetch_entries[j].alg);
+                fprintf(stderr, "Failed to fetch %s\n", fetch_alg);
                 err = 1;
                 return;
             }
             EVP_CIPHER_free(cph);
             break;
         case FETCH_KDF:
-            EVP_KDF *kdf = EVP_KDF_fetch(ctx, fetch_entries[j].alg,
+            EVP_KDF *kdf = EVP_KDF_fetch(ctx, fetch_alg,
                                          fetch_entries[j].propq);
             if (kdf == NULL) {
-                fprintf(stderr, "Failed to fetch %s\n", fetch_entries[j].alg);
+                fprintf(stderr, "Failed to fetch %s\n", fetch_alg);
                 err = 1;
                 return;
             }
             EVP_KDF_free(kdf);
             break;
         case FETCH_MAC:
-            EVP_MAC *mac = EVP_MAC_fetch(ctx, fetch_entries[j].alg,
+            EVP_MAC *mac = EVP_MAC_fetch(ctx, fetch_alg,
                                          fetch_entries[j].propq);
             if (mac == NULL) {
-                fprintf(stderr, "Failed to fetch %s\n", fetch_entries[j].alg);
+                fprintf(stderr, "Failed to fetch %s\n", fetch_alg);
                 err = 1;
                 return;
             }
             EVP_MAC_free(mac);
             break;
         case FETCH_RAND:
-            EVP_RAND *rnd = EVP_RAND_fetch(ctx, fetch_entries[j].alg,
+            EVP_RAND *rnd = EVP_RAND_fetch(ctx, fetch_alg,
                                            fetch_entries[j].propq);
             if (rnd == NULL) {
-                fprintf(stderr, "Failed to fetch %s\n", fetch_entries[j].alg);
+                fprintf(stderr, "Failed to fetch %s\n", fetch_alg);
                 err = 1;
                 return;
             }
@@ -155,6 +181,7 @@ int main(int argc, char *argv[])
     int argnext;
     size_t i;
     int rc = EXIT_FAILURE;
+    char *fetch_type = getenv("EVP_FETCH_TYPE");
 
     if ((argc != 2 && argc != 3)
                 || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
@@ -167,6 +194,27 @@ int main(int argc, char *argv[])
         argnext = 2;
     } else {
         argnext = 1;
+    }
+
+    if (fetch_type != NULL) {
+        exclusive_fetch_alg = strstr(fetch_type, ":");
+        if (exclusive_fetch_alg == NULL) {
+            printf("Malformed EVP_FETCH_TYPE TYPE:ALG\n");
+            return EXIT_FAILURE;
+        }
+        /* Split the string into a type and alg */
+        *exclusive_fetch_alg = '\0';
+        exclusive_fetch_alg++;
+        for (i = 0; i < ARRAY_SIZE(type_map); i++) {
+            if (!strcmp(fetch_type, type_map[i].name)) {
+                exclusive_fetch_type = type_map[i].id;
+                break;
+            }
+        }
+        if (i == ARRAY_SIZE(type_map)) {
+            printf("EVP_FETCH_TYPE is invalid\n");
+            return EXIT_FAILURE;
+        }
     }
 
     threadcount = atoi(argv[argnext]);
@@ -200,7 +248,7 @@ int main(int argc, char *argv[])
         ttime = ossl_time_add(ttime, times[i]);
 
     /*
-     * EVP_PKEY_new_raw_public_key is pretty fast, running in
+     * EVP_fetch_* calls are pretty fast, running in
      * only a few us.  But ossl_time2us does integer division
      * and so because the average us computed above is less than
      * the value of OSSL_TIME_US, we wind up with truncation to
@@ -213,8 +261,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", av);
     else
-        printf("Average time per fetch call: %lfus\n",
-               av);
+        printf("Average time per fetch call: %lfus\n", av);
 
     rc = EXIT_SUCCESS;
 out:
