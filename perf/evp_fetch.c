@@ -47,18 +47,28 @@ static struct fetch_data_entry fetch_entries[] = {
     {FETCH_MD, OSSL_DIGEST_NAME_SHA2_256, NULL},
     {FETCH_MD, OSSL_DIGEST_NAME_SHA3_224, NULL},
     {FETCH_MD, OSSL_DIGEST_NAME_SHA3_256, NULL},
+#ifndef OPENSSL_NO_SIV
     {FETCH_CIPHER, OSSL_CIPHER_NAME_AES_128_GCM_SIV, NULL},
     {FETCH_CIPHER, OSSL_CIPHER_NAME_AES_192_GCM_SIV, NULL},
     {FETCH_CIPHER, OSSL_CIPHER_NAME_AES_256_GCM_SIV, NULL},
+#endif
     {FETCH_KDF, OSSL_KDF_NAME_HKDF, NULL},
+#ifndef OPENSSL_NO_SCRYPT
     {FETCH_KDF, OSSL_KDF_NAME_SCRYPT, NULL},
+#endif
     {FETCH_KDF, OSSL_KDF_NAME_KRB5KDF, NULL},
     {FETCH_KDF, OSSL_KDF_NAME_KBKDF, NULL},
+#ifndef OPENSSL_NO_BLAKE2
     {FETCH_MAC, OSSL_MAC_NAME_BLAKE2BMAC, NULL},
+#endif
+#ifndef OPENSSL_NO_CMAC
     {FETCH_MAC, OSSL_MAC_NAME_CMAC, NULL},
+#endif
     {FETCH_MAC, OSSL_MAC_NAME_GMAC, NULL},
     {FETCH_MAC, OSSL_MAC_NAME_HMAC, NULL},
+#ifndef OPENSSL_NO_POLY1305
     {FETCH_MAC, OSSL_MAC_NAME_POLY1305, NULL},
+#endif
     {FETCH_RAND, "CTR-DRBG", NULL}
 };
 
@@ -139,6 +149,7 @@ int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
     OSSL_TIME ttime;
+    double real_num_calls;
     double av;
     int terse = 0;
     int argnext;
@@ -196,7 +207,8 @@ int main(int argc, char *argv[])
      * zero in the math.  Instead, manually do the division, casting
      * our values as doubles so that we compute the proper time
      */
-    av = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) /(double)OSSL_TIME_US;
+    real_num_calls = ((double)NUM_CALLS_PER_TEST / threadcount) * threadcount;
+    av = ((double)ossl_time2ticks(ttime) / real_num_calls) /(double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", av);
