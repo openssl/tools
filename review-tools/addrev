@@ -42,6 +42,8 @@ foreach (@ARGV) {
         $args .= "--fuzz-corpora ";
     } elsif (/^--perftools$/) {
         $args .= "--perftools ";
+    } elsif (/^--installer/) {
+        $args .= "--installer ";
     } elsif (/^--verbose$/) {
         $args .= "--verbose ";
     } elsif (/^--noself$/) {
