@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
         ttime = ossl_time_add(ttime, times[i]);
 
     /*
-     * EVP_PKEY_new_raw_public_key is pretty fast, running in
+     * EVP_fetch_* calls are pretty fast, running in
      * only a few us.  But ossl_time2us does integer division
      * and so because the average us computed above is less than
      * the value of OSSL_TIME_US, we wind up with truncation to
