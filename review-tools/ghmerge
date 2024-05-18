@@ -188,15 +188,13 @@ TARGET_REPO=$(jq -r '.base.repo.name' $PR_URL_CONTENTS)
 RTM_LABEL=$(jq -r '.labels[] | select(.name == "approval: ready to merge") | .name' $PR_URL_CONTENTS)
 URGENT_LABEL=$(jq -r '.labels[] | select(.name == "severity: urgent") | .name' $PR_URL_CONTENTS)
 
-if [ "$TARGET_REPO" == "openssl" ]
+if [ "$TARGET_REPO" != "openssl" ]
 then
-    if [ -z "$RTM_LABEL" -a -z "$URGENT_LABEL" ]
-    then
-        >&2 echo "This PR has neither the ready to merge or urgent label set, can't merge"
-        exit 1
-    fi
-else
     >&2 echo "Skipping ready to merge check for non-openssl repo"
+elif [ -z "$RTM_LABEL" -a -z "$URGENT_LABEL" ]
+then
+    >&2 echo "This PR has neither the ready to merge or urgent label set, can't merge"
+    exit 1
 fi
 
 
