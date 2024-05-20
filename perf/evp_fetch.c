@@ -15,7 +15,7 @@
 #include <openssl/core_names.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_TEST         100000
+#define NUM_CALLS_PER_TEST         1000000
 
 OSSL_TIME *times;
 
@@ -261,8 +261,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", av);
     else
-        printf("Average time per fetch call: %lfus\n",
-               av);
+        printf("Average time per fetch call: %lfus\n", av);
 
     rc = EXIT_SUCCESS;
 out:
