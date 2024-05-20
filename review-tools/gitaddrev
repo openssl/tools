@@ -153,7 +153,7 @@ foreach (@ARGV) {
     } elsif (/--installer$/) {
         $WHAT = 'installer';
         $min_authors = 1;
-        # openssl/installer is goverend by OTC
+        # openssl/installer is governed by OTC
         $min_otc = 1;
         $min_omc = 0;
     } elsif (/^--release$/) {
