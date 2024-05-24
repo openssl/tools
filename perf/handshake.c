@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <getopt.h>
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
@@ -18,6 +19,7 @@
 int err = 0;
 
 static SSL_CTX *sctx = NULL, *cctx = NULL;
+static int share_ctx = 1;
 
 OSSL_TIME *times;
 
@@ -58,20 +60,26 @@ int main(int argc, char *argv[])
     char *privkey;
     int ret = EXIT_FAILURE;
     int i;
-    int argnext;
+    int argnext = 1;
     int terse = 0;
+    int opt;
 
-    if ((argc != 3 && argc != 4)
-            || (argc == 4 && strcmp("--terse", argv[1]) != 0)) {
-        printf("Usage: handshake [--terse] certsdir threadcount\n");
-        return EXIT_FAILURE;
-    }
-
-    if (argc == 4) {
-        terse = 1;
-        argnext = 2;
-    } else {
-        argnext = 1;
+    while ((opt = getopt(argc, argv, "ts")) != -1) {
+        argnext++;
+        switch (opt) {
+        case 't':
+            terse = 1;
+            break;
+        case 's':
+            share_ctx = 0;
+            break;
+        default:
+            printf("Usage: handshake [-t] [-s] certsdir threadcount\n");
+            printf("-t - terse output\n");
+            printf("-s - disable context sharing\n");
+            exit(1);
+            break;
+        }
     }
 
     cert = perflib_mk_file_path(argv[argnext], "servercert.pem");
