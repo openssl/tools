@@ -20,6 +20,8 @@ int err = 0;
 
 static SSL_CTX *sctx = NULL, *cctx = NULL;
 static int share_ctx = 1;
+static char *cert = NULL;
+static char *privkey = NULL;
 
 OSSL_TIME *times;
 
@@ -31,16 +33,38 @@ static void do_handshake(size_t num)
     int ret = 1;
     int i;
     OSSL_TIME start, end;
+    SSL_CTX *lsctx = NULL;
+    SSL_CTX *lcctx = NULL;
+
+    if (share_ctx == 1) {
+        lsctx = sctx;
+        lcctx = cctx;
+    }
 
     start = ossl_time_now();
 
     for (i = 0; i < NUM_HANDSHAKES_PER_RUN / threadcount; i++) {
-        ret = perflib_create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
+        if (share_ctx == 0) {
+            if (!perflib_create_ssl_ctx_pair(TLS_server_method(),
+                                             TLS_client_method(),
+                                             0, 0, &lsctx, &lcctx, cert,
+                                             privkey)) {
+                printf("Failed to create SSL_CTX pair\n");
+                break;
+            }
+        }
+
+        ret = perflib_create_ssl_objects(lsctx, lcctx, &serverssl, &clientssl,
                                          NULL, NULL);
         ret &= perflib_create_ssl_connection(serverssl, clientssl,
                                              SSL_ERROR_NONE);
         perflib_shutdown_ssl_connection(serverssl, clientssl);
         serverssl = clientssl = NULL;
+        if (share_ctx == 0) {
+            SSL_CTX_free(lsctx);
+            SSL_CTX_free(lcctx);
+            lsctx = lcctx = NULL;
+        }
     }
 
     end = ossl_time_now();
@@ -56,8 +80,6 @@ int main(int argc, char *argv[])
     OSSL_TIME duration, ttime;
     uint64_t us;
     double avcalltime;
-    char *cert;
-    char *privkey;
     int ret = EXIT_FAILURE;
     int i;
     int argnext = 1;
@@ -101,10 +123,12 @@ int main(int argc, char *argv[])
         goto err;
     }
 
-    if (!perflib_create_ssl_ctx_pair(TLS_server_method(), TLS_client_method(),
-                                     0, 0, &sctx, &cctx, cert, privkey)) {
-        printf("Failed to create SSL_CTX pair\n");
-        goto err;
+    if (share_ctx == 1) {
+        if (!perflib_create_ssl_ctx_pair(TLS_server_method(), TLS_client_method(),
+                                         0, 0, &sctx, &cctx, cert, privkey)) {
+            printf("Failed to create SSL_CTX pair\n");
+            goto err;
+        }
     }
 
     if (!perflib_run_multi_thread_test(do_handshake, threadcount, &duration)) {
@@ -138,7 +162,9 @@ int main(int argc, char *argv[])
     OPENSSL_free(cert);
     OPENSSL_free(privkey);
     OPENSSL_free(times);
-    SSL_CTX_free(sctx);
-    SSL_CTX_free(cctx);
+    if (share_ctx == 1) {
+        SSL_CTX_free(sctx);
+        SSL_CTX_free(cctx);
+    }
     return ret;
 }
