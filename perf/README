@@ -50,13 +50,13 @@ handshake
 ---------
 
 Performs a combined in-memory client and server handshake. In total 100000
-handshakes are performed divided evenly among each thread. It takes 2 arguments:
-
-certsdir - A directory where 2 files exist (servercert.pem and serverkey.pem) for
-the server certificate and key. The test/certs directory of the main OpenSSL
-source repository contains such files for all supported branches.
-
-threadcount - The number of threads to perform handshakes on in the test
+handshakes are performed divided evenly among each thread. It take 2 optional
+and two required arguments:
+handshakte [-t] [-s] <certsdir> <threadcount>
+-t - produce terse output
+-s - create an ssl_ctx per connection, rather than a single thread-shared ctx
+certsdir - Directory where the test can locate servercert.pem and serverkey.pem
+threadcount - Number of concurrent threads to run in test
 
 The output is two values: the average time taken for a single handshake in us,
 and the average number of simultaneous handshakes per second performed over the
