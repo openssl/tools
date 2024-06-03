@@ -52,7 +52,7 @@ handshake
 Performs a combined in-memory client and server handshake. In total 100000
 handshakes are performed divided evenly among each thread. It take 2 optional
 and two required arguments:
-handshakte [-t] [-s] <certsdir> <threadcount>
+handshake [-t] [-s] <certsdir> <threadcount>
 -t - produce terse output
 -s - create an ssl_ctx per connection, rather than a single thread-shared ctx
 certsdir - Directory where the test can locate servercert.pem and serverkey.pem
