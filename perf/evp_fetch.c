@@ -112,7 +112,7 @@ void do_fetch(size_t num)
             return;
 
         switch (fetch_entries[j].ftype) {
-        case FETCH_MD:
+        case FETCH_MD: {
             EVP_MD *md = EVP_MD_fetch(ctx, fetch_alg,
                                       fetch_entries[j].propq);
             if (md == NULL) {
@@ -122,7 +122,8 @@ void do_fetch(size_t num)
             }
             EVP_MD_free(md);
             break;
-        case FETCH_CIPHER:
+        }
+        case FETCH_CIPHER: {
             EVP_CIPHER *cph = EVP_CIPHER_fetch(ctx, fetch_alg,
                                                fetch_entries[j].propq);
             if (cph == NULL) {
@@ -132,7 +133,8 @@ void do_fetch(size_t num)
             }
             EVP_CIPHER_free(cph);
             break;
-        case FETCH_KDF:
+        }
+        case FETCH_KDF: {
             EVP_KDF *kdf = EVP_KDF_fetch(ctx, fetch_alg,
                                          fetch_entries[j].propq);
             if (kdf == NULL) {
@@ -142,7 +144,8 @@ void do_fetch(size_t num)
             }
             EVP_KDF_free(kdf);
             break;
-        case FETCH_MAC:
+        }
+        case FETCH_MAC: {
             EVP_MAC *mac = EVP_MAC_fetch(ctx, fetch_alg,
                                          fetch_entries[j].propq);
             if (mac == NULL) {
@@ -152,7 +155,8 @@ void do_fetch(size_t num)
             }
             EVP_MAC_free(mac);
             break;
-        case FETCH_RAND:
+        }
+        case FETCH_RAND: {
             EVP_RAND *rnd = EVP_RAND_fetch(ctx, fetch_alg,
                                            fetch_entries[j].propq);
             if (rnd == NULL) {
@@ -162,6 +166,7 @@ void do_fetch(size_t num)
             }
             EVP_RAND_free(rnd);
             break;
+        }
         default:
             err = 1;
             return;
