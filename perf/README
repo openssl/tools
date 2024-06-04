@@ -72,6 +72,23 @@ The number of threads to use is provided as an argument and the test
 reports the average time taken to execute a block of 1000 construction/free
 calls.
 
+ssl_ctx
+-------
+
+The ssl_ctx test repeatedly constructs either a client or sever SSL_CTX
+object, initializing it appropriately (setting a cert/key for the server, or a
+cert store for the client), measuring how long each iteration takes.
+
+Usage:
+./ssl_ctx -m [server|client] -c <cert> -k <key> -s <store> <threadcount>
+
+Options:
+* -m [server|client] - Selects client or server mode of operation
+* -c <cert> - The path to the PEM encoded server certificate
+* -k <key> - The path to the PEM encoded server private key
+* -s <store> - The path to the client certificate store dir
+* -t - Terse output
+
 newrawkey
 ---------
 
