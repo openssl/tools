@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
@@ -18,8 +19,18 @@
 int err = 0;
 
 OSSL_TIME *times;
+static char *certpath = NULL;
+static char *keypath = NULL;
+static char *storepath = NULL;
 
 static int threadcount;
+
+typedef enum {
+    OP_SERVER,
+    OP_CLIENT
+} op_mode;
+
+op_mode mode = OP_SERVER;
 
 static void do_create_ctx(size_t num)
 {
@@ -31,9 +42,20 @@ static void do_create_ctx(size_t num)
     start = ossl_time_now();
 
     for (i = 0; i < NUM_CTX_PER_RUN / threadcount; i++) {
-        ctx = SSL_CTX_new(TLS_server_method());
+        ctx = SSL_CTX_new(mode == OP_SERVER ? TLS_server_method() :
+                                              TLS_client_method());
         if (ctx == NULL)
             goto out;
+        if (mode == OP_SERVER) {
+            if ((SSL_CTX_use_certificate_file(ctx, certpath,
+                                              SSL_FILETYPE_PEM) == 1) ||
+                (SSL_CTX_use_PrivateKey_file(ctx, keypath,
+                                             SSL_FILETYPE_PEM) == 1))
+                goto out;
+        } else {
+            if (SSL_CTX_load_verify_dir(ctx, storepath) != 1)
+                goto out;
+        }
         SSL_CTX_free(ctx);
         ctx == NULL;
     }
@@ -46,6 +68,16 @@ out:
         err = 1;
 }
 
+static void usage(char *name)
+{
+    printf("usage\n");
+    printf("%s [-m <server|client>] [-c <cert>] [-k <key>] [-s <store>] <threadcount> \n", name);
+    printf("-m <server|client> - create a client or server method in context\n");
+    printf("-c <cert> - path to certificate for server context\n");
+    printf("-k <key> - path to key for server context\n");
+    printf("-s <store> - path to cert store for client context\n");
+}
+
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration, ttime;
@@ -53,25 +85,60 @@ int main(int argc, char *argv[])
     double avcalltime;
     int ret = EXIT_FAILURE;
     int i;
-    int argnext;
     int terse = 0;
+    int ch = 0;
 
-    if ((argc == 3 && strcmp("--terse", argv[1]) != 0)) {
-        printf("Usage: ssl_ctx [--terse] threadcount\n");
-        return EXIT_FAILURE;
+    while ((ch = getopt(argc, argv, "m:c:k:s:")) != -1) {
+        switch(ch) {
+        case 'm':
+            if (!strcmp(optarg, "server")) {
+                mode = OP_SERVER;
+            } else if (!strcmp(optarg, "client")) {
+                mode = OP_CLIENT;
+            } else {
+                printf("-m must select one of client|server\n");
+                usage(argv[0]);
+            }
+            break;
+        case 'c':
+            certpath = optarg;
+            break;
+        case 'k':
+            keypath = optarg;
+            break;
+        case 's':
+            storepath = optarg;
+            break;
+        default:
+            usage(argv[0]);
+            exit(1);
+        }
     }
 
-    if (argc == 3) {
-        terse = 1;
-        argnext = 2;
-    } else {
-        argnext = 1;
+    if (argv[optind] == NULL) {
+        printf("Missing threadcount argument\n");
+        usage(argv[0]);
+        goto err;
     }
 
-    threadcount = atoi(argv[argnext]);
+    threadcount = atoi(argv[optind]);
     if (threadcount < 1) {
         printf("threadcount must be > 0\n");
         goto err;
+    }
+
+    if (mode == OP_SERVER) {
+        if (certpath == NULL | keypath == NULL) {
+            printf("server mode requires both -c and -k options\n");
+            usage(argv[0]);
+            goto err;
+        }
+    } else {
+        if (storepath == NULL) {
+            printf("client mode requires -s option\n");
+            usage(argv[0]);
+            goto err;
+        }
     }
 
     times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
@@ -99,7 +166,7 @@ int main(int argc, char *argv[])
     if (terse)
         printf("%lf\n", avcalltime);
     else
-        printf("Average time per ssl_ctx call: %lfus\n", avcalltime);
+        printf("Average time per ssl ctx setup: %lfus\n", avcalltime);
 
     ret = EXIT_SUCCESS;
  err:
