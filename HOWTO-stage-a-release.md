@@ -78,13 +78,10 @@ You must have access to the following repositories:
 
 You must have OpenSSL's team key:
 
-    $ gpg --list-secret-key EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5
-    sec   rsa4096 2014-10-04 [SC] [expires: 2027-03-09]
-          EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5
-    uid           [ultimate] OpenSSL Security <openssl-security@openssl.org>
-    uid           [ultimate] OpenSSL security team <openssl-security@openssl.org>
-    uid           [ultimate] OpenSSL OMC <openssl-omc@openssl.org>
-    ssb   rsa4096 2014-10-04 [E] [expires: 2024-01-30]
+    $ gpg --list-secret-key BA5473A2B0587B07FB27CF2D216094DFD0CB81EF
+    sec   rsa4096 2024-04-08 [SC] [expires: 2026-04-08]
+          BA5473A2B0587B07FB27CF2D216094DFD0CB81EF
+    uid           [ultimate] OpenSSL <openssl@openssl.org>
 
 If you don't have it and think you should, get an export from someone on the
 team that has it.
@@ -145,7 +142,7 @@ for specific cases, and is also self-documented:
 It is generally called like this:
 
     $TOOLS/release-tools/stage-release.sh --reviewer=NAME \
-        --local-user=EFC0A467D613CB83C7ED6D30D894E2CE8B3D79F5
+        --local-user=BA5473A2B0587B07FB27CF2D216094DFD0CB81EF
 
 This scripts will perform a number of preparatory tasks, such as updating
 the copyright year, running `make update`, update release dates, and move
