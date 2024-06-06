@@ -8,8 +8,8 @@
 
 # Public or premium release?  Let the version numbers determine it!
 declare -A _ossl_release_types=(
-    [premium]='^1\.0\.2'
-    [public]='^(1\.1\.1|[3-9]\.)'
+    [premium]='^1\.'
+    [public]='^[3-9]\.'
 )
 
 std_release_type () {
