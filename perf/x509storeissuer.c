@@ -14,18 +14,19 @@
 #include <openssl/x509.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_TEST         100000
+#define NUM_CALLS_PER_TEST         1000000
 
 static int err = 0;
 static X509_STORE *store = NULL;
 static X509 *x509 = NULL;
+size_t num_calls;
 OSSL_TIME *times;
 
 static int threadcount;
 
 static void do_x509storeissuer(size_t num)
 {
-    int i;
+    size_t i;
     X509_STORE_CTX *ctx = X509_STORE_CTX_new();
     X509 *issuer = NULL;
     OSSL_TIME start, end;
@@ -38,7 +39,7 @@ static void do_x509storeissuer(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
+    for (i = 0; i < num_calls / threadcount; i++) {
         /*
          * We actually expect this to fail. We've not configured any
          * certificates inside our store. We're just testing calling this
@@ -67,9 +68,9 @@ int main(int argc, char *argv[])
     double avcalltime;
     int terse = 0;
     int argnext;
-    char *cert;
+    char *cert = NULL;
     int ret = EXIT_FAILURE;
-    BIO *bio;
+    BIO *bio = NULL;
 
     if ((argc != 3 && argc != 4)
             || (argc == 4 && strcmp("--terse", argv[1]) != 0)) {
@@ -95,6 +96,9 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         goto err;
     }
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
 
     store = X509_STORE_new();
     if (store == NULL || !X509_STORE_set_default_paths(store)) {
@@ -135,7 +139,7 @@ int main(int argc, char *argv[])
     for (i = 1; i < threadcount; i++)
         ttime = ossl_time_add(ttime, times[i]);
 
-    avcalltime = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) /(double)OSSL_TIME_US; 
+    avcalltime = ((double)ossl_time2ticks(ttime) / num_calls) /(double)OSSL_TIME_US; 
 
     if (terse)
         printf("%lf\n", avcalltime);

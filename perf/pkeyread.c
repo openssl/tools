@@ -21,8 +21,9 @@
 /* run 'make regen_key_samples' if header file is missing */
 #include "keys.h"
 
-#define NUM_CALLS_PER_TEST         100000
+#define NUM_CALLS_PER_TEST         10000
 
+size_t num_calls;
 static OSSL_TIME *times = NULL;
 
 int err = 0;
@@ -37,7 +38,7 @@ static void do_pemread(size_t num)
     size_t keydata_sz;
     EVP_PKEY *key;
     BIO *pem;
-    int i;
+    size_t i;
     size_t len;
     OSSL_TIME start, end;
 
@@ -64,10 +65,11 @@ static void do_pemread(size_t num)
      * Technically this includes the EVP_PKEY_free() in the timing - but I
      * think we can live with that
      */
-    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
+    for (i = 0; i < num_calls / threadcount; i++) {
         key = PEM_read_bio_PrivateKey(pem, NULL, NULL, NULL);
         if (key == NULL) {
-            fprintf(stderr, "Failed to create key: %d [%s PEM]\n", i,
+            fprintf(stderr, "Failed to create key: %llu [%s PEM]\n",
+                    (unsigned long long)i,
                     sample_names[sample_id]);
             err = 1;
             BIO_free(pem);
@@ -112,13 +114,13 @@ static void do_derread(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount && err == 0; i++) {
-	keydata = (const unsigned char *)sample_keys[sample_id][FORMAT_DER];
-	keydata_sz = sample_key_sizes[sample_id][FORMAT_DER];
-        pkey = d2i_PrivateKey_ex(sample_id_to_evp(sample_id), NULL,
-                          &keydata, keydata_sz, NULL, NULL);
+    for (i = 0; i < num_calls / threadcount && err == 0; i++) {
+        keydata = (const unsigned char *)sample_keys[sample_id][FORMAT_DER];
+        keydata_sz = sample_key_sizes[sample_id][FORMAT_DER];
+        pkey = d2i_PrivateKey(sample_id_to_evp(sample_id), NULL,
+                          &keydata, keydata_sz);
         if (pkey == NULL) {
-            fprintf(stderr, "%s pkey is NULL [%s BER]\n",
+            fprintf(stderr, "%s pkey is NULL [%s DER]\n",
                     __func__, sample_names[sample_id]);
             err = 1;
             goto error;
@@ -167,7 +169,7 @@ static double get_avcalltime(void)
     memset(&t, 0, sizeof(t));
     for (i = 0; i < threadcount; i++)
         t = ossl_time_add(t, times[i]);
-    avcalltime = (double)ossl_time2ticks(t) / (double)NUM_CALLS_PER_TEST;
+    avcalltime = (double)ossl_time2ticks(t) / num_calls;
 
     avcalltime =  avcalltime / (double)OSSL_TIME_US;
 
@@ -321,6 +323,9 @@ int main(int argc, char * const argv[])
         usage(argv);
         return EXIT_FAILURE;
     }
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
 
     times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
     if (times == NULL) {

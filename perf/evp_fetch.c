@@ -15,13 +15,14 @@
 #include <openssl/core_names.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_TEST         1000000
+#define NUM_CALLS_PER_TEST         10000000
 
 OSSL_TIME *times;
 
 int err = 0;
 
 static int threadcount;
+size_t num_calls;
 
 static OSSL_LIB_CTX *ctx = NULL;
 
@@ -96,13 +97,14 @@ void do_fetch(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
+    for (i = 0; i < num_calls / threadcount; i++) {
         /*
          * If we set a fetch type, always use that
          */
         if (exclusive_fetch_type == FETCH_END) {
             j = i % ARRAY_SIZE(fetch_entries);
             fetch_alg = fetch_entries[j].alg;
+            j = fetch_entries[j].ftype;
         } else {
             j = exclusive_fetch_type;
             fetch_alg = exclusive_fetch_alg;
@@ -111,7 +113,7 @@ void do_fetch(size_t num)
         if (err == 1)
             return;
 
-        switch (fetch_entries[j].ftype) {
+        switch (j) {
         case FETCH_MD: {
             EVP_MD *md = EVP_MD_fetch(ctx, fetch_alg,
                                       fetch_entries[j].propq);
@@ -180,7 +182,6 @@ int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
     OSSL_TIME ttime;
-    double real_num_calls;
     double av;
     int terse = 0;
     int argnext;
@@ -227,6 +228,9 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;
     }
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
 
     ctx = OSSL_LIB_CTX_new();
     if (ctx == NULL)
@@ -260,8 +264,7 @@ int main(int argc, char *argv[])
      * zero in the math.  Instead, manually do the division, casting
      * our values as doubles so that we compute the proper time
      */
-    real_num_calls = ((double)NUM_CALLS_PER_TEST / threadcount) * threadcount;
-    av = ((double)ossl_time2ticks(ttime) / real_num_calls) /(double)OSSL_TIME_US;
+    av = ((double)ossl_time2ticks(ttime) / num_calls) /(double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", av);

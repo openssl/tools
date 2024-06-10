@@ -13,8 +13,9 @@
 #include <openssl/evp.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_TEST         100000
+#define NUM_CALLS_PER_TEST         1000000
 
+size_t num_calls;
 OSSL_TIME *times;
 
 int err = 0;
@@ -29,15 +30,20 @@ static int threadcount;
 
 void do_newrawkey(size_t num)
 {
-    int i;
+    size_t i;
     EVP_PKEY *pkey;
     OSSL_TIME start, end;
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
+    for (i = 0; i < num_calls / threadcount; i++) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
         pkey = EVP_PKEY_new_raw_public_key_ex(NULL, "X25519", NULL, buf,
                                               sizeof(buf));
+#else
+        pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, NULL, buf,
+                                           sizeof(buf));
+#endif
         if (pkey == NULL)
             err = 1;
         else
@@ -76,6 +82,9 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;
     }
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
 
     times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
     if (times == NULL) {
@@ -105,7 +114,7 @@ int main(int argc, char *argv[])
      * zero in the math.  Instead, manually do the division, casting
      * our values as doubles so that we compute the proper time
      */
-    av = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) /(double)OSSL_TIME_US;
+    av = ((double)ossl_time2ticks(ttime) / num_calls) /(double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", av);

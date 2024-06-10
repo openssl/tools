@@ -17,6 +17,7 @@
 
 #define NUM_CALLS_PER_TEST         100000
 
+size_t num_calls;
 static int err = 0;
 OSSL_TIME *times;
 
@@ -32,14 +33,14 @@ static int threadcount;
 
 static void do_providerdoall(size_t num)
 {
-    int i;
+    size_t i;
     unsigned char buf[32];
     int count;
     OSSL_TIME start, end;
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CALLS_PER_TEST / threadcount; i++) {
+    for (i = 0; i < num_calls / threadcount; i++) {
         count = 0;
         if (!OSSL_PROVIDER_do_all(NULL, doit, &count) || count != 1) {
             err = 1;
@@ -78,6 +79,9 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;
     }
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
 
     times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
     if (times == NULL) {
@@ -99,7 +103,7 @@ int main(int argc, char *argv[])
     for (i = 1; i < threadcount; i++)
         ttime = ossl_time_add(ttime, times[i]);
 
-    av = ((double)ossl_time2ticks(ttime) / (double)NUM_CALLS_PER_TEST) / (double)OSSL_TIME_US;
+    av = ((double)ossl_time2ticks(ttime) / num_calls) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", av);

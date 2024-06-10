@@ -1,13 +1,17 @@
 all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
+# Build target for OpenSSL 1.1.1 builds
+all111: randbytes handshake sslnew newrawkey rsasign x509storeissuer rwlocks pkeyread
 
 clean:
-	rm libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
-
-#-Wl,-rpath,$(TARGET_OSSL_LIBRARY_PATH)
+	rm -f libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
 
 CPPFLAGS += -I$(TARGET_OSSL_INCLUDE_PATH) -I.
+# For second include path, i.e. out of tree build of OpenSSL uncomment this:
+# CPPFLAGS += -I$(TARGET_OSSL_INCLUDE_PATH2)
 CFLAGS += -pthread
 LDFLAGS += -L$(TARGET_OSSL_LIBRARY_PATH) -L.
+# For setting RUNPATH on built executables uncomment this:
+# LDFLAGS += -Wl,-rpath,$(TARGET_OSSL_LIBRARY_PATH)
 
 libperf.a: perflib/*.c perflib/*.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c perflib/*.c
