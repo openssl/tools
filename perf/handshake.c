@@ -14,7 +14,7 @@
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
-#define NUM_HANDSHAKES_PER_RUN        100000
+#define NUM_CALLS_PER_TEST        10000
 
 int err = 0;
 
@@ -26,12 +26,13 @@ static char *privkey = NULL;
 OSSL_TIME *times;
 
 static int threadcount;
+size_t num_calls;
 
 static void do_handshake(size_t num)
 {
     SSL *clientssl = NULL, *serverssl = NULL;
     int ret = 1;
-    int i;
+    size_t i;
     OSSL_TIME start, end;
     SSL_CTX *lsctx = NULL;
     SSL_CTX *lcctx = NULL;
@@ -43,7 +44,7 @@ static void do_handshake(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_HANDSHAKES_PER_RUN / threadcount; i++) {
+    for (i = 0; i < num_calls / threadcount; i++) {
         if (share_ctx == 0) {
             if (!perflib_create_ssl_ctx_pair(TLS_server_method(),
                                              TLS_client_method(),
@@ -116,6 +117,9 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         goto err;
     }
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
 
     times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
     if (times == NULL) {
@@ -145,8 +149,8 @@ int main(int argc, char *argv[])
     for (i = 1; i < threadcount; i++)
         ttime = ossl_time_add(ttime, times[i]);
 
-    avcalltime = ((double)ossl_time2ticks(ttime) / (double)NUM_HANDSHAKES_PER_RUN) / (double)OSSL_TIME_US;
-    persec = ((NUM_HANDSHAKES_PER_RUN * OSSL_TIME_SECOND)
+    avcalltime = ((double)ossl_time2ticks(ttime) / num_calls) / (double)OSSL_TIME_US;
+    persec = ((num_calls * OSSL_TIME_SECOND)
              / (double)ossl_time2ticks(duration));
 
     if (terse) {
