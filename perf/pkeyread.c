@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
@@ -173,7 +174,7 @@ static double get_avcalltime(void)
     return avcalltime;
 }
 
-static void report_result(int key_id, int format_id, int verbose)
+static void report_result(int key_id, int format_id, int terse)
 {
     if (err) {
 	fprintf(stderr, "Error during test of %s in %s format\n",
@@ -181,21 +182,47 @@ static void report_result(int key_id, int format_id, int verbose)
 	exit(EXIT_FAILURE);
     }
 
-    if (verbose)
-	printf("Average time per %s(%s) call: %lfus\n",
-	       format_names[format_id], sample_names[key_id], get_avcalltime());
-    else
+    if (terse)
 	printf("[%s %s] %lfus\n", sample_names[key_id],
 	       format_names[format_id], get_avcalltime());
+    else
+	printf("Average time per %s(%s) call: %lfus\n",
+	       format_names[format_id], sample_names[key_id], get_avcalltime());
 }
 
-int main(int argc, char *argv[])
+static void usage(char * const argv[])
+{
+    const char **key_name = sample_names;
+    const char **format_name = format_names;
+
+    fprintf(stderr, "%s -k key_name -f format_name [-t] thread_count\n"
+        "\twhere key_name is one of these: ", argv[0]);
+    fprintf(stderr, "%s", *key_name);
+    do {
+        key_name++;
+        if (*key_name == NULL)
+            fprintf(stderr, "\n");
+        else
+            fprintf(stderr, ", %s", *key_name);
+    } while (*key_name != NULL);
+
+    fprintf(stderr, "\tformat_name is one of these: %s", *format_name);
+    do {
+        format_name++;
+        if (*format_name == NULL)
+            fprintf(stderr, "\n");
+        else
+            fprintf(stderr, ", %s", *format_name);
+    } while (*format_name != NULL);
+}
+
+int main(int argc, char * const argv[])
 {
     OSSL_TIME duration;
     int ch, i;
     int key_id, key_id_min, key_id_max, k;
     int format_id, format_id_min, format_id_max, f;
-    int verbose = 0;
+    int terse = 0;
     char *key = NULL;
     char *key_format = NULL;
     int kf;
@@ -207,11 +234,32 @@ int main(int argc, char *argv[])
         "PEM_read_bio_PrivateKey",
         "X509_PUBKEY_get0_param"
     };
+    struct option long_opts[] = {
+        {
+            "key",
+            required_argument,
+            NULL,
+            'k'
+        },
+        {
+            "format",
+            required_argument,
+            NULL,
+            'f'
+        },
+        {
+            "terse",
+            no_argument,
+            NULL,
+            't'
+        },
+        { 0 }
+    };
 
     key_id = SAMPLE_INVALID;
     format_id = FORMAT_INVALID;
 
-    while ((ch = getopt(argc, argv, "k:f:t:v")) != -1) {
+    while ((ch = getopt_long(argc, argv, "k:f:t", long_opts, NULL)) != -1) {
         switch (ch) {
         case 'k':
             key = optarg;
@@ -219,22 +267,30 @@ int main(int argc, char *argv[])
         case 'f':
             key_format = optarg;
             break;
-        case 'v':
-            verbose = 1;
-            break;
         case 't':
-            threadcount = atoi(optarg);
+            terse = 1;
             break;
         }
+    }
+
+    if (argv[optind] == NULL) {
+        fprintf(stderr, "Missing threadcount argument\n");
+        usage(argv);
+        return EXIT_FAILURE;
+    }
+
+    threadcount = atoi(argv[optind]);
+    if (threadcount < 1) {
+        fprintf(stderr, "threadcount must be > 0\n");
+        usage(argv);
+        return EXIT_FAILURE;
     }
 
     if (key != NULL) {
         key_id = sample_name_to_id(key);
         if (key_id == SAMPLE_INVALID) {
             fprintf(stderr, "Unknown key name (%s)\n", key);
-            fprintf(stderr, "key must be:");
-            for (i = 0; sample_names[i] != NULL; i++)
-                fprintf(stderr, "\t%s\n", sample_names[i]);
+            usage(argv);
             return EXIT_FAILURE;
         }
     }
@@ -243,25 +299,26 @@ int main(int argc, char *argv[])
         format_id = format_name_to_id(key_format);
         if (format_id == FORMAT_INVALID) {
             fprintf(stderr, "Unknown key format (%s)\n", key_format);
-            fprintf(stderr, "key must be:");
-            for (i = 0; format_names[i] != NULL; i++)
-                fprintf(stderr, "\t%s\n", format_names[i]);
+            usage(argv);
             return EXIT_FAILURE;
         }
     }
 
     if (key_format == NULL) {
         fprintf(stderr, "option -f is missing\n");
+        usage(argv);
         return EXIT_FAILURE;
     }
 
     if (key == NULL) {
         fprintf(stderr, "option -k is missing\n");
+        usage(argv);
         return EXIT_FAILURE;
     }
 
     if (threadcount < 1) {
         fprintf(stderr, "threadcount must be > 0, use option -t 1\n");
+        usage(argv);
         return EXIT_FAILURE;
     }
 
@@ -294,7 +351,7 @@ int main(int argc, char *argv[])
                         sample_names[k], format_names[f]);
                 return EXIT_FAILURE;
             }
-            report_result(k, f, verbose);
+            report_result(k, f, terse);
         }
     }
 
