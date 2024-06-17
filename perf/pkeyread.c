@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <libgen.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
@@ -217,6 +218,103 @@ static void usage(char * const argv[])
     } while (*format_name != NULL);
 }
 
+static void implicit_report_result(char *const argv[], int terse)
+{
+    if (terse)
+        printf("%lf\n", get_avcalltime());
+    else
+        printf("%s average time per call: %lfus\n", basename(argv[0]),
+	    get_avcalltime());
+}
+
+static int implicit_main(int argc, char *const argv[])
+{
+    OSSL_TIME duration;
+    char progname[80];
+    char *key, *format;
+    int format_id, ch, terse;
+    void (*do_f[2])(size_t) = {
+        do_pemread,
+        do_derread
+    };
+
+    strncpy(progname, basename(argv[0]), sizeof(progname));
+    progname[79] = '\0';
+
+    /* chop off pkeyread */
+    key = strchr(progname, '-');
+    if (key == NULL) {
+        fprintf(stderr, "Unexpected command %s\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    key++;
+
+    format = strchr(key, '-');
+    if (format == NULL) {
+        fprintf(stderr, "Unexpected command %s\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    *format = '\0';
+    format++;
+
+    format_id = format_name_to_id(format);
+    if (format_id == FORMAT_INVALID || format_id == FORMAT_ALL) {
+        fprintf(stderr, "%s - unexpected command .%s\n", argv[0], format);
+        return EXIT_FAILURE;
+    }
+
+    sample_id = sample_name_to_id(key);
+    if (sample_id == SAMPLE_INVALID || sample_id == SAMPLE_ALL) {
+        fprintf(stderr, "%s - unexpected command %s.\n", argv[0],  key);
+        return EXIT_FAILURE;
+    }
+
+    terse = 0;
+    while ((ch = getopt(argc, argv, "t")) != -1) {
+        switch (ch) {
+        case 't':
+            terse = 1;
+            break;
+        default:
+            fprintf(stderr, "invalid option!\n%s [-t]\n"
+                "\t-t enables minimal output", basename(argv[0]));
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (argv[optind] == NULL) {
+        fprintf(stderr, "%s Missing threadcount argument\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    threadcount = atoi(argv[optind]);
+    if (threadcount < 1) {
+        fprintf(stderr, "%s threadcount must be > 0\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
+    if (times == NULL) {
+        printf("%s Failed to create times array\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    num_calls = NUM_CALLS_PER_TEST;
+    if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
+        num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
+
+    if (!perflib_run_multi_thread_test(do_f[format_id], threadcount,
+        &duration)) {
+        fprintf(stderr, "%s Failed to run the test %s in %s format]\n",
+            argv[0], key, format);
+        return EXIT_FAILURE;
+    }
+
+    implicit_report_result(argv, terse);
+
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char * const argv[])
 {
     OSSL_TIME duration;
@@ -235,6 +333,9 @@ int main(int argc, char * const argv[])
         "PEM_read_bio_PrivateKey",
         "X509_PUBKEY_get0_param"
     };
+
+    if (strcmp(basename(argv[0]), "pkeyread") != 0)
+        return implicit_main(argc, argv);
 
     key_id = SAMPLE_INVALID;
     format_id = FORMAT_INVALID;
