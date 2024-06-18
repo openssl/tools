@@ -75,7 +75,7 @@ static void do_handshake(size_t num)
         err = 1;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char * const argv[])
 {
     double persec;
     OSSL_TIME duration, ttime;
@@ -83,12 +83,25 @@ int main(int argc, char *argv[])
     double avcalltime;
     int ret = EXIT_FAILURE;
     int i;
-    int argnext = 1;
     int terse = 0;
     int opt;
+    struct option long_opts[] = {
+        {
+            "terse",
+            no_argument,
+            NULL,
+            't',
+        },
+        {
+            "share",
+            no_argument,
+            NULL,
+            's',
+        },
+        { 0 }
+    };
 
-    while ((opt = getopt(argc, argv, "ts")) != -1) {
-        argnext++;
+    while ((opt = getopt_long(argc, argv, "ts", long_opts, NULL)) != -1) {
         switch (opt) {
         case 't':
             terse = 1;
@@ -105,14 +118,19 @@ int main(int argc, char *argv[])
         }
     }
 
-    cert = perflib_mk_file_path(argv[argnext], "servercert.pem");
-    privkey = perflib_mk_file_path(argv[argnext], "serverkey.pem");
+    cert = perflib_mk_file_path(argv[optind], "servercert.pem");
+    privkey = perflib_mk_file_path(argv[optind], "serverkey.pem");
     if (cert == NULL || privkey == NULL) {
         printf("Failed to allocate cert/privkey\n");
         goto err;
     }
 
-    threadcount = atoi(argv[++argnext]);
+    optind++;
+    if (argv[optind] == NULL) {
+        printf("threadcount argument missing\n");
+        goto err;
+    }
+    threadcount = atoi(argv[optind]);
     if (threadcount < 1) {
         printf("threadcount must be > 0\n");
         goto err;
@@ -155,7 +173,6 @@ int main(int argc, char *argv[])
 
     if (terse) {
         printf("%lf\n", avcalltime);
-        printf("%lf\n", persec);
     } else {
         printf("Average time per handshake: %lfus\n", avcalltime);
         printf("Handshakes per second: %lf\n", persec);
