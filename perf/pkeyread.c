@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <getopt.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
@@ -197,7 +196,7 @@ static void usage(char * const argv[])
     const char **key_name = sample_names;
     const char **format_name = format_names;
 
-    fprintf(stderr, "%s -k key_name -f format_name [-t] thread_count\n"
+    fprintf(stderr, "%s -k key_name -f format_name [-t] terse threadcount\n"
         "\twhere key_name is one of these: ", argv[0]);
     fprintf(stderr, "%s", *key_name);
     do {
@@ -236,32 +235,11 @@ int main(int argc, char * const argv[])
         "PEM_read_bio_PrivateKey",
         "X509_PUBKEY_get0_param"
     };
-    struct option long_opts[] = {
-        {
-            "key",
-            required_argument,
-            NULL,
-            'k'
-        },
-        {
-            "format",
-            required_argument,
-            NULL,
-            'f'
-        },
-        {
-            "terse",
-            no_argument,
-            NULL,
-            't'
-        },
-        { 0 }
-    };
 
     key_id = SAMPLE_INVALID;
     format_id = FORMAT_INVALID;
 
-    while ((ch = getopt_long(argc, argv, "k:f:t", long_opts, NULL)) != -1) {
+    while ((ch = getopt(argc, argv, "k:f:t")) != -1) {
         switch (ch) {
         case 'k':
             key = optarg;

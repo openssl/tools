@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <getopt.h>
+#include <libgen.h>
+#include <unistd.h>
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
@@ -85,23 +86,8 @@ int main(int argc, char * const argv[])
     int i;
     int terse = 0;
     int opt;
-    struct option long_opts[] = {
-        {
-            "terse",
-            no_argument,
-            NULL,
-            't',
-        },
-        {
-            "share",
-            no_argument,
-            NULL,
-            's',
-        },
-        { 0 }
-    };
 
-    while ((opt = getopt_long(argc, argv, "ts", long_opts, NULL)) != -1) {
+    while ((opt = getopt(argc, argv, "ts")) != -1) {
         switch (opt) {
         case 't':
             terse = 1;
@@ -110,22 +96,14 @@ int main(int argc, char * const argv[])
             share_ctx = 0;
             break;
         default:
-            printf("Usage: handshake [-t] [-s] certsdir threadcount\n");
+            printf(
+                "Usage: %s [-t] [-s] threadcount certsdir\n", basename(argv[0]));
             printf("-t - terse output\n");
             printf("-s - disable context sharing\n");
-            exit(1);
-            break;
+            return EXIT_FAILURE;
         }
     }
 
-    cert = perflib_mk_file_path(argv[optind], "servercert.pem");
-    privkey = perflib_mk_file_path(argv[optind], "serverkey.pem");
-    if (cert == NULL || privkey == NULL) {
-        printf("Failed to allocate cert/privkey\n");
-        goto err;
-    }
-
-    optind++;
     if (argv[optind] == NULL) {
         printf("threadcount argument missing\n");
         goto err;
@@ -138,6 +116,18 @@ int main(int argc, char * const argv[])
     num_calls = NUM_CALLS_PER_TEST;
     if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
         num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
+
+    optind++;
+    if (argv[optind] == NULL) {
+        printf("certsdir is missing\n");
+        goto err;
+    }
+    cert = perflib_mk_file_path(argv[optind], "servercert.pem");
+    privkey = perflib_mk_file_path(argv[optind], "serverkey.pem");
+    if (cert == NULL || privkey == NULL) {
+        printf("Failed to allocate cert/privkey\n");
+        goto err;
+    }
 
     times = OPENSSL_malloc(sizeof(OSSL_TIME) * threadcount);
     if (times == NULL) {
