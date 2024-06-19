@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <libgen.h>
+#include <unistd.h>
 #include <openssl/bio.h>
 #include <openssl/x509.h>
 #include "perflib/perflib.h"
@@ -67,31 +69,28 @@ int main(int argc, char *argv[])
     OSSL_TIME duration, ttime;
     double avcalltime;
     int terse = 0;
-    int argnext;
     char *cert = NULL;
     int ret = EXIT_FAILURE;
     BIO *bio = NULL;
+    int opt;
 
-    if ((argc != 3 && argc != 4)
-            || (argc == 4 && strcmp("--terse", argv[1]) != 0)) {
-        printf("Usage: x509storeissuer [--terse] certsdir threadcount\n");
-        return EXIT_FAILURE;
+    while ((opt = getopt(argc, argv, "t")) != -1) {
+        switch (opt) {
+        case 't':
+            terse = 1;
+            break;
+        default:
+            printf("Usage: %s [-t] threadcount certsdir\n", basename(argv[0]));
+            printf("-t - terse output\n");
+            return EXIT_FAILURE;
+        }
     }
 
-    if (argc == 4) {
-        terse = 1;
-        argnext = 2;
-    } else {
-        argnext = 1;
-    }
-
-    cert = perflib_mk_file_path(argv[argnext], "servercert.pem");
-    if (cert == NULL) {
-        printf("Failed to allocate cert\n");
+    if (argv[optind] == NULL) {
+        printf("threadcount is missing\n");
         goto err;
     }
-
-    threadcount = atoi(argv[++argnext]);
+    threadcount = atoi(argv[optind]);
     if (threadcount < 1) {
         printf("threadcount must be > 0\n");
         goto err;
@@ -99,6 +98,17 @@ int main(int argc, char *argv[])
     num_calls = NUM_CALLS_PER_TEST;
     if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
         num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
+
+    optind++;
+    if (argv[optind] == NULL) {
+        printf("certsdir is missing\n");
+        goto err;
+    }
+    cert = perflib_mk_file_path(argv[optind], "servercert.pem");
+    if (cert == NULL) {
+        printf("Failed to allocate cert\n");
+        goto err;
+    }
 
     store = X509_STORE_new();
     if (store == NULL || !X509_STORE_set_default_paths(store)) {

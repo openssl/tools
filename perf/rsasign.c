@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <libgen.h>
+#include <unistd.h>
 #include <assert.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
@@ -71,25 +73,28 @@ int main(int argc, char *argv[])
     OSSL_TIME ttime;
     double avcalltime;
     int terse = 0;
-    int argnext;
     BIO *membio = NULL;
     int rc = EXIT_FAILURE;
     size_t i;
+    int opt;
 
-    if ((argc != 2 && argc != 3)
-                || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
-        printf("Usage: rsasign [--terse] threadcount\n");
+    while ((opt = getopt(argc, argv, "t")) != -1) {
+        switch (opt) {
+        case 't':
+            terse = 1;
+            break;
+        default:
+            printf("Usage: %s [-t] threadcount\n", basename(argv[0]));
+            printf("-t - terse output\n");
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (argv[optind] == NULL) {
+        printf("threadcount is missing\n");
         return EXIT_FAILURE;
     }
-
-    if (argc == 3) {
-        terse = 1;
-        argnext = 2;
-    } else {
-        argnext = 1;
-    }
-
-    threadcount = atoi(argv[argnext]);
+    threadcount = atoi(argv[optind]);
     if (threadcount < 1) {
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;

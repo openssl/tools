@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <libgen.h>
+#include <unistd.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
@@ -183,22 +185,21 @@ int main(int argc, char *argv[])
     OSSL_TIME ttime;
     double av;
     int terse = 0;
-    int argnext;
     size_t i;
     int rc = EXIT_FAILURE;
     char *fetch_type = getenv("EVP_FETCH_TYPE");
+    int opt;
 
-    if ((argc != 2 && argc != 3)
-                || (argc == 3 && strcmp("--terse", argv[1]) != 0)) {
-        printf("Usage: %s [--terse] threadcount\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    if (argc == 3) {
-        terse = 1;
-        argnext = 2;
-    } else {
-        argnext = 1;
+    while ((opt = getopt(argc, argv, "t")) != -1) {
+        switch (opt) {
+        case 't':
+            terse = 1;
+            break;
+        default:
+            printf("Usage: %s [-t] threadcount\n", basename(argv[0]));
+            printf("-t - terse output\n");
+            return EXIT_FAILURE;
+        }
     }
 
     if (fetch_type != NULL) {
@@ -222,7 +223,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    threadcount = atoi(argv[argnext]);
+    if (argv[optind] == NULL) {
+        printf("threadcount is missing\n");
+        return EXIT_FAILURE;
+    }
+    threadcount = atoi(argv[optind]);
     if (threadcount < 1) {
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;
