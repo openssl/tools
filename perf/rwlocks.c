@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
     int terse = 0;
     char *writeenv;
     int opt;
+    int show_rlock_stats, show_wlock_stats;;
 
     while ((opt = getopt(argc, argv, "t")) != -1) {
         switch (opt) {
@@ -126,6 +127,18 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         return EXIT_FAILURE;
     }
+
+    if (strcmp(basename(argv[0]), "rwlocks-rlock") == 0) {
+        show_rlock_stats = 1;
+        show_wlock_stats = 0;
+    } else if (strcmp(basename(argv[0]), "rwlocks-wlock") == 0) {
+        show_rlock_stats = 0;
+        show_wlock_stats = 1;
+    } else {
+        show_rlock_stats = 1;
+        show_wlock_stats = 1;
+    }
+
 
     writeenv = getenv("LOCK_WRITERS");
     if (writeenv == NULL) {
@@ -174,12 +187,18 @@ int main(int argc, char *argv[])
                read_lock_calls, (double)us);
 
     if (terse) {
-        printf("%lf %lf\n", avwcalltime, avrcalltime);
+        if (show_rlock_stats)
+            printf("%lf", avrcalltime);
+        if (show_wlock_stats)
+            printf("%lf", avwcalltime);
+        printf("\n");
     } else {
-        printf("Average time per write_lock/unlock call pair: %lfus\n",
-               avwcalltime);
-        printf("Average time per read_lock/unlock call pair: %lfus\n",
+        if (show_rlock_stats)
+            printf("Average time per read_lock/unlock call pair: %lfus\n",
                avrcalltime);
+        if (show_wlock_stats)
+            printf("Average time per write_lock/unlock call pair: %lfus\n",
+               avwcalltime);
     }
 
     CRYPTO_THREAD_lock_free(lock);
