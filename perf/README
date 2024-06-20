@@ -111,7 +111,7 @@ threads to use is provided as an argument and the test reports the average time
 take to execute a block of 1000 OSSL_PROVIDER_do_all() calls.
 
 rwlocks
--------------
+-------
 the rwlocks test creates the command line specified number of threads, splitting
 them evenly between read and write functions (though this is adjustable via the
 LOCK_WRITERS environment variable).  Threads then iteratively acquire a shared
@@ -131,3 +131,9 @@ call. Use option -k to select key type for benchmark.  The list of keys for
 testing is as follows: dh, dhx, dsa, ec, rsa, xkey.  To run bencmark for all
 keys and formats using 4 threads run pkeyread as follows:
     ./pkeyread -f all -k all -t 4
+
+run-perf.sh
+-----------
+
+Script which collects performance stats by running all tools above. It tests
+OpenSSL versions 1.1.1 3.0 and master.
