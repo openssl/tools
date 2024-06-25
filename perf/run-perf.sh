@@ -236,6 +236,7 @@ for TOOL in $PERFTOOLS ; do
         for THREADS in $THREAD_COUNTS ; do
             # pkeyread_* functions need pkyeread tool.
             TEST_TOOL=`echo $TOOL | sed -e 's/\(pkeyread\).*/\1/g'`
+            TEST_TOOL=`echo $TOOL | sed -e 's/\(rwlocks\).*/\1/g'`
             TEST_TOOL=$TOOLS_PATH/$TEST_TOOL
             if [[ ! -x $TEST_TOOL ]] ; then
                 #
