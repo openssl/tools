@@ -219,7 +219,6 @@ function rwlocks-wlock {
 # it took to run it.
 #
 for TOOL in $PERFTOOLS ; do
-    CMD=$TOOLS_PATH/$TOOL
 
     for VERSION in $VERSIONS ; do
         pushd `pwd`
@@ -235,7 +234,10 @@ for TOOL in $PERFTOOLS ; do
         fi
         popd
         for THREADS in $THREAD_COUNTS ; do
-            if [[ ! -x $CMD ]] ; then 
+            # pkeyread_* functions need pkyeread tool.
+            TEST_TOOL=`echo $TOOL | sed -e 's/\(pkeyread\).*/\1/g'`
+            TEST_TOOL=$TOOLS_PATH/$TEST_TOOL
+            if [[ ! -x $TEST_TOOL ]] ; then
                 #
                 # if tools is not available for VERSION, then
                 # print N/A. We print a two cells of
@@ -252,7 +254,7 @@ for TOOL in $PERFTOOLS ; do
 	    for k in $(seq 1 1 $ITERATIONS) ; do  
 		export EVP_FETCH_TYPE=MD:MD5
 		ARGS="-t $THREADS $CERT_DIR"
-		echo "Running $CMD against $VERSION with $THREADS threads, iteration $k"
+		echo "Running $TOOL against $VERSION with $THREADS threads, iteration $k"
 		OUTPUT=$($TOOL $ARGS)
 		USECS=$(echo $OUTPUT | awk '{print $1}')
 		USECS_ARRAY+=($USECS)
