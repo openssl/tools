@@ -24,6 +24,7 @@ static char *keypath = NULL;
 static char *storepath = NULL;
 
 static int threadcount;
+static int adj_ctx_per_run = 0;
 
 typedef enum {
     OP_SERVER,
@@ -41,7 +42,7 @@ static void do_create_ctx(size_t num)
 
     start = ossl_time_now();
 
-    for (i = 0; i < NUM_CTX_PER_RUN / threadcount; i++) {
+    for (i = 0; i < adj_ctx_per_run / threadcount; i++) {
         ctx = SSL_CTX_new(mode == OP_SERVER ? TLS_server_method() :
                                               TLS_client_method());
         if (ctx == NULL)
@@ -57,7 +58,6 @@ static void do_create_ctx(size_t num)
                 goto out;
         }
         SSL_CTX_free(ctx);
-        ctx == NULL;
     }
 
 out:
@@ -70,12 +70,12 @@ out:
 
 static void usage(char *name)
 {
-    printf("usage\n");
-    printf("%s [-m <server|client>] [-c <cert>] [-k <key>] [-s <store>] <threadcount> \n", name);
-    printf("-m <server|client> - create a client or server method in context\n");
-    printf("-c <cert> - path to certificate for server context\n");
-    printf("-k <key> - path to key for server context\n");
-    printf("-s <store> - path to cert store for client context\n");
+    fprintf(stderr, "usage\n");
+    fprintf(stderr, "%s [-m <server|client>] [-c <cert>] [-k <key>] [-s <store>] <threadcount> \n", name);
+    fprintf(stderr, "-m <server|client> - create a client or server method in context\n");
+    fprintf(stderr, "-c <cert> - path to certificate for server context\n");
+    fprintf(stderr, "-k <key> - path to key for server context\n");
+    fprintf(stderr, "-s <store> - path to cert store for client context\n");
 }
 
 int main(int argc, char *argv[])
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     int terse = 0;
     int ch = 0;
 
-    while ((ch = getopt(argc, argv, "m:c:k:s:")) != -1) {
+    while ((ch = getopt(argc, argv, "tm:c:k:s:")) != -1) {
         switch(ch) {
         case 'm':
             if (!strcmp(optarg, "server")) {
@@ -109,6 +109,9 @@ int main(int argc, char *argv[])
         case 's':
             storepath = optarg;
             break;
+        case 't':
+            terse = 1;
+            break;
         default:
             usage(argv[0]);
             exit(1);
@@ -126,6 +129,9 @@ int main(int argc, char *argv[])
         printf("threadcount must be > 0\n");
         goto err;
     }
+
+    /* Adjust the number of iterations so we divide evenly among threads */
+    adj_ctx_per_run = (NUM_CTX_PER_RUN/threadcount)*threadcount;
 
     if (mode == OP_SERVER) {
         if (certpath == NULL | keypath == NULL) {
@@ -161,7 +167,7 @@ int main(int argc, char *argv[])
     for (i = 1; i < threadcount; i++)
         ttime = ossl_time_add(ttime, times[i]);
 
-    avcalltime = ((double)ossl_time2ticks(ttime) / (double)NUM_CTX_PER_RUN) / (double)OSSL_TIME_US;
+    avcalltime = ((double)ossl_time2ticks(ttime) / (double)adj_ctx_per_run) / (double)OSSL_TIME_US;
 
     if (terse)
         printf("%lf\n", avcalltime);
