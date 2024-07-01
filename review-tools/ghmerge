@@ -9,6 +9,7 @@ Option style arguments:
 
 --help              Print this help and exit
 --tools             Merge a tools PR (rather than openssl PR)
+--installer         Merge an installer PR (rather than openssl PR)
 --web               Merge a web PR (rather than openssl PR)
 --fuzz-corpora      Merge a PR against fuzz-corpora (rather than openssl PR)
 --remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
@@ -30,6 +31,10 @@ Examples:
 }
 
 set -o errexit
+
+SELFPATH=$(dirname $(readlink -f $0))
+PERLPATH=$(realpath $SELFPATH/../)
+export PERL5LIB=$PERL5LIB:$PERLPATH:$PERLPATH/OpenSSL-Query/lib/
 
 WHAT=""
 PICK=no
@@ -60,6 +65,9 @@ while [ $# -ne 0 ]; do
         ;;
     --web)
         WHAT=web ; BUILD=no ; shift
+        ;;
+    --installer)
+        WHAT=installer ; BUILD=no ; shift
         ;;
     --technical-policies)
         WHAT=technical-policies ; BUILD=no ; shift

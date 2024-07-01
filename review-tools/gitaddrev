@@ -146,6 +146,12 @@ foreach (@ARGV) {
         # openssl/fuzz-corpora is governed by OTC
         $min_otc = 1;
         $min_omc = 0;
+    } elsif (/--installer$/) {
+        $WHAT = 'installer';
+        $min_authors = 1;
+        # openssl/installer is governed by OTC
+        $min_otc = 1;
+        $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
     }

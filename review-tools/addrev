@@ -40,6 +40,8 @@ foreach (@ARGV) {
         $args .= "--tools ";
     } elsif (/^--fuzz-corpora$/) {
         $args .= "--fuzz-corpora ";
+    } elsif (/^--installer/) {
+        $args .= "--installer ";
     } elsif (/^--verbose$/) {
         $args .= "--verbose ";
     } elsif (/^--noself$/) {
