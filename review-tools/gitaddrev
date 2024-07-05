@@ -146,6 +146,11 @@ foreach (@ARGV) {
         # openssl/fuzz-corpora is governed by OTC
         $min_otc = 1;
         $min_omc = 0;
+    } elsif (/--perftools$/) {
+        $WHAT = 'perftools';
+        $min_authors = 2;
+        $min_otc = 0;
+        $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
     }
