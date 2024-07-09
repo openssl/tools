@@ -44,8 +44,10 @@ static void do_create_ctx(size_t num)
     for (i = 0; i < adj_ctx_per_run / threadcount; i++) {
         ctx = SSL_CTX_new(mode == OP_SERVER ? TLS_server_method() :
                                               TLS_client_method());
-        if (ctx == NULL)
+        if (ctx == NULL) {
+            err = 1;
             goto out;
+        }
         if (mode == OP_SERVER) {
             if ((SSL_CTX_use_certificate_file(ctx, certpath,
                                               SSL_FILETYPE_PEM) != 1) ||
