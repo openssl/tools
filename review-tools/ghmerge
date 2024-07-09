@@ -31,10 +31,6 @@ Examples:
 }
 set -o errexit
 
-SELFPATH=$(dirname $(readlink -f $0))
-PERLPATH=$(realpath $SELFPATH/../)
-export PERL5LIB=$PERL5LIB:$PERLPATH:$PERLPATH/OpenSSL-Query/lib/
-
 WHAT=""
 PICK=no
 INTERACTIVE=yes
