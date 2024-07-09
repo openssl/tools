@@ -35,7 +35,6 @@ op_mode mode = OP_SERVER;
 
 static void do_create_ctx(size_t num)
 {
-    int ret = 1;
     int i;
     SSL_CTX *ctx = NULL;
     OSSL_TIME start, end;
@@ -49,13 +48,17 @@ static void do_create_ctx(size_t num)
             goto out;
         if (mode == OP_SERVER) {
             if ((SSL_CTX_use_certificate_file(ctx, certpath,
-                                              SSL_FILETYPE_PEM) == 1) ||
+                                              SSL_FILETYPE_PEM) != 1) ||
                 (SSL_CTX_use_PrivateKey_file(ctx, keypath,
-                                             SSL_FILETYPE_PEM) == 1))
+                                             SSL_FILETYPE_PEM) != 1)) {
+                err = 1;
                 goto out;
+            }
         } else {
-            if (SSL_CTX_load_verify_dir(ctx, storepath) != 1)
+            if (SSL_CTX_load_verify_dir(ctx, storepath) != 1) {
+                err = 1;
                 goto out;
+            }
         }
         SSL_CTX_free(ctx);
     }
@@ -63,9 +66,6 @@ static void do_create_ctx(size_t num)
 out:
     end = ossl_time_now();
     times[num] = ossl_time_subtract(end, start);
-
-    if (!ret)
-        err = 1;
 }
 
 static void usage(char *name)
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     }
 
     /* Adjust the number of iterations so we divide evenly among threads */
-    adj_ctx_per_run = (NUM_CTX_PER_RUN/threadcount)*threadcount;
+    adj_ctx_per_run = (NUM_CTX_PER_RUN / threadcount) * threadcount;
 
     if (mode == OP_SERVER) {
         if (certpath == NULL | keypath == NULL) {
