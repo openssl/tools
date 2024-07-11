@@ -86,7 +86,7 @@ OSSL_TIME ossl_time_infinite(void)
 
 /* Convert time to timeval */
 static ossl_unused ossl_inline
-struct timeval ssl_time_to_timeval(OSSL_TIME t)
+struct timeval ossl_time_to_timeval(OSSL_TIME t)
 {
     struct timeval tv;
 
