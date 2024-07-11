@@ -10,8 +10,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef _WIN32
 #include <libgen.h>
 #include <unistd.h>
+#else
+#include <windows.h>
+#include "perflib/getopt.h"
+#include "perflib/basename.h"
+#endif	/* _WIN32 */
 #include <assert.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
@@ -45,7 +51,6 @@ static OSSL_TIME *times = NULL;
 void do_rsasign(size_t num)
 {
     size_t i;
-    unsigned char buf[32];
     unsigned char sig[64];
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(rsakey, NULL);
     size_t siglen = sizeof(sig);

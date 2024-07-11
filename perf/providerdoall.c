@@ -10,8 +10,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef _WIN32
 #include <libgen.h>
 #include <unistd.h>
+#else
+#include <windows.h>
+#include "perflib/getopt.h"
+#include "perflib/basename.h"
+#endif	/* _WIN32 */
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include <openssl/provider.h>
@@ -36,7 +42,6 @@ static int threadcount;
 static void do_providerdoall(size_t num)
 {
     size_t i;
-    unsigned char buf[32];
     int count;
     OSSL_TIME start, end;
 

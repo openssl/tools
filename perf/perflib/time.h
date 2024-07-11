@@ -12,7 +12,12 @@
 # pragma once
 
 # include <openssl/e_os2.h>     /* uint64_t */
-# include "sys/time.h" /* TODO: Probably needs something else on Windows */
+# ifndef _WIN32
+#  include "sys/time.h"
+# else
+#  include <windows.h>
+#  include <winsock.h>
+# endif	/* _WIN32 */
 # include "safe_math.h"
 
 /*
@@ -81,7 +86,7 @@ OSSL_TIME ossl_time_infinite(void)
 
 /* Convert time to timeval */
 static ossl_unused ossl_inline
-struct timeval ossl_time_to_timeval(OSSL_TIME t)
+struct timeval ssl_time_to_timeval(OSSL_TIME t)
 {
     struct timeval tv;
 

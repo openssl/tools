@@ -10,8 +10,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef _WIN32
 #include <libgen.h>
 #include <unistd.h>
+#else
+#include <windows.h>
+#include "perflib/getopt.h"
+#include "perflib/basename.h"
+#endif	/* _WIN32 */
 #include <openssl/ssl.h>
 #include "perflib/perflib.h"
 
@@ -80,7 +86,6 @@ int main(int argc, char * const argv[])
 {
     double persec;
     OSSL_TIME duration, ttime;
-    uint64_t us;
     double avcalltime;
     int ret = EXIT_FAILURE;
     int i;
