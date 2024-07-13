@@ -322,7 +322,7 @@ BEGIN {
 }
 
 s|^([[:space:]]*#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_NUMBER[[:space:]]+0x)[[:xdigit:]]+L$|$1${version_number}L|;
-s|^([[:space:]]*#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_TEXT[[:space:]]+)"OpenSSL \d+\.\d+\.\dz*[a-x]?(-fips)?(-dev)?  [^"]+"$|$1"OpenSSL ${version_text}$2${version_tag}  $release_date"|;
+s|^([[:space:]]*#[[:space:]]*define[[:space:]]+OPENSSL_VERSION_TEXT[[:space:]]+)"OpenSSL \d+\.\d+\.\dz*[a-y]?(-fips)?(-dev)?  [^"]+"$|$1"OpenSSL ${version_text}$2${version_tag}  $release_date"|;
 s|^([[:space:]]*#[[:space:]]*define[[:space:]]+SHLIB_VERSION_NUMBER[[:space:]]+)"[^"]*"$|$1"${shlib_version}"|;
 '
             perl -pi -e "$version_updater" "$VERSION_FILE"
