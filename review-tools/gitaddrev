@@ -148,12 +148,12 @@ foreach (@ARGV) {
         $min_omc = 0;
     } elsif (/--perftools$/) {
         $WHAT = 'perftools';
-        $min_authors = 2;
+        $min_authors = 1;
         $min_otc = 0;
         $min_omc = 0;
     } elsif (/--installer$/) {
         $WHAT = 'installer';
-        $min_authors = 2;
+        $min_authors = 1;
         # openssl/installer is governed by OTC
         $min_otc = 1;
         $min_omc = 0;
