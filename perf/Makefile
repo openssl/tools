@@ -1,9 +1,14 @@
-all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
+all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch \
+	rwlocks-rlock rwlocks-wlock
 # Build target for OpenSSL 1.1.1 builds
-all111: randbytes handshake sslnew newrawkey rsasign x509storeissuer rwlocks pkeyread
+all111: randbytes handshake sslnew newrawkey rsasign x509storeissuer rwlocks pkeyread rwlocks-rlock \
+	rwlocks-wlock
 
 clean:
-	rm -f libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
+	rm -f libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch \
+	rwlocks-rlock rwlocks-wlock
+
+LN=/bin/ln
 
 CPPFLAGS += -I$(TARGET_OSSL_INCLUDE_PATH) -I.
 # For second include path, i.e. out of tree build of OpenSSL uncomment this:
@@ -43,6 +48,12 @@ providerdoall:	providerdoall.c libperf.a
 
 rwlocks: rwlocks.c libperf.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o rwlocks rwlocks.c -lperf -lcrypto
+
+rwlocks-rlock: rwlocks
+	$(LN) -s rwlocks rwlocks-rlock
+
+rwlocks-wlock: rwlocks
+	$(LN) -s rwlocks rwlocks-wlock
 
 regen_key_samples:
 	./genkeys.sh > keys.h
