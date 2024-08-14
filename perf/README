@@ -83,6 +83,13 @@ calls.
 
 Note that this test does not support OpenSSL 1.1.1.
 
+evp_setpeer
+-------
+The evp_setpeer test repeatedly calls the EVP_PKEY_derive_set_peer() function.
+It does 100000 repetitions divided evenly among each thread. The number of
+threads to use is provided as an argument and the test reports the average time
+take to execute a block of 1000 EVP_PKEY_derive_set_peer() calls.
+
 rsasign
 -------
 
