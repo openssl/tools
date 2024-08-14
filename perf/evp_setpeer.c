@@ -13,8 +13,6 @@
 #include <libgen.h>
 #include <unistd.h>
 #include <openssl/evp.h>
-#include <openssl/kdf.h>
-#include <openssl/core_names.h>
 #include "perflib/perflib.h"
 
 #define NUM_CALLS_PER_TEST         1000000
@@ -42,7 +40,7 @@ void do_setpeer(size_t num)
     pkey_ctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (pkey_ctx == NULL) {
         err = 1;
-        printf("Failed to create ctx");
+        printf("Failed to create pkey_ctx");
         return;
     }
 
