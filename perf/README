@@ -23,7 +23,7 @@ are contained.
 To build:
 
 export TARGET_OSSL_INCLUDE_PATH=/path/to/openssl/include
-export TARGET_OSSL_LIBRARY_PATH=/path/to/openssl
+export TARGET_OSSL_LIBRARY_PATH=/path/to/openssl/lib
 make
 
 The performance testing apps must be run ensuring that libcrypto.so and
@@ -31,7 +31,7 @@ libssl.so are on the library path.
 
 For example:
 
-LD_LIBRARY_PATH=/path/to/openssl ./randbytes 10
+LD_LIBRARY_PATH=/path/to/openssl/lib ./randbytes 10
 
 Each performance testing app will take different parameters. They are described
 individually below. All performance testing apps take the "--terse" option

@@ -1,9 +1,9 @@
-all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
+all: randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch evp_setpeer
 # Build target for OpenSSL 1.1.1 builds
-all111: randbytes handshake sslnew newrawkey rsasign x509storeissuer rwlocks pkeyread
+all111: randbytes handshake sslnew newrawkey rsasign x509storeissuer rwlocks pkeyread evp_setpeer
 
 clean:
-	rm -f libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch
+	rm -f libperf.a *.o randbytes handshake sslnew newrawkey rsasign x509storeissuer providerdoall rwlocks pkeyread evp_fetch evp_setpeer
 
 CPPFLAGS += -I$(TARGET_OSSL_INCLUDE_PATH) -I.
 # For second include path, i.e. out of tree build of OpenSSL uncomment this:
@@ -49,3 +49,6 @@ regen_key_samples:
 
 pkeyread: pkeyread.c keys.h libperf.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o pkeyread pkeyread.c -lperf -lcrypto
+
+evp_setpeer: evp_setpeer.c libperf.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o evp_setpeer evp_setpeer.c -lperf -lcrypto
