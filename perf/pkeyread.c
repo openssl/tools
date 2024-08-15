@@ -327,8 +327,8 @@ int main(int argc, char * const argv[])
     }
     /* run samples/formats as appropriate */
     for (k = key_id_min; k < key_id_max; k++) {
+        sample_id = k;
         for (f = format_id_min; f < format_id_max; f++) {
-            sample_id = k;
             if (!perflib_run_multi_thread_test(do_f[f], threadcount, &duration)) {
                 fprintf(stderr, "Failed to run the test %s in %s format]\n",
                         sample_names[k], format_names[f]);

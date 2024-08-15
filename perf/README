@@ -85,10 +85,15 @@ Note that this test does not support OpenSSL 1.1.1.
 
 evp_setpeer
 -------
-The evp_setpeer test repeatedly calls the EVP_PKEY_derive_set_peer() function.
-It does 100000 repetitions divided evenly among each thread. The number of
-threads to use is provided as an argument and the test reports the average time
-take to execute a block of 1000 EVP_PKEY_derive_set_peer() calls.
+
+The evp_setpeer test repeatedly calls the EVP_PKEY_derive_set_peer() function
+on a memory BIO with a private key of desired type.  It does 10000
+repetitions divided evenly among each thread. The number of threads to use is
+provided by option -t. The test reports average time per call. Use option -k
+to select key type for benchmark.  The list of keys for testing is as follows:
+dh, ec256, ec521, x25519.  To run benchmark for all keys using 4 threads, run
+evp_setpeer as follows:
+    ./evp_setpeer -k all -t 4
 
 rsasign
 -------
@@ -132,9 +137,9 @@ The pkeyread test repeatedly calls the PEM_read_bio_PrivateKey() function on a
 memory BIO with a private key of desired type, when it is running in pem mode
 (-f pem).  If test is running in der mode (-f der) it calls to
 d2i_PrivateKey_ex() function to repeatedly read private key of desired type.
-It does 100000 repetitions divided evenly among each thread. The number of
+It does 10000 repetitions divided evenly among each thread. The number of
 threads to use is provided by option -t. The test reports average time per
 call. Use option -k to select key type for benchmark.  The list of keys for
-testing is as follows: dh, dhx, dsa, ec, rsa, xkey.  To run bencmark for all
+testing is as follows: dh, dhx, dsa, ec, rsa, xkey.  To run benchmark for all
 keys and formats using 4 threads run pkeyread as follows:
     ./pkeyread -f all -k all -t 4

@@ -46,6 +46,7 @@ rwlocks: rwlocks.c libperf.a
 
 regen_key_samples:
 	./genkeys.sh > keys.h
+	./genkeys_setpeer.sh > keys_setpeer.h
 
 pkeyread: pkeyread.c keys.h libperf.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o pkeyread pkeyread.c -lperf -lcrypto

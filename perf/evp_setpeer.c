@@ -15,7 +15,10 @@
 #include <openssl/evp.h>
 #include "perflib/perflib.h"
 
-#define NUM_CALLS_PER_TEST         1000000
+/* run 'make regen_key_samples' if header file is missing */
+#include "keys_setpeer.h"
+
+#define NUM_CALLS_PER_TEST         10000
 
 int err = 0;
 
@@ -23,11 +26,6 @@ size_t num_calls;
 static int threadcount;
 static OSSL_TIME *times = NULL;
 
-static unsigned char buf[32] = {
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
-    0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-    0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
-};
 EVP_PKEY *pkey = NULL;
 
 void do_setpeer(size_t num)
@@ -40,13 +38,13 @@ void do_setpeer(size_t num)
     pkey_ctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (pkey_ctx == NULL) {
         err = 1;
-        printf("Failed to create pkey_ctx");
+        printf("Failed to create pkey_ctx\n");
         return;
     }
 
     if (EVP_PKEY_derive_init(pkey_ctx) <= 0) {
         err = 1;
-        printf("Failed to init pkey");
+        printf("Failed to init pkey_ctx\n");
         EVP_PKEY_CTX_free(pkey_ctx);
         return;
     }
@@ -66,6 +64,68 @@ void do_setpeer(size_t num)
     EVP_PKEY_CTX_free(pkey_ctx);
 }
 
+static int sample_name_to_id(const char *sample_name)
+{
+    int i = 0;
+
+    while (sample_names[i] != NULL) {
+        if (strcasecmp(sample_names[i], sample_name) == 0)
+            break;
+        i++;
+    }
+
+    return i;
+}
+
+static double get_avcalltime(void)
+{
+    int i;
+    OSSL_TIME t;
+    double avcalltime;
+
+    memset(&t, 0, sizeof(t));
+    for (i = 0; i < threadcount; i++)
+        t = ossl_time_add(t, times[i]);
+    avcalltime = (double)ossl_time2ticks(t) / num_calls;
+
+    avcalltime =  avcalltime / (double)OSSL_TIME_US;
+
+    return avcalltime;
+}
+
+static void report_result(int key_id, int terse)
+{
+    if (err) {
+        fprintf(stderr, "Error during test of %s\n",
+                sample_names[key_id]);
+        exit(EXIT_FAILURE);
+    }
+
+    if (terse)
+        printf("[%s] %lfus\n", sample_names[key_id],
+            get_avcalltime());
+    else
+        printf("Average time per %s evp_set_peer call: %lfus\n",
+            sample_names[key_id], get_avcalltime());
+}
+
+static void usage(char * const argv[])
+{
+    const char **key_name = sample_names;
+
+    fprintf(stderr, "%s -k key_name [-t] threadcount\n", argv[0]);
+    fprintf(stderr, "-t - terse output\n");
+    fprintf(stderr, "-k - one of these options: %s", *key_name);
+
+    do {
+        key_name++;
+        if (*key_name == NULL)
+            fprintf(stderr, "\n");
+        else
+            fprintf(stderr, ", %s", *key_name);
+    } while (*key_name != NULL);
+}
+
 int main(int argc, char *argv[])
 {
     OSSL_TIME duration;
@@ -76,27 +136,48 @@ int main(int argc, char *argv[])
     size_t i;
     int opt;
 
-    while ((opt = getopt(argc, argv, "t")) != -1) {
+    char *key = NULL;
+    int key_id, key_id_min, key_id_max, k;
+
+    while ((opt = getopt(argc, argv, "k:t")) != -1) {
         switch (opt) {
         case 't':
             terse = 1;
             break;
+        case 'k':
+            key = optarg;
+            break;
         default:
-            printf("Usage: %s [-t] threadcount\n", basename(argv[0]));
-            printf("-t - terse output\n");
+            usage(argv);
             return EXIT_FAILURE;
         }
     }
 
     if (argv[optind] == NULL) {
-        printf("threadcount is missing\n");
+        fprintf(stderr, "Missing threadcount argument\n");
+        usage(argv);
         return EXIT_FAILURE;
     }
+
     threadcount = atoi(argv[optind]);
     if (threadcount < 1) {
-        printf("threadcount must be > 0\n");
+        fprintf(stderr, "threadcount must be > 0\n");
+        usage(argv);
         return EXIT_FAILURE;
     }
+
+    if (key == NULL) {
+        fprintf(stderr, "option -k is missing\n");
+        usage(argv);
+        return EXIT_FAILURE;
+    }
+
+    key_id = sample_name_to_id(key);
+    if (key_id == SAMPLE_INVALID) {
+        fprintf(stderr, "Unknown key name (%s)\n", key);
+        return EXIT_FAILURE;
+    }
+
     num_calls = NUM_CALLS_PER_TEST;
     if (NUM_CALLS_PER_TEST % threadcount > 0) /* round up */
         num_calls += threadcount - NUM_CALLS_PER_TEST % threadcount;
@@ -107,21 +188,47 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        pkey = EVP_PKEY_new_raw_public_key_ex(NULL, "X25519", NULL, buf,
-                                            sizeof(buf));
-    #else
-        pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_X25519, NULL, buf,
-                                        sizeof(buf));
-    #endif
-    if (pkey == NULL) {
-        printf("Failed to create public key");
-        goto out;
+    if (key_id == SAMPLE_ALL) {
+        key_id_min = 0;
+        key_id_max = SAMPLE_ALL;
+    } else {
+        key_id_min = key_id;
+        key_id_max = key_id + 1;
     }
 
-    if (!perflib_run_multi_thread_test(do_setpeer, threadcount, &duration)) {
-        printf("Failed to run the test\n");
-        goto out;
+    /* run key types as appropriate */
+    for (k = key_id_min; k < key_id_max; k++) {
+        const char *keydata;
+        size_t keydata_sz;
+        BIO *pem;
+
+        keydata = sample_keys[k];
+        keydata_sz = sample_key_sizes[k];
+
+        pem = BIO_new_mem_buf(keydata, keydata_sz);
+        if (pem == NULL) {
+            fprintf(stderr, "%s Cannot create mem BIO [%s PEM]\n",
+                    __func__, sample_names[k]);
+            return EXIT_FAILURE;
+        }
+
+        pkey = PEM_read_bio_PrivateKey(pem, NULL, NULL, NULL);
+        BIO_free(pem);
+        if (pkey == NULL) {
+            fprintf(stderr, "Failed to create key: %llu [%s PEM]\n",
+                    (unsigned long long)i,
+                    sample_names[k]);
+            return EXIT_FAILURE;
+        }
+
+        if (!perflib_run_multi_thread_test(do_setpeer, threadcount, &duration)) {
+            fprintf(stderr, "Failed to run the test %s\n", sample_names[k]);
+            EVP_PKEY_free(pkey);
+            return EXIT_FAILURE;
+        }
+
+        report_result(k, terse);
+        EVP_PKEY_free(pkey);
     }
 
     if (err) {
@@ -129,19 +236,8 @@ int main(int argc, char *argv[])
         goto out;
     }
 
-    ttime = times[0];
-    for (i = 1; i < threadcount; i++)
-        ttime = ossl_time_add(ttime, times[i]);
-
-    avcalltime = ((double)ossl_time2ticks(ttime) / num_calls) / (double)OSSL_TIME_US;
-
-    if (terse)
-        printf("%lf\n", avcalltime);
-    else
-        printf("Average time per setpeer call: %lfus\n",
-               avcalltime);
+    rc = EXIT_SUCCESS;
 out:
     OPENSSL_free(times);
-    EVP_PKEY_free(pkey);
     return rc;
 }

@@ -259,7 +259,7 @@ echo '};'
 
 #
 # generate array of EVP_PKEYs to conveniently
-# convert sampe id to EVP_PKEY
+# convert sample id to EVP_PKEY
 #
 echo 'static const int evp_pkey_tab[] = {'
 for i in *.der ; do
