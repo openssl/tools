@@ -41,7 +41,7 @@ programs in you `$PATH`:
 
 You must have access to the following repositories:
 
--   `git@github.openssl.org:omc/data.git`
+-   `git@github.com:openssl/security-advisories.git`
 
     This contains files to be updated as part of any release.
 
@@ -148,7 +148,7 @@ In both tools, you will need to make a title and a short description.
 For the title, use something like "OpenSSL 3.1.0".
 
 For the release notes [^1], we currently use the same text as is added in the
-`newsflash.txt` file to announce the release
+`newsflash.md` file to announce the release
 (see [Update the release data locally](#update-the-release-data-locally) below)
 
 [^1]: The release notes field has previously been described as "description"
@@ -199,7 +199,7 @@ data repo*
 
 -   Newsflash *[only for public releases]*
 
-    Update the newsflash.txt file.  This normally is one or two lines.  Just
+    Update the newsflash.md file.  This normally is one or two lines.  Just
     copy and paste existing announcements making minor changes for the date
     and version number as necessary.  If there is an advisory then ensure
     you include a link to it.
@@ -211,7 +211,7 @@ data repo*
     If there is a Security Advisory then copy it into the secadv directory.
 
 Make a pull request from your changes, against the release metadata repo
-(the release metadata repo being `git@github.openssl.org:omc/data.git`).
+(the release metadata repo being `git@github.com:openssl/security-advisories.git`).
 Await approval from reviewers, then merge the pull request.
 
 # Post-publishing tasks
