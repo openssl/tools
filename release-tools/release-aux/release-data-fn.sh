@@ -8,7 +8,7 @@
 
 # Public or premium release?  Let the version numbers determine it!
 declare -A _ossl_release_types=(
-    [premium]='^1\.[01]\.[12]'
+    [premium]='^1\.'
     [public]='^[3-9]\.'
 )
 
