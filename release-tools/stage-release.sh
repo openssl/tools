@@ -655,13 +655,13 @@ if ! [ -f "../$tgzfile" ]; then
 fi
 
 $VERBOSE "== Generating checksums: $tgzfile.sha1 $tgzfile.sha256"
-openssl sha1 < "../$tgzfile" | \
-    (IFS='='; while read X H; do echo $H; done) > "../$tgzfile.sha1"
-openssl sha256 < "../$tgzfile" | \
-    (IFS='='; while read X H; do echo $H; done) > "../$tgzfile.sha256"
+sha1hash=$(openssl sha1 < "../$tgzfile" | \
+    (IFS='= '; while read X H; do echo $H; done))
+echo $sha1hash "$tgzfile" > "../$tgzfile.sha1"
+sha256hash=$(openssl sha256 < "../$tgzfile" | \
+    (IFS='= '; while read X H; do echo $H; done))
+echo $sha256hash "$tgzfile" > "../$tgzfile.sha256"
 length=$(wc -c < "../$tgzfile")
-sha1hash=$(cat "../$tgzfile.sha1")
-sha256hash=$(cat "../$tgzfile.sha256")
 
 $VERBOSE "== Generating announcement text: $announce"
 # Hack the announcement template
