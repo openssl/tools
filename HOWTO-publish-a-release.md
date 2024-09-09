@@ -41,7 +41,7 @@ programs in you `$PATH`:
 
 You must have access to the following repositories:
 
--   `git@github.com:openssl/security-advisories.git`
+-   `git@github.com:openssl/release-metadata.git`
 
     This contains files to be updated as part of any release.
 
@@ -211,7 +211,7 @@ data repo*
     If there is a Security Advisory then copy it into the secadv directory.
 
 Make a pull request from your changes, against the release metadata repo
-(the release metadata repo being `git@github.com:openssl/security-advisories.git`).
+(the release metadata repo being `git@github.com:openssl/release-metadata.git`).
 Await approval from reviewers, then merge the pull request.
 
 # Post-publishing tasks
