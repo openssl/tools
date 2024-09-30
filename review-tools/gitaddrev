@@ -35,7 +35,7 @@ my $authorcount = 0;
 # be counted as reviewers.  For all other values, it works as a minimum.
 my $min_authors = 0;            # Main source default
 my $otccount = 0;
-my $min_otc = 1;                # Main source default
+my $min_otc = 0;                # Main source default
 my $omccount = 0;
 my $min_omc = 0;                # Main source default
 my $author = $ENV{GIT_AUTHOR_EMAIL};
@@ -138,13 +138,13 @@ foreach (@ARGV) {
         $WHAT = 'tools';
         $min_authors = 1;
         # openssl/tools is governed by OTC
-        $min_otc = 2;
+        $min_otc = 0;
         $min_omc = 0;
     } elsif (/--fuzz-corpora$/) {
         $WHAT = 'fuzz-corpora';
         $min_authors = 1;
         # openssl/fuzz-corpora is governed by OTC
-        $min_otc = 1;
+        $min_otc = 0;
         $min_omc = 0;
     } elsif (/--perftools$/) {
         $WHAT = 'perftools';
@@ -155,7 +155,7 @@ foreach (@ARGV) {
         $WHAT = 'installer';
         $min_authors = 1;
         # openssl/installer is governed by OTC
-        $min_otc = 1;
+        $min_otc = 0;
         $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
