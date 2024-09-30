@@ -35,7 +35,7 @@ my $authorcount = 0;
 # be counted as reviewers.  For all other values, it works as a minimum.
 my $min_authors = 0;            # Main source default
 my $otccount = 0;
-my $min_otc = 1;                # Main source default
+my $min_otc = 0;                # Main source default
 my $omccount = 0;
 my $min_omc = 0;                # Main source default
 my $author = $ENV{GIT_AUTHOR_EMAIL};
