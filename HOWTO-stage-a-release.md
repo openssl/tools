@@ -24,11 +24,9 @@ Updates pending!
     -   [Software](#software)
     -   [Repositories](#repositories)
     -   [PGP / GnuPG key](#pgp-gnupg-key)
-    -   [SFTP access](#check-your-access)
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
 -   [Staging tasks](#staging-tasks)
-
-    -   [Generate the tarball and announcement text](#generating-the-tarball-and-announcement-text)
+    -   [Generate the announcement text](#generating-the-tarball-and-announcement-text)
     -   [Remember the results](#remember-the-results)
 
 # Prerequisites
@@ -41,8 +39,6 @@ programs in you `$PATH`:
 - openssl
 - gpg
 - git
-- ssh
-- sftp
 
 (note: this may not be a complete list)
 
@@ -86,13 +82,6 @@ You must have OpenSSL's team key:
 If you don't have it and think you should, get an export from someone on the
 team that has it.
 
-## SFTP access
-
-To stage a release, you must have appropriate access to OpenSSL's upload
-address, `upload@dev.openssl.org`.  To test this, try to log in with sftp:
-
-    sftp upload@dev.openssl.org
-
 ## Prepare your repository checkouts
 
 -   To stage a release, you need to checkout the release staging tool
@@ -117,13 +106,13 @@ address, `upload@dev.openssl.org`.  To test this, try to log in with sftp:
 
 # Staging tasks
 
-## Generate the tarball and announcement text
+## Generate the announcement text
 
 *The changes in this section should be made in your clone of the openssl
 source repo*
 
-To generate and stage a release tarball and announcement text, there is a
-script `$TOOLS/release-tools/stage-release.sh`.  It's expected to be run
+To generate and stage announcement text, there is a script
+`$TOOLS/release-tools/stage-release.sh`.  It's expected to be run
 while standing in the worktree of an OpenSSL source repository, and the
 expects the checked out branch to be the branch to stage the release from,
 matching one of OpenSSL release branch patterns.
@@ -147,13 +136,11 @@ It is generally called like this:
 This scripts will perform a number of preparatory tasks, such as updating
 the copyright year, running `make update`, update release dates, and move
 the branch to the next development version.  This results not only in a
-staged release tarball and announcement text, but also in a set of commits.
+staged announcement text, but also in a set of commits.
 
 After having run the stage-release script, verify that its results are
 sensible.  Check the commits that were added, using for example `git log`.
-Check the signed announcement .asc file.  Check that the tarball length and
-hashes match in the .md5, .sha1, .sha256, and review the announcment file.
-Check the data left in the metadata .dat file.
+Review the announcment file. Check the data left in the metadata .dat file.
 
 *Do not push* the local commits to the source repo at this stage.
 

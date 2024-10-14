@@ -103,7 +103,7 @@ it's implied that the former is frozen as well.
 
 ## Notify comitters and platform owners of the freeze
 
-When the tree is frozen, an email should be sent to openssl-comitters@openssl.org, as well as to the community platform owners (documented [here](https://www.openssl.org/policies/general-supplemental/platforms.html))indicating that the tree is frozen, and how long the freeze is expected to last.  It should also indicate to the community platform owners that additional, more frequent testing during the freeze would be appreciated, as community platforms are not all in our CI system.  This will help mitigate inadvertent breakage during the freeze period on platforms we do not consistently test against.
+When the tree is frozen, an email should be sent to openssl-comitters@openssl.org, as well as to the community platform owners (documented [here](https://openssl-library.org/policies/platforms/))indicating that the tree is frozen, and how long the freeze is expected to last.  It should also indicate to the community platform owners that additional, more frequent testing during the freeze would be appreciated, as community platforms are not all in our CI system.  This will help mitigate inadvertent breakage during the freeze period on platforms we do not consistently test against.
 
 
 ## Make sure that the openssl source is up to date
