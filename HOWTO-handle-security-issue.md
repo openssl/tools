@@ -382,13 +382,13 @@ References
 ==========
 
 URL for this Security Advisory:
-https://www.openssl.org/news/secadv/{YYYYMMDD}.txt
+https://openssl-library.org/news/secadv/{YYYYMMDD}.txt
 
 Note: the online version of the advisory may be updated with additional details
 over time.
 
 For details of OpenSSL severity classifications please see:
-https://www.openssl.org/policies/general/security-policy.html
+https://openssl-library.org/policies/general/security-policy
 ```
 
 Where:
@@ -603,7 +603,7 @@ Finish by publishing all the applicable
 `vulnerabilities-json/CVE-YYYY-NNNN.json` as instructed in [private cvepool.md].
 
 [public openssl/openssl repository]: https://github.com/openssl/openssl
-[Security Policy]: https://www.openssl.org/policies/general/security-policy.html
+[Security Policy]: https://openssl-library.org/policies/general/security-policy
 [GitHub Security Advisory]: https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/about-repository-security-advisories
 [HOWTO-make-a-release.md]: ./HOWTO-make-a-release.md
 
