@@ -614,7 +614,7 @@ Finish by publishing all the applicable
 [Special handling of vendors]: #special-handling-of-vendors
 
 [private otc/security repository]: https://github.openssl.org/otc/security
-[private openssl/security repository]: https://github.openssl.org/openssl/security
+[private openssl/security repository]: https://github.com/openssl/security
 [private openssl/premium repository]: https://github.openssl.org/openssl/premium
 [private openssl/openssl repository]: https://github.openssl.org/openssl/openssl
 [private omc/data repository]: https://github.openssl.org/omc/data

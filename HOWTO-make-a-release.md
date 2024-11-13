@@ -42,7 +42,7 @@ You must have access to the following repositories:
     a public release, which are those that haven't reached End-Of-Life
     yet.
 
--   `git@github.openssl.org:openssl/security.git`
+-   `git@github.com:openssl/security.git`
 
     This is the security source repository, where security fixes are
     staged before being publically released.  It is used as source
@@ -70,7 +70,7 @@ version released.
     repository, which is one of:
 
     -   `git clone git@github.openssl.org:openssl/openssl.git`
-    -   `git clone git@github.openssl.org:openssl/security.git`
+    -   `git clone git@github.com:openssl/security.git`
     -   `git clone git@github.openssl.org:openssl/premium.git`
 
 ## Freeze the source repository
