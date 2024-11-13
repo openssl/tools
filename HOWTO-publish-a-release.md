@@ -53,7 +53,7 @@ You must have access to the following repositories:
         a public release, which are those that haven't reached End-Of-Life
         yet.
 
-    -   `git@github.openssl.org:openssl/security.git`
+    -   `git@github.com:openssl/security.git`
 
         This is the security source repository, where security fixes are
         staged before being publically released.  It is used as source
@@ -95,7 +95,7 @@ in this section.
 
 *NOTE*  This section should only be performed for public releases, i.e.
 releases made from `git@github.openssl.org:openssl/openssl.git` or
-`git@github.openssl.org:openssl/security.git`.
+`git@github.com:openssl/security.git`.
 
 Everything in this section is to be done as the `openssl` user on
 `dev.openssl.org`, so if you haven't done that yet, you now *must* perform
@@ -131,7 +131,7 @@ visiting the release URL that corresponds to the source repository that the
 release was made from, or by using [the Github CLI tool](https://cli.github.com/]:
 
 -   For releases from `git@github.openssl.org:openssl/openssl.git` or
-    `git@github.openssl.org:openssl/security.git`:
+    `git@github.com:openssl/security.git`:
 
     URL: https://github.com/openssl/openssl/releases
 
