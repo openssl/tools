@@ -66,6 +66,9 @@ case $b in
 *3*4*)
     TARGET=openssl-3.4
     ;;
+*3*5*)
+    TARGET=openssl-3.5
+    ;;
 m*)
     TARGET=master
     ;;
