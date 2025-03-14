@@ -48,6 +48,7 @@ fi
 PRNUM=
 TEAM=""
 ADDREVOPTS=""
+REMOTESRVR="github.openssl.org"
 # Parse JCL.
 shopt -s extglob
 while [ $# -ne 0 ]; do
@@ -56,19 +57,19 @@ while [ $# -ne 0 ]; do
         usage_exit
         ;;
     --tools)
-        WHAT=tools ; BUILD=no ; shift
+        WHAT=tools ; BUILD=no ; REMOTESRVR="github.com" ; shift
         ;;
     --web)
         WHAT=web ; BUILD=no ; shift
         ;;
     --perftools)
-        WHAT=perftools; BUILD=no; shift
+        WHAT=perftools; BUILD=no; REMOTESRVR="github.com" ; shift
         ;;
     --installer)
         WHAT=installer ; BUILD=no ; shift
         ;;
     --technical-policies)
-        WHAT=technical-policies ; BUILD=no ; shift
+        WHAT=technical-policies ; BUILD=no ; REMOTESRVR="github.com" ; shift
         ;;
     --fuzz-corpora)
         WHAT=fuzz-corpora ; BUILD=no ; shift
@@ -143,9 +144,9 @@ else
 fi
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
-[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk '/github.openssl.org:(openssl|omc|otc).*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
+[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk /$REMOTESRVR':(openssl|omc|otc).*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
 if [ "$REMOTE" = "" ] ; then
-    echo Cannot find git remote with URL including 'github.openssl.org'
+    echo Cannot find git remote with URL including "$REMOTESRVR"
     exit 1
 fi
 
