@@ -7,10 +7,10 @@ test -f ./config || {
 }
 
 git checkout --quiet openssl-3.0 ; git pull --rebase
-git checkout --quiet openssl-3.1 ; git pull --rebase
 git checkout --quiet openssl-3.2 ; git pull --rebase
 git checkout --quiet openssl-3.3 ; git pull --rebase
 git checkout --quiet openssl-3.4 ; git pull --rebase
+git checkout --quiet openssl-3.5 ; git pull --rebase
 git checkout --quiet master
 git rebase -p origin/master
 

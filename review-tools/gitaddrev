@@ -143,6 +143,7 @@ foreach (@ARGV) {
     } elsif (/--fuzz-corpora$/) {
         $WHAT = 'fuzz-corpora';
         $min_authors = 1;
+        $min_reviewers = 1;
         # openssl/fuzz-corpora is governed by OTC
         $min_otc = 0;
         $min_omc = 0;

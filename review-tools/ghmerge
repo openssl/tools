@@ -36,7 +36,6 @@ WHAT=""
 PICK=no
 INTERACTIVE=yes
 AUTOSQUASH="--autosquash"
-REMOTE=""
 TARGET=""
 BUILD=yes
 [ -z ${CC+x} ] && CC="ccache gcc" # opensslbuild will otherwise use "ccache clang-3.6"
