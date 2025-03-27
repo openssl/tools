@@ -144,7 +144,7 @@ else
 fi
 ADDREVOPTS=${ADDREVOPTS# } # chop any leading ' '
 
-[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk /$REMOTESRVR':(openssl|omc|otc).*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
+[ "$REMOTE" = "" ] && REMOTE=`git remote -v | awk /$REMOTESRVR'(:|\/)(openssl|omc|otc).*(push)/{ print $1; }' | head -n 1` # usually this will be 'upstream'
 if [ "$REMOTE" = "" ] ; then
     echo Cannot find git remote with URL including "$REMOTESRVR"
     exit 1
