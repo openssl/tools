@@ -180,6 +180,7 @@ from __future__ import print_function
 import json, sys
 rtm_set=0
 urgent_set=0
+has_hold=0
 input = json.load(sys.stdin)
 # Dont do this check if its not for the openssl repo
 if (input["base"]["repo"]["name"] != "openssl"):
@@ -189,7 +190,13 @@ for l in input["labels"]:
         rtm_set=1
     if (l["name"] == "severity: urgent"):
         urgent_set=1
+    if (l["name"] == "hold: committer discussion"):
+        has_hold=1
+
 if (rtm_set == 0 and urgent_set == 0):
+    print("Not ready to merge")
+
+if (has_hold == 1):
     print("Not ready to merge")
 ' <$PR_URL_CONTENTS)
 
