@@ -117,7 +117,7 @@ function cleanup {
     fi
     if [ "$TARGET" != "$ORIG_REF" ]; then
         echo Returning to previous branch $ORIG_REF
-        git checkout -q $ORIG_REF
+        git checkout --force --quiet $ORIG_REF
         if [ "$STASH_OUT" != "No local changes to save" ]; then
             git stash pop -q # restore original state, pruning any leftover commits added locally
         fi
@@ -126,8 +126,7 @@ function cleanup {
 set -o errexit
 trap 'cleanup' EXIT
 
-git checkout --quiet master
-git checkout $TARGET
+git checkout --force $TARGET
 ORIG_TARGET_HEAD=`git show -s --format="%H"`
 git pull --ff-only `git rev-parse --abbrev-ref  @{u} | sed "s|/| |"`
 CHERRYPICKING=1
