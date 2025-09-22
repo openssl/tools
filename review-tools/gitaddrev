@@ -128,17 +128,11 @@ foreach (@ARGV) {
         push @collect_possible_reviewers, $1;
     } elsif (/^--verbose$/) {
 	$verbose = 1;
-    } elsif (/^--web$/) {
-        $WHAT = 'web';
-        $min_authors = 1;
-        # openssl/web is governed by OMC
-        $min_otc = 0;
-        $min_omc = 2;
     } elsif (/--tools$/) {
         $WHAT = 'tools';
         $min_authors = 1;
         # openssl/tools is governed by OTC
-        $min_otc = 2;
+        $min_otc = 0;
         $min_omc = 0;
     } elsif (/--fuzz-corpora$/) {
         $WHAT = 'fuzz-corpora';
@@ -156,7 +150,7 @@ foreach (@ARGV) {
         $WHAT = 'installer';
         $min_authors = 1;
         # openssl/installer is governed by OTC
-        $min_otc = 1;
+        $min_otc = 0;
         $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
