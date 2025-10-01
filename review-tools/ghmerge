@@ -13,6 +13,7 @@ Option style arguments:
 --web               Merge a web PR (rather than openssl PR)
 --perftools         Merge a perftools PR (rather than openssl PR)
 --fuzz-corpora      Merge a PR against fuzz-corpora (rather than openssl PR)
+--security          Merge a PR in the security repo
 --remote <remote>   Repo to merge with (rather than git.openssl.org), usually 'upstream'
 --target <branch>   Merge target (rather than current branch), usually 'master'
 --ref <branch>      A synonym for --target
@@ -85,6 +86,9 @@ while [ $# -ne 0 ]; do
         ;;
     --fuzz-corpora)
         WHAT=fuzz-corpora ; BUILD=no ; shift
+        ;;
+    --security)
+        WHAT=security ; REMOTESRVR="github.com" ; shift
         ;;
     --cherry-pick)
         shift;
@@ -167,10 +171,18 @@ if [ "$PRNUM" = "" -o "$TEAM" = "" ] ; then
 fi
 
 PR_URL_CONTENTS=$(mktemp /tmp/gh.XXXXXX)
-PR_URL=https://api.github.com/repos/openssl/$WHAT/pulls/$PRNUM
-if ! wget --quiet $PR_URL -O $PR_URL_CONTENTS; then
-    echo "Error getting $PR_URL"
-    exit 1
+PR_API=repos/openssl/$WHAT/pulls/$PRNUM
+PR_URL=https://api.github.com/$PR_API
+if which gh >/dev/null 2>&1 ; then
+    if ! gh api $PR_API >$PR_URL_CONTENTS; then
+        echo "Error getting $PR_API"
+        exit 1
+    fi
+else
+    if ! wget --quiet $PR_URL -O $PR_URL_CONTENTS; then
+        echo "Error getting $PR_URL"
+        exit 1
+    fi
 fi
 
 set -- $(jq -r '[.head.user.login, .head.ref, .head.repo.ssh_url] | join(" ")' $PR_URL_CONTENTS)
@@ -269,6 +281,10 @@ echo
 echo Diff against $REMOTE/$TARGET:
 git diff $REMOTE/$TARGET
 
+if [ "$WHAT" != "security" ] ; then
+    ADDPR="--prnum=$PRNUM"
+fi
+
 if [ "$INTERACTIVE" == "yes" ] ; then
     echo
     echo -n "Press Enter to interactively rebase $AUTOSQUASH on $REMOTE/$TARGET: "; read foo
@@ -280,8 +296,8 @@ if [ "$INTERACTIVE" == "yes" ] ; then
     fi
     REBASING=
     echo
-    echo "Calling addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET.."
-    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/$TARGET..
+    echo "Calling addrev $ADDREVOPTS $ADDPR $TEAM $REMOTE/$TARGET.."
+    addrev $ADDREVOPTS $ADDPR $TEAM $REMOTE/$TARGET..
 fi
 
 git checkout $TARGET
@@ -292,7 +308,7 @@ if [ "$INTERACTIVE" != "yes" ] ; then
     git merge --ff-only --no-commit --squash $WORK
     AUTHOR=`git show --no-patch --pretty="format:%an <%ae>" $WORK`
     git commit --author="$AUTHOR"
-    addrev $ADDREVOPTS --prnum=$PRNUM $TEAM $REMOTE/${TARGET}..
+    addrev $ADDREVOPTS $ADDPR $TEAM $REMOTE/${TARGET}..
 else
     # echo -n "Press Enter to merge to $TARGET: "; read foo
     echo
