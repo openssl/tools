@@ -199,6 +199,7 @@ fi
 TARGET_REPO=$(jq -r '.base.repo.name' $PR_URL_CONTENTS)
 RTM_LABEL=$(jq -r '.labels[] | select(.name == "approval: ready to merge") | .name' $PR_URL_CONTENTS)
 URGENT_LABEL=$(jq -r '.labels[] | select(.name == "severity: urgent") | .name' $PR_URL_CONTENTS)
+HOLD_LABEL=$(jq -r '.labels[] | select(.name|test("hold*")) | .name' $PR_URL_CONTENTS)
 
 if [ "$TARGET_REPO" != "openssl" ]
 then
@@ -207,8 +208,11 @@ elif [ -z "$RTM_LABEL" -a -z "$URGENT_LABEL" ]
 then
     >&2 echo "This PR has neither the ready to merge or urgent label set, can't merge"
     exit 1
+elif [ -n "$HOLD_LABEL" ]
+then
+    >&2 echo "This PR has hold label, can't merge"
+    exit 1
 fi
-
 
 ORIG_REF=`git rev-parse --abbrev-ref HEAD` # usually this will be 'master'
 STASH_OUT=`git stash`
