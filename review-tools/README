@@ -118,8 +118,8 @@ releases. The default remote is the first one matching
 'ghmerge' one would have done the following:
 
 	git remote -v
-origin	openssl-git@github.openssl.org:openssl/openssl.git (fetch)
-origin	openssl-git@github.openssl.org:openssl/openssl.git (push)
+origin	git@github.openssl.org:openssl/openssl.git (fetch)
+origin	git@github.openssl.org:openssl/openssl.git (push)
 	git fetch origin
 	git checkout master
 
