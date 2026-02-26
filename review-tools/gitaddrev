@@ -35,10 +35,6 @@ my $authorcount = 0;
 # $min_authors is special in so far that 0 denotes that authors MUST NOT
 # be counted as reviewers.  For all other values, it works as a minimum.
 my $min_authors = 0;            # Main source default
-my $otccount = 0;
-my $min_otc = 0;                # Main source default
-my $omccount = 0;
-my $min_omc = 0;                # Main source default
 my $author = $ENV{GIT_AUTHOR_EMAIL};
 my $authorrev = $query->find_person_tag($author, 'rev');
 
@@ -65,8 +61,6 @@ sub try_add_reviewer {
             }
             if ($rc && !(grep {$_ eq $rc} @reviewers)) {
                 $authorcount++ if is_author($rc);
-                $otccount++ if $query->is_member_of($id2, 'otc');
-                $omccount++ if $query->is_member_of($id2, 'omc');
                 # Authors don't get Reviewed-by trailers
                 push @reviewers, $rc unless is_author($rc);
             }
@@ -93,9 +87,8 @@ foreach (@ARGV) {
 	    my $email_id = (grep { ref($_) eq "" && $_ =~ m|\@| } @$_)[0];
 	    my $rev = $query->find_person_tag($email_id, 'rev');
 	    next unless defined $rev;
-	    my $otc = $query->is_member_of($email_id, 'otc');
 	    next unless $query->has_cla(lc $rev);
-	    next unless $query->is_member_of($email_id, 'commit') || $otc;
+	    next unless $query->is_member_of($email_id, 'commit');
 	    my @ids =
 		sort grep { $_ =~ /^[a-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
 		map {
@@ -107,13 +100,12 @@ foreach (@ARGV) {
 		    }
 		} @$_;
 	    foreach (@ids) {
-		$list{$_} = { tag => $rev, otc => $otc };
+		$list{$_} = { tag => $rev };
 	    }
 	}
 	foreach (sort { my $res = $list{$a}->{tag} cmp $list{$b}->{tag};
 			$res != 0 ? $res : ($a cmp $b) } keys %list) {
-	    printf "%-15s %-6s (%s)\n",
-		$_, $list{$_}->{otc} ? "[OTC]" : "", $list{$_}->{tag};
+	    printf "%-15s  (%s)\n", $_, $list{$_}->{tag};
 	}
 	exit 0;
     } elsif (/^--reviewer=(.+)$/) {
@@ -132,27 +124,16 @@ foreach (@ARGV) {
     } elsif (/--tools$/) {
         $WHAT = 'tools';
         $min_authors = 1;
-        # openssl/tools is governed by OTC
-        $min_otc = 0;
-        $min_omc = 0;
     } elsif (/--fuzz-corpora$/) {
         $WHAT = 'fuzz-corpora';
         $min_authors = 1;
         $min_reviewers = 1;
-        # openssl/fuzz-corpora is governed by OTC
-        $min_otc = 0;
-        $min_omc = 0;
     } elsif (/--perftools$/) {
         $WHAT = 'perftools';
         $min_authors = 1;
-        $min_otc = 0;
-        $min_omc = 0;
     } elsif (/--installer$/) {
         $WHAT = 'installer';
         $min_authors = 1;
-        # openssl/installer is governed by OTC
-        $min_otc = 0;
-        $min_omc = 0;
     } elsif (/^--release$/) {
         $release = 1;
     }
@@ -187,12 +168,6 @@ print STDERR "Detected trivial marker\n" if $verbose && $trivial;
 if (scalar @reviewers < $min_reviewers - $authorcount) {
     die "Too few reviewers (total must be at least ",
         $min_reviewers - $authorcount, ")\n";
-}
-if ($otccount < $min_otc) {
-    die "At least one of the reviewers must be an OTC member\n";
-}
-if ($omccount < $min_omc) {
-    die "At least one of the reviewers must be an OMC member\n";
 }
 
 print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
