@@ -90,11 +90,17 @@ foreach (@ARGV) {
 	    next unless $query->has_cla(lc $rev);
 	    next unless $query->is_member_of($email_id, 'commit');
 	    my @ids =
-		sort grep { $_ =~ /^[a-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
+		sort grep { $_ =~ /^[A-Za-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
 		map {
 		    if (ref($_) eq "HASH") {
 			my %h = %$_;
-			map { $_ eq "github" ? '@'.$h{$_} : $h{$_} } keys %h;
+			map {
+                            if ($_ eq "github" || $_ eq "ghe") {
+                                '@'.$h{$_};
+                            } else {
+                                $h{$_};
+                            }
+                        } keys %h;
 		    } else {
 			$_;
 		    }
