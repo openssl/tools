@@ -185,11 +185,12 @@ else
     fi
 fi
 
-set -- $(jq -r '[.head.user.login, .head.ref, .head.repo.ssh_url] | join(" ")' $PR_URL_CONTENTS)
+set -- $(jq -r '[.head.user.login, .head.ref, .head.repo.ssh_url, .base.sha] | join(" ")' $PR_URL_CONTENTS)
 
 WHO=$1
 BRANCH=$2
 REPO=$3
+BASE=$4
 
 if [ -z "$WHO" -o -z "$BRANCH" -o -z "$REPO" ]; then
     echo "Could not determine from $PR_URL which branch of whom to fetch from where"
@@ -266,7 +267,7 @@ if [ "$PICK" == "no" ]; then
     git fetch $REPO $BRANCH && git checkout -b $WORK FETCH_HEAD
     WORK_USED=$WORK
     REBASING=1
-    git rebase $TARGET || (echo -ne "Press Ctrl-d to abort, or fix the issue in another shell,\n    run 'git rebase --continue' there, and on success press Enter here: "; read || exit 1)
+    git rebase --onto "$REMOTE/$TARGET" "$BASE" "$WORK"  || (echo -ne "Press Ctrl-d to abort, or fix the issue in another shell,\n    run 'git rebase --continue' there, and on success press Enter here: "; read || exit 1)
     REBASING=
 else
     echo Cherry-picking $REPO/$BRANCH to $TARGET...
