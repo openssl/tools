@@ -1,7 +1,8 @@
 # ossl-test-tools
 
-Python tools for OpenSSL's C tests. Edits test artifacts (certs, CRLs,
-keys) into the .c source files in place by variable name.
+Python tools for OpenSSL's C tests. They generate test artifacts (certs,
+CRLs, keys) and edit them into the `.c` source files in place, replacing
+the existing `static const ... kName[]` declarations by variable name.
 
 ## Setup
 
@@ -10,16 +11,31 @@ keys) into the .c source files in place by variable name.
 
 ## Use
 
-    uv run ossl-test-tools crltest all      --source path/to/crltest.c
-    uv run ossl-test-tools crltest indirect --source path/to/crltest.c
-    uv run ossl-test-tools crltest alt-ta   --source path/to/crltest.c
-    uv run ossl-test-tools crltest no-chain --source path/to/crltest.c
+The first argument names the test to update. It matches the `.c` file it
+generates artifacts for, e.g. `crltest` for `test/crltest.c` and
+`ocsptest` for `test/ocsptest.c`. After that comes the generator
+subcommand. Run `--help` at any level to see what is available and the
+parameters each subcommand takes:
 
-Each subcommand has its own `--help`.
+    uv run ossl-test-tools --help
+    uv run ossl-test-tools crltest --help
+    uv run ossl-test-tools ocsptest --help
+
+The generator subcommands take a `--source` pointing at the `.c` file to
+rewrite, and `all` regenerates every artifact for that test:
+
+    uv run ossl-test-tools crltest all       --source path/to/crltest.c
+    uv run ossl-test-tools crltest indirect  --source path/to/crltest.c
+    uv run ossl-test-tools ocsptest all      --source path/to/ocsptest.c
+
+`pem-to-c` formats a PEM file as a C declaration and prints it to stdout,
+for one-off pasting:
+
+    uv run ossl-test-tools pem-to-c some.pem --name kSomething
 
 ## Adding a new variable
 
-Add an empty placeholder to the .c file:
+Add an empty placeholder to the `.c` file:
 
     static const char *kSomething[] = {};
 
@@ -32,17 +48,11 @@ and register it from `cli.py`.
 
 Two helpers worth knowing:
 
-* `csource` — locate, read, and rewrite `static const ... kName[]`
+* `csource` locates, reads, and rewrites `static const ... kName[]`
   arrays. PEM string arrays and hex byte arrays are both supported for
   reading; only PEM is written.
-* `cert_util` — cert/CRL/key builders plus `cert_from_c` /
+* `cert_util` provides cert/CRL/key builders plus `cert_from_c` /
   `update_cert_in_c` bridges.
 
 Per-tool constants (DNs, validity windows, serials) stay in the tool's
 own module.
-
-## pem-to-c
-
-Format a PEM file as a C declaration, for one-off pasting:
-
-    uv run ossl-test-tools pem-to-c some.pem --name kSomething
