@@ -80,7 +80,9 @@ def pick_cherries(left, right, all = False):
         # The standard pull request annotation
         "\(Merged from https://github.com/openssl/openssl/pull/([0-9]+)\)",
         # @kroeck's special pull request annotation ;-)
-        "GH: #([0-9]+)"
+        "GH: #([0-9]+)",
+        # The standard pull request annotation as a trailer
+        "Merged-from: https://github.com/openssl/openssl/pull/([0-9]+)"
     ]))
 
     fixes_regex   = re.compile(
@@ -104,10 +106,7 @@ def pick_cherries(left, right, all = False):
 
         match = prnum_regex.search(message)
         if match:
-            if match.group(1):
-                prnum = match.group(1)
-            else:
-                prnum = match.group(2)
+            prnum = next(g for g in match.groups() if g)
         else:
             prnum = "????"
 
