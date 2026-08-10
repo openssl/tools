@@ -8,6 +8,7 @@ use FindBin;
 
 use OpenSSL::Query::REST;
 use Module::Load::Conditional qw(can_load);
+use IPC::Open2;
 
 can_load(modules => { 'OpenSSL::Query::DB' => undef });
 
@@ -202,47 +203,47 @@ if (scalar @reviewers == 0 && $rmrev == 0) {
 # Remove blank lines from the end of commit message
 pop @commit_message while $commit_message[$#commit_message] =~ m|^\s*$|;
 
-my $last_is_rev = 0;
+# Filter out the lines that we manage; they are re-added as proper
+# trailers via git-interpret-trailers further down, as appropriate.
+my @body;
 foreach (@commit_message) {
-    # Start each line with assuming it's not a reviewed-by line
-    $last_is_rev = 0;
-    if (/^\(Merged from https:\/\/github\.com\/openssl\/$WHAT\/pull\//) {
+    if (/^\(Merged from https:\/\/github\.com\/openssl\/$WHAT\/pull\//
+        || /^Merged-from:\s*\S/i) {
+        next;			# Rewritten as a Merged-from trailer below,
+				# if a PR number was given
+    } elsif (/^Reviewed-by:\s*\S/i) {
         next if $rmrev == 1;
-        $last_is_rev = 1;
-        next;			# Because we're rewriting it below
-				# (unless --nopr was given in addrev)
-    } elsif (/^Reviewed-by:\s*(\S.*\S)\s*$/) {
-        my $id = $1;
-        next if $rmrev == 1;
-        $last_is_rev = 1;
-        # Remove reviewers that are already in the message from our reviewer list
-        @reviewers = grep { $_ ne $id } @reviewers;
+        # Existing reviewers are kept in the message; the
+        # git-interpret-trailers option --if-exists addIfDifferent
+        # dedups them against @reviewers.
     } elsif (/^Release:\s*yes\s*$/i) {
-        if ($release == 1) {
-            # We are re-adding the release line below
-            next;
-        }
-    } elsif (/^MergeDate: /) {
+        next if $release == 1;  # Re-added as a trailer below
+    } elsif (/^Merge-?date:\s*\S/i) {
         $skipmdate = 1;
     }
-    print $_,"\n";
-}
-if ($rmrev == 0) {
-    #Add a blank line unless the last one is a review line
-    print "\n" unless $last_is_rev;
-    foreach(@reviewers) {
-	print "Reviewed-by: $_\n";
-    }
+    push @body, $_;
 }
 
+my @trailers;
+push @trailers, map { "Reviewed-by: $_" } @reviewers if $rmrev == 0;
 if ($skipmdate == 0) {
     my $currdate = gmtime;
-    print "MergeDate: $currdate\n";
+    push @trailers, "Merge-date: $currdate";
 }
-
-if ($release == 1) {
-    print "Release: yes\n";
-}
-
-print "(Merged from https://github.com/openssl/$WHAT/pull/$prnum)\n"
+push @trailers, "Release: yes" if $release == 1;
+push @trailers, "Merged-from: https://github.com/openssl/$WHAT/pull/$prnum"
     if $prnum;
+
+# Pass the message through git-interpret-trailers, which takes care of
+# merging the new trailers into an already existing trailer block, or
+# adding a separating blank line when the message doesn't end with one.
+my @cmd = ('git', 'interpret-trailers', '--if-exists', 'addIfDifferent',
+           map { ('--trailer', $_) } @trailers);
+my ($rd, $wr);
+my $pid = open2($rd, $wr, @cmd);
+print $wr join("\n", @body), "\n";
+close $wr;
+print while <$rd>;
+close $rd;
+waitpid $pid, 0;
+die "git interpret-trailers failed\n" if $? != 0;
