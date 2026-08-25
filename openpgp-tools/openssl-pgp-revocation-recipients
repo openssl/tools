@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+# Copyright 2026 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+
+set -euo pipefail
+
+PROG=${0##*/}
+
+usage() {
+    cat <<'EOF'
+Usage:
+  openssl-pgp-revocation-recipients bundle --source DIR --bundle FILE --manifest FILE --bundle-sha256 FILE
+
+Validate OpenPGP certificate recipients for primary-key revocation certificate
+encryption, concatenate the public recipient certificates into a bundle, write a
+recipient manifest, and write the bundle SHA-256 checksum.
+
+The source directory must contain recipients.txt and one <fingerprint>.pgp file
+per recipient.
+EOF
+}
+
+die() {
+    printf '%s: error: %s\n' "$PROG" "$*" >&2
+    exit 1
+}
+
+need_cmd() {
+    command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+require_value() {
+    local value=$1
+    local name=$2
+
+    [[ -n $value ]] || die "$name must not be empty"
+}
+
+make_parent_dir() {
+    local path=$1
+    local dir
+
+    dir=$(dirname -- "$path")
+    mkdir -p -- "$dir"
+}
+
+validate_recipient_cert() {
+    local fingerprint=$1
+    local email=$2
+    local cert_file=$3
+    local cert_details
+
+    [[ -s $cert_file ]] || die "recipient certificate is missing or empty: $cert_file"
+
+    cert_details=$(sq inspect "$cert_file")
+
+    printf '%s' "$cert_details" | tr -d '[:space:]' | grep -Fi -- "$fingerprint" >/dev/null || {
+        die "certificate does not appear to contain expected fingerprint: $fingerprint"
+    }
+
+    printf '%s' "$cert_details" | grep -Fi -- "$email" >/dev/null || {
+        die "certificate does not appear to contain expected User ID email: $email"
+    }
+
+    printf 'revocation recipient validation\n' | sq --batch --quiet encrypt \
+        --without-signature \
+        --for-file "$cert_file" \
+        - >/dev/null || {
+            die "recipient certificate is not usable for encryption: $fingerprint $email"
+        }
+}
+
+bundle_recipients() {
+    local source_dir=
+    local bundle=
+    local manifest=
+    local bundle_sha256=
+
+    while (($# > 0)); do
+        case $1 in
+            --source)
+                (($# >= 2)) || die "--source requires a value"
+                source_dir=$2
+                shift 2
+                ;;
+            --bundle)
+                (($# >= 2)) || die "--bundle requires a value"
+                bundle=$2
+                shift 2
+                ;;
+            --manifest)
+                (($# >= 2)) || die "--manifest requires a value"
+                manifest=$2
+                shift 2
+                ;;
+            --bundle-sha256)
+                (($# >= 2)) || die "--bundle-sha256 requires a value"
+                bundle_sha256=$2
+                shift 2
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                die "unknown bundle option: $1"
+                ;;
+        esac
+    done
+
+    require_value "$source_dir" "--source"
+    require_value "$bundle" "--bundle"
+    require_value "$manifest" "--manifest"
+    require_value "$bundle_sha256" "--bundle-sha256"
+
+    need_cmd sq
+    need_cmd sha256sum
+
+    [[ -d $source_dir ]] || die "recipient source directory does not exist: $source_dir"
+
+    local recipient_list="$source_dir/recipients.txt"
+    [[ -s $recipient_list ]] || die "recipient list does not exist or is empty: $recipient_list"
+
+    make_parent_dir "$bundle"
+    make_parent_dir "$manifest"
+    make_parent_dir "$bundle_sha256"
+
+    local bundle_tmp="${bundle}.tmp.$$"
+    local manifest_tmp="${manifest}.tmp.$$"
+    local checksum_tmp="${bundle_sha256}.tmp.$$"
+
+    cleanup() {
+        rm -f -- "$bundle_tmp" "$manifest_tmp" "$checksum_tmp"
+    }
+    trap cleanup EXIT
+
+    : > "$bundle_tmp"
+    : > "$manifest_tmp"
+
+    local recipient_count=0
+    local line fingerprint email extra cert_file
+    declare -A seen_fingerprints=()
+
+    while IFS= read -r line || [[ -n $line ]]; do
+        [[ $line =~ ^[[:space:]]*($|#) ]] && continue
+
+        fingerprint=
+        email=
+        extra=
+        read -r fingerprint email extra <<< "$line"
+
+        [[ -z ${extra:-} ]] || die "recipient list line has too many fields: $line"
+        [[ $fingerprint =~ ^[0-9A-Fa-f]{40}$ ]] || die "invalid recipient fingerprint: $fingerprint"
+
+        fingerprint=${fingerprint^^}
+
+        case $email in
+            ''|*[[:space:]]*)
+                die "invalid recipient email for fingerprint $fingerprint: $email"
+                ;;
+        esac
+
+        [[ -z ${seen_fingerprints[$fingerprint]+x} ]] || {
+            die "duplicate revocation recipient fingerprint: $fingerprint"
+        }
+        seen_fingerprints[$fingerprint]=1
+
+        cert_file="$source_dir/$fingerprint.pgp"
+        validate_recipient_cert "$fingerprint" "$email" "$cert_file"
+
+        printf '%s %s\n' "$fingerprint" "$email" >> "$manifest_tmp"
+        cat -- "$cert_file" >> "$bundle_tmp"
+        recipient_count=$((recipient_count + 1))
+    done < "$recipient_list"
+
+    [[ -s $bundle_tmp ]] || die "recipient bundle is empty: $bundle"
+
+    if [[ $recipient_count -eq 0 ]]; then
+        die "no revocation recipients were configured"
+    fi
+
+    mv -f -- "$bundle_tmp" "$bundle"
+    mv -f -- "$manifest_tmp" "$manifest"
+
+    sha256sum "$bundle" > "$checksum_tmp"
+    mv -f -- "$checksum_tmp" "$bundle_sha256"
+    trap - EXIT
+}
+
+main() {
+    local command=${1:-}
+
+    case $command in
+        bundle)
+            shift
+            bundle_recipients "$@"
+            ;;
+        -h|--help)
+            usage
+            ;;
+        '')
+            usage >&2
+            exit 2
+            ;;
+        *)
+            die "unknown command: $command"
+            ;;
+    esac
+}
+
+main "$@"

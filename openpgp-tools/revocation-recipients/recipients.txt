@@ -1,0 +1,5 @@
+# Primary-key revocation certificate encryption recipients.
+# Format: <fingerprint> <email>
+CCDDFC774D9B306B3B3F1D956F3A67A0A75C7C08 dmitry@openssl.org
+A21FAB74B0088AA361152586B8EF1A6BA9DA2D5C tomas@openssl.org
+134C02E813889057DA2F3FDBEDDD4C5DAA149BBE anton@openssl.org
