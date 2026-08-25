@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run attended nShield OCS ceremonies from a CI or automation server without
+# collecting card passphrases in that server.
+#
+# The automation server starts this script in start-and-wait mode. The script
+# creates a detached tmux session on the HSM client, runs the requested OpenPGP
+# command inside that session, and waits for the command's exit status.
+# Custodians SSH to the same HSM client, attach to the printed tmux session,
+# present their cards through nShield Remote Administration/TVD, and type OCS
+# passphrases into the shared terminal when the nShield tooling asks for them.
+#
+# This keeps the automation server as the orchestrator and audit collector only.
+# It sees the command, logs, outputs, and final exit status, but OCS passphrases
+# are not passed through CI parameters, CI credentials, or a web UI.
+
+usage() {
+    cat <<'EOF'
+Usage:
+  openssl-pgp-ceremony-run start-and-wait --socket PATH --session NAME --state-root DIR [--timeout SECONDS] [--allow-user USER]... -- COMMAND [ARG...]
+  openssl-pgp-ceremony-run exec STATE_DIR -- COMMAND [ARG...]
+  openssl-pgp-ceremony-run STATE_DIR COMMAND [ARG...]
+
+The start-and-wait subcommand starts COMMAND inside a detached tmux session,
+prints attach instructions for custodians, waits for COMMAND to finish, and
+exits with COMMAND's exit status.
+
+The exec subcommand is the tmux-side runner. It records COMMAND output in
+STATE_DIR/ceremony.log and writes COMMAND's exit status to STATE_DIR/rc.
+EOF
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 2
+}
+
+require_nonempty() {
+    local value=$1
+    local name=$2
+
+    [[ -n $value ]] || die "$name must not be empty"
+}
+
+shell_quote() {
+    local arg
+
+    for arg in "$@"; do
+        printf ' %q' "$arg"
+    done
+}
+
+run_exec() {
+    local state_dir=$1
+    shift
+
+    if [[ ${1:-} == "--" ]]; then
+        shift
+    fi
+
+    (($# > 0)) || die "missing command"
+
+    mkdir -p "$state_dir"
+    chmod 0770 "$state_dir"
+
+    local log="$state_dir/ceremony.log"
+    local rc_file="$state_dir/rc"
+
+    rm -f "$rc_file"
+
+    {
+        date -u '+started=%Y-%m-%dT%H:%M:%SZ'
+        printf 'command='
+        printf '%q ' "$@"
+        printf '\n\n'
+
+        set +e
+        "$@"
+        local rc=$?
+        set -e
+
+        printf '\n'
+        date -u '+finished=%Y-%m-%dT%H:%M:%SZ'
+        printf 'rc=%s\n' "$rc"
+
+        printf '%s\n' "$rc" > "$rc_file"
+        exit "$rc"
+    } 2>&1 | tee "$log"
+}
+
+run_start_and_wait() {
+    local socket=
+    local session=
+    local state_root=
+    local timeout_seconds=3600
+    local allow_users=()
+
+    while (($# > 0)); do
+        case $1 in
+            --socket)
+                (($# >= 2)) || die "--socket requires a value"
+                socket=$2
+                shift 2
+                ;;
+            --session)
+                (($# >= 2)) || die "--session requires a value"
+                session=$2
+                shift 2
+                ;;
+            --state-root)
+                (($# >= 2)) || die "--state-root requires a value"
+                state_root=$2
+                shift 2
+                ;;
+            --timeout)
+                (($# >= 2)) || die "--timeout requires a value"
+                timeout_seconds=$2
+                shift 2
+                ;;
+            --allow-user)
+                (($# >= 2)) || die "--allow-user requires a value"
+                allow_users+=("$2")
+                shift 2
+                ;;
+            --)
+                shift
+                break
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                die "unknown start-and-wait option: $1"
+                ;;
+        esac
+    done
+
+    require_nonempty "$socket" "--socket"
+    require_nonempty "$session" "--session"
+    require_nonempty "$state_root" "--state-root"
+    (($# > 0)) || die "missing command"
+    [[ $timeout_seconds =~ ^[0-9]+$ ]] || die "--timeout must be a non-negative integer"
+    local user
+    for user in "${allow_users[@]}"; do
+        id -u "$user" >/dev/null 2>&1 || die "unknown --allow-user: $user"
+    done
+
+    local socket_dir
+    socket_dir=$(dirname "$socket")
+    [[ -d $socket_dir ]] || die "tmux socket directory does not exist: $socket_dir"
+    [[ -w $socket_dir ]] || die "tmux socket directory is not writable: $socket_dir"
+    [[ -d $state_root ]] || die "state root does not exist: $state_root"
+    [[ -w $state_root ]] || die "state root is not writable: $state_root"
+    command -v tmux >/dev/null 2>&1 || die "tmux not found"
+
+    local state_dir="$state_root/$session"
+    mkdir -p "$state_dir"
+    chmod 0770 "$state_dir"
+
+    local rc_file="$state_dir/rc"
+    rm -f "$rc_file"
+
+    if tmux -S "$socket" has-session -t "$session" 2>/dev/null; then
+        die "tmux session already exists: $session"
+    fi
+
+    local script_path
+    script_path=$(readlink -f -- "${BASH_SOURCE[0]}") || die "cannot resolve script path"
+    local tmux_command
+    tmux_command=$(printf '%q' "$script_path")
+    tmux_command+=" exec"
+    tmux_command+=$(shell_quote "$state_dir" -- "$@")
+
+    local socket_group
+    socket_group=$(stat -c %G "$socket_dir")
+
+    tmux -S "$socket" new-session -d -s "$session" "$tmux_command"
+    chgrp "$socket_group" "$socket" 2>/dev/null || true
+    chmod 0660 "$socket" 2>/dev/null || true
+
+    local server_owner
+    server_owner=$(id -un)
+
+    for user in "${allow_users[@]}"; do
+        if [[ $user == "$server_owner" ]]; then
+            continue
+        fi
+        if ! tmux -S "$socket" server-access -a "$user"; then
+            tmux -S "$socket" kill-session -t "$session" 2>/dev/null || true
+            die "failed to grant tmux access to user: $user"
+        fi
+        if ! tmux -S "$socket" server-access -w "$user"; then
+            tmux -S "$socket" kill-session -t "$session" 2>/dev/null || true
+            die "failed to grant tmux write access to user: $user"
+        fi
+    done
+
+    printf 'OCS ceremony started.\n'
+    printf 'Custodians should SSH to this host and run:\n'
+    printf '  tmux -S %q attach-session -t %q\n' "$socket" "$session"
+    printf '\n'
+    printf 'State directory:\n'
+    printf '  %s\n' "$state_dir"
+    printf '\n'
+
+    local started
+    started=$(date +%s)
+
+    while [[ ! -s $rc_file ]]; do
+        if ((timeout_seconds > 0)); then
+            local now
+            now=$(date +%s)
+            if ((now - started >= timeout_seconds)); then
+                printf 'error: ceremony timed out after %s seconds\n' "$timeout_seconds" >&2
+                tmux -S "$socket" kill-session -t "$session" 2>/dev/null || true
+                exit 124
+            fi
+        fi
+        sleep 5
+    done
+
+    local rc
+    rc=$(cat "$rc_file")
+    [[ $rc =~ ^[0-9]+$ ]] || die "invalid rc file content: $rc_file"
+    exit "$rc"
+}
+
+main() {
+    (($# > 0)) || {
+        usage
+        exit 2
+    }
+
+    case $1 in
+        start-and-wait)
+            shift
+            run_start_and_wait "$@"
+            ;;
+        exec)
+            shift
+            (($# >= 1)) || die "missing state directory"
+            run_exec "$@"
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            run_exec "$@"
+            ;;
+    esac
+}
+
+main "$@"
