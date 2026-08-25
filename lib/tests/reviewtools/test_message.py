@@ -4,7 +4,12 @@
 # this file except in compliance with the License.  You can obtain a copy
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
-"""Commit message trailer rewriting."""
+"""Commit message trailer rewriting.
+
+These run against the real `git interpret-trailers`, because that is what
+places the trailer block and what the assertions are really about.  It costs
+a few milliseconds per call.
+"""
 
 from __future__ import annotations
 
@@ -12,8 +17,9 @@ import pytest
 
 from openssl_tools.reviewtools.message import (
     format_merge_date,
+    interpret_trailers,
     is_trivial,
-    merged_from_prefix,
+    merged_from_url,
     rewrite,
     split_lines,
 )
@@ -32,14 +38,14 @@ def rewritten(message=BODY, **kwargs):
 # -- the basics -------------------------------------------------------------
 
 
-def test_a_reviewer_is_appended_after_a_blank_line():
+def test_a_reviewer_and_a_merge_date_are_added():
     assert rewritten() == (
         "Fix a thing\n"
         "\n"
         "The thing was broken.\n"
         "\n"
         f"Reviewed-by: {STEVE}\n"
-        f"MergeDate: {FROZEN_MERGE_DATE}\n"
+        f"Merge-date: {FROZEN_MERGE_DATE}\n"
     )
 
 
@@ -49,28 +55,25 @@ def test_several_reviewers_keep_their_order():
     assert result.index(f"Reviewed-by: {LEVITTE}") < result.index(f"Reviewed-by: {STEVE}")
 
 
-def test_a_pr_reference_is_added_last():
+def test_a_pr_number_becomes_a_merged_from_trailer():
     result = rewritten(prnum="12345")
 
-    assert result.endswith("(Merged from https://github.com/openssl/openssl/pull/12345)\n")
+    assert result.endswith("Merged-from: https://github.com/openssl/openssl/pull/12345\n")
 
 
-def test_the_pr_reference_names_the_right_repository():
-    result = rewritten(repo="tools", prnum="7")
-
-    assert "https://github.com/openssl/tools/pull/7)" in result
+def test_the_merged_from_trailer_names_the_right_repository():
+    assert "https://github.com/openssl/tools/pull/7\n" in rewritten(repo="tools", prnum="7")
 
 
 def test_a_release_line_is_added():
-    result = rewritten(release=True)
-
-    assert result.endswith(f"MergeDate: {FROZEN_MERGE_DATE}\nRelease: yes\n")
+    assert "Release: yes\n" in rewritten(release=True)
 
 
 # -- existing trailers ------------------------------------------------------
 
 
 def test_an_already_credited_reviewer_is_not_repeated():
+    # Delegated to addIfDifferent rather than filtered here.
     message = f"Fix a thing\n\nReviewed-by: {STEVE}\n"
 
     result = rewritten(message, reviewers=[STEVE, LEVITTE])
@@ -79,61 +82,75 @@ def test_an_already_credited_reviewer_is_not_repeated():
     assert f"Reviewed-by: {LEVITTE}" in result
 
 
-def test_no_blank_line_is_inserted_into_a_run_of_trailers():
+def test_existing_reviewers_stay_in_the_trailer_block():
     message = f"Fix a thing\n\nReviewed-by: {STEVE}\n"
 
-    result = rewritten(message, reviewers=[LEVITTE])
-
-    assert result == (
+    assert rewritten(message, reviewers=[LEVITTE]) == (
         "Fix a thing\n"
         "\n"
         f"Reviewed-by: {STEVE}\n"
         f"Reviewed-by: {LEVITTE}\n"
-        f"MergeDate: {FROZEN_MERGE_DATE}\n"
+        f"Merge-date: {FROZEN_MERGE_DATE}\n"
     )
 
 
 def test_an_existing_merge_date_is_kept_and_not_duplicated():
+    message = "Fix a thing\n\nMerge-date: Mon Jan  1 00:00:00 2020\n"
+
+    result = rewritten(message)
+
+    assert result.count("Merge-date:") == 1
+    assert "Mon Jan  1 00:00:00 2020" in result
+
+
+def test_the_old_mergedate_spelling_is_recognised():
+    # Messages written before the trailer became compliant.
     message = "Fix a thing\n\nMergeDate: Mon Jan  1 00:00:00 2020\n"
 
     result = rewritten(message)
 
-    assert result.count("MergeDate:") == 1
-    assert "Mon Jan  1 00:00:00 2020" in result
+    assert FROZEN_MERGE_DATE not in result
 
 
-def test_an_existing_release_line_is_moved_to_the_end():
+def test_an_existing_release_line_is_moved_into_the_trailer_block():
     message = "Fix a thing\n\nRelease: yes\n\nMore body.\n"
 
     result = rewritten(message, release=True)
 
     assert result.count("Release: yes") == 1
-    assert result.endswith("Release: yes\n")
+    assert result.rstrip("\n").endswith("Release: yes")
 
 
 def test_a_release_line_is_left_alone_when_not_a_release_run():
-    message = "Fix a thing\n\nRelease: yes\n"
-
-    assert "Release: yes" in rewritten(message, release=False)
+    assert "Release: yes" in rewritten("Fix a thing\n\nRelease: yes\n", release=False)
 
 
-def test_an_old_pr_reference_is_replaced():
+def test_an_old_prose_merge_reference_is_replaced():
     message = "Fix a thing\n\n(Merged from https://github.com/openssl/openssl/pull/1)\n"
 
     result = rewritten(message, prnum="2")
 
-    assert "pull/1)" not in result
-    assert result.endswith("pull/2)\n")
+    assert "Merged from" not in result
+    assert result.endswith("Merged-from: https://github.com/openssl/openssl/pull/2\n")
 
 
-def test_a_pr_reference_is_dropped_when_no_number_is_given():
-    # This is what `--nopr` does, and it is deliberate.
-    message = "Fix a thing\n\n(Merged from https://github.com/openssl/openssl/pull/1)\n"
+def test_an_existing_merged_from_trailer_is_replaced():
+    message = "Fix a thing\n\nMerged-from: https://github.com/openssl/openssl/pull/1\n"
 
-    assert "Merged from" not in rewritten(message)
+    result = rewritten(message, prnum="2")
+
+    assert "pull/1" not in result
+    assert "pull/2" in result
 
 
-def test_a_pr_reference_for_another_repository_is_left_alone():
+def test_a_merge_reference_is_dropped_when_no_number_is_given():
+    # This is what --nopr does, and it is deliberate.
+    message = "Fix a thing\n\nMerged-from: https://github.com/openssl/openssl/pull/1\n"
+
+    assert "Merged-from" not in rewritten(message)
+
+
+def test_a_merge_reference_for_another_repository_is_left_alone():
     message = "Fix a thing\n\n(Merged from https://github.com/openssl/tools/pull/1)\n"
 
     assert "openssl/tools/pull/1" in rewritten(message, repo="openssl")
@@ -148,7 +165,7 @@ def test_remove_reviewers_strips_existing_trailers():
     result = rewritten(message, reviewers=[], remove_reviewers=True)
 
     assert "Reviewed-by:" not in result
-    assert result == f"Fix a thing\n\nMergeDate: {FROZEN_MERGE_DATE}\n"
+    assert f"Merge-date: {FROZEN_MERGE_DATE}" in result
 
 
 def test_remove_reviewers_adds_none():
@@ -160,18 +177,16 @@ def test_remove_reviewers_adds_none():
 # -- edge cases -------------------------------------------------------------
 
 
-def test_trailing_blank_lines_are_dropped_before_trailers_are_added():
-    result = rewritten("Fix a thing\n\n\n\n")
-
-    assert result == (f"Fix a thing\n\nReviewed-by: {STEVE}\nMergeDate: {FROZEN_MERGE_DATE}\n")
+def test_trailing_blank_lines_do_not_double_the_separator():
+    assert rewritten("Fix a thing\n\n\n\n") == (
+        f"Fix a thing\n\nReviewed-by: {STEVE}\nMerge-date: {FROZEN_MERGE_DATE}\n"
+    )
 
 
 def test_an_all_blank_message_does_not_hang():
     # The Perl looped forever here: popping an empty array left undef, which
     # matched its "blank line" test.
-    result = rewritten("\n\n\n")
-
-    assert result.endswith(f"MergeDate: {FROZEN_MERGE_DATE}\n")
+    assert f"Merge-date: {FROZEN_MERGE_DATE}" in rewritten("\n\n\n")
 
 
 def test_a_message_without_a_trailing_newline_is_handled():
@@ -183,9 +198,7 @@ def test_crlf_line_endings_are_normalised():
 
 
 def test_form_feeds_are_not_treated_as_line_breaks():
-    result = rewritten("Fix a thing\n\n\x0cBody.\n")
-
-    assert "\x0c" in result
+    assert "\x0c" in rewritten("Fix a thing\n\n\x0cBody.\n")
 
 
 @pytest.mark.parametrize(
@@ -219,10 +232,35 @@ def test_merge_date_matches_the_perl_format():
     ],
 )
 def test_split_lines(text, expected):
-    assert split_lines(text) == expected
+    assert [line.rstrip("\n") for line in split_lines(text)] == expected
 
 
-def test_merged_from_prefix():
-    assert merged_from_prefix("fuzz-corpora") == (
-        "(Merged from https://github.com/openssl/fuzz-corpora/pull/"
+def test_merged_from_url():
+    assert merged_from_url("fuzz-corpora", "9") == (
+        "https://github.com/openssl/fuzz-corpora/pull/9"
     )
+
+
+# -- the delegation itself --------------------------------------------------
+
+
+def test_interpret_trailers_adds_the_separating_blank_line():
+    assert interpret_trailers("Subject only\n", ["Release: yes"]) == (
+        "Subject only\n\nRelease: yes\n"
+    )
+
+
+def test_add_trailers_is_injectable():
+    seen = {}
+
+    def fake(body, trailers):
+        seen["body"] = body
+        seen["trailers"] = list(trailers)
+        return "replaced\n"
+
+    assert rewritten(add_trailers=fake) == "replaced\n"
+    assert seen["body"] == "Fix a thing\n\nThe thing was broken.\n"
+    assert seen["trailers"] == [
+        f"Reviewed-by: {STEVE}",
+        f"Merge-date: {FROZEN_MERGE_DATE}",
+    ]

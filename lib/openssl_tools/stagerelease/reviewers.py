@@ -14,8 +14,9 @@ or built -- a name that turns out not to belong to a committer should not
 cost the caller a `make update` first.
 
 `credit` then amends a commit's message with the tags `resolve` returned.
-It does no lookups, so the five commits a staging run makes cost one round
-trip between them rather than five.
+It does no database lookups, so the five commits a staging run makes cost one
+round trip between them rather than five.  It does shell out to
+`git interpret-trailers`, which places the trailer block.
 
 The shell ran `addrev --release --nopr --reviewer=...` after each commit,
 which needed addrev on PATH, re-queried the database every time, and drove

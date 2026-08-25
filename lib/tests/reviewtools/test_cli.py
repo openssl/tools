@@ -67,10 +67,10 @@ def test_an_unknown_reviewer_fails_the_run():
     assert "Unknown reviewers: ghost" in err
 
 
-def test_a_pr_number_adds_a_merged_from_line():
+def test_a_pr_number_adds_a_merged_from_trailer():
     _, out, _ = run_gitaddrev(["--reviewer=steve", "--reviewer=levitte", "--prnum=999"])
 
-    assert out.rstrip("\n").endswith("(Merged from https://github.com/openssl/openssl/pull/999)")
+    assert out.rstrip("\n").endswith("Merged-from: https://github.com/openssl/openssl/pull/999")
 
 
 def test_release_adds_a_release_line():

@@ -400,7 +400,7 @@ def test_reviewers_are_credited_in_the_commit_messages(tmp_path):
     # The release commit and the post-release commit both get trailers.
     assert log.count(f"Reviewed-by: {FakePeople.STEVE}") == 2
     assert log.count(f"Reviewed-by: {FakePeople.LEVITTE}") == 2
-    assert log.count("MergeDate: ") == 2
+    assert log.count("Merge-date: ") == 2
     assert log.count("Release: yes") == 2
 
 

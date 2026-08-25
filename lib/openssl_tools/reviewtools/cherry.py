@@ -28,7 +28,10 @@ BRANCH_MARKERS = {"<": "<-", ">": "->", "=": "=="}
 
 #: The standard merge annotation, plus an older variant still in the history.
 _PRNUM_RE = re.compile(
+    # The prose annotation, the trailer form that replaced it, and an older
+    # variant still present in the history.
     r"\(Merged from https://github\.com/openssl/openssl/pull/(\d+)\)"
+    r"|Merged-from: https://github\.com/openssl/openssl/pull/(\d+)"
     r"|GH: #(\d+)"
 )
 
@@ -64,7 +67,8 @@ def extract_prnum(message: str) -> str:
     match = _PRNUM_RE.search(message)
     if not match:
         return "????"
-    return match.group(1) or match.group(2)
+    # Whichever alternative matched is the only group that is set.
+    return next(group for group in match.groups() if group)
 
 
 def extract_fixes(message: str) -> str:

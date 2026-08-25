@@ -111,8 +111,9 @@ in-process, so staging a release does not need them on `PATH`.
 Run `addrev --help` for usage, and `addrev --list` for the known reviewer
 names.
 
-A reviewer already named in the message is not added again.  If the
-committer is not the author of the commit, they are added automatically.
+Trailers are added through `git interpret-trailers`, so a reviewer already
+named in the message is not repeated.  If the committer is not the author of
+the commit, they are added automatically.
 
 Reviewer names may be given as known lower-case short names, as GitHub IDs
 prefixed with `@`, or as known email addresses with `--reviewer`.
