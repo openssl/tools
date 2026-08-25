@@ -23,7 +23,7 @@ the build host cannot reach, so that is a separate step run elsewhere.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -34,7 +34,7 @@ from .fixups import FIXUPS, POSTRELEASE, RELEASE, FixupContext, get_fixup
 from .git import Git, is_recognised_branch
 from .metadata import Metadata
 from .report import Reporter
-from .reviewers import add_reviewers
+from . import reviewers
 from .run import Runner
 from .state import next_release_state
 from .tarball import Artifacts, make_artifacts
@@ -203,6 +203,16 @@ def stage_release(
     reporter.debug(f"release state = {release_state}")
     reporter.debug(f"release tag = {release_tag}")
 
+    # -- reviewers ----------------------------------------------------------
+
+    # Deliberately the last check, and the first thing that touches the
+    # network: every local sanity check above is instant, and none of the
+    # work below is cheap.  A reviewer who turns out not to be a committer
+    # must not cost the caller a copyright commit and a `make update` first.
+    reviewer_tags = reviewers.resolve(git, options.reviewers, query=query)
+    if reviewer_tags:
+        reporter.verbose("== Reviewed-by: " + ", ".join(reviewer_tags))
+
     # -- copyright years ----------------------------------------------------
 
     reporter.verbose("== Checking source file copyright year updates")
@@ -212,7 +222,7 @@ def stage_release(
         reporter.verbose("== Committing copyright year updates")
         git.add_update()
         git.commit("Copyright year updates\n\nRelease: yes")
-        _credit_reviewers(git, options, reporter, query)
+        reviewers.credit(git, reviewer_tags)
 
     # -- make update --------------------------------------------------------
 
@@ -228,7 +238,7 @@ def stage_release(
         reporter.verbose("== Committing updates")
         git.add_update()
         git.commit("make update\n\nRelease: yes")
-        _credit_reviewers(git, options, reporter, query)
+        reviewers.credit(git, reviewer_tags)
 
     # -- the release commit -------------------------------------------------
 
@@ -263,7 +273,7 @@ def stage_release(
     reporter.verbose("== Committing updates and tagging")
     git.add_update()
     git.commit(f"Prepare for release of {release_text}\n\nRelease: yes")
-    _credit_reviewers(git, options, reporter, query)
+    reviewers.credit(git, reviewer_tags)
 
     reporter.echo(f"Tagging release with tag {release_tag}.")
     git.tag(release_tag, f"OpenSSL {release} release tag")
@@ -324,7 +334,7 @@ def stage_release(
     reporter.verbose("== Committing updates")
     git.add_update()
     git.commit(f"Prepare for {post_text}\n\nRelease: yes")
-    _credit_reviewers(git, options, reporter, query)
+    reviewers.credit(git, reviewer_tags)
 
     # -- move the update branch on to the next minor version ----------------
 
@@ -356,7 +366,7 @@ def stage_release(
         reporter.verbose("== Committing updates")
         git.add_update()
         git.commit(f"Prepare for {minor_text}\n\nRelease: yes")
-        _credit_reviewers(git, options, reporter, query)
+        reviewers.credit(git, reviewer_tags)
 
     reporter.verbose("== Done")
 
@@ -371,18 +381,3 @@ def stage_release(
         metadata_path=metadata_path,
         orig_head=orig_head,
     )
-
-
-def _credit_reviewers(
-    git: Git, options: StageOptions, reporter: Reporter, query=None
-) -> None:
-    """Add Reviewed-by: trailers to the commit just made.
-
-    Runs in-process against review-tools' reviewtools package, so nothing
-    has to be on PATH.  Reviewer names are validated against the committer
-    and CLA databases, and an unknown or CLA-less name aborts the run.
-    """
-    if not options.reviewers:
-        return
-    credited = add_reviewers(git, options.reviewers, query=query)
-    reporter.verbose("== Reviewed-by: " + ", ".join(credited))

@@ -46,10 +46,15 @@ def resolve_reviewers(
     release: bool = False,
     query=None,
 ) -> list[str]:
-    """Validate reviewer names and return their Reviewed-by: tags.
+    """Validate explicitly named reviewers and return their tags.
 
-    Raises ReviewError if a name is unknown, has no CLA, or the repository's
-    minimum is not met; QueryError if the database cannot be reached.
+    `candidates` are names the caller asked for, so each must belong to a
+    committer.  `author_email` is collected automatically and is held to the
+    laxer standard described in reviewers.py.
+
+    Raises ReviewError if a name is unknown, has no CLA, is not a committer,
+    or the repository's minimum is not met; QueryError if the database cannot
+    be reached.
     """
     query = query or Query()
     policy = get_policy(repo)

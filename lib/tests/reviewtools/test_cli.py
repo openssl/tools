@@ -165,6 +165,16 @@ def test_verbose_reports_the_chosen_reviewers():
     assert STEVE in err
 
 
+def test_a_non_committer_reviewer_fails_the_run():
+    code, out, err = run_gitaddrev(["--reviewer=steve", "--reviewer=outsider"])
+
+    assert code == 1
+    assert "not committers: outsider" in err
+    assert "addrev --list" in err
+    # Nothing is written, so the commit message is left alone.
+    assert out == ""
+
+
 # -- --commit targeting -----------------------------------------------------
 
 

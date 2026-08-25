@@ -6,31 +6,47 @@
 # https://www.openssl.org/source/license.html
 """Adding Reviewed-by: trailers to the commits this tool makes.
 
-The shell ran `addrev --release --nopr --reviewer=...`, which needed addrev
-on PATH and drove `git filter-branch` over the commit just made.  Both are
-avoidable: reviewtools is a sibling subpackage, and amending a commit we
-created seconds ago does not need filter-branch.
+Two steps, deliberately separated:
+
+`resolve` validates the reviewer names against the committer and CLA
+databases.  It runs once, as a preflight check, before anything is written
+or built -- a name that turns out not to belong to a committer should not
+cost the caller a `make update` first.
+
+`credit` then amends a commit's message with the tags `resolve` returned.
+It does no lookups, so the five commits a staging run makes cost one round
+trip between them rather than five.
+
+The shell ran `addrev --release --nopr --reviewer=...` after each commit,
+which needed addrev on PATH, re-queried the database every time, and drove
+`git filter-branch` over a commit created seconds earlier.
 """
 from __future__ import annotations
 
 from typing import Sequence
 
-from ..reviewtools import ReviewError, add_reviewers as resolve_and_rewrite
+from ..reviewtools import ReviewError, resolve_reviewers
+from ..reviewtools import message as review_message
 from .errors import ReleaseError
 from .git import Git
 
+#: The commits this tool makes are release commits in the openssl repository,
+#: and carry a `Release: yes` line but no "(Merged from ...)" reference --
+#: what `addrev --release --nopr` produced.
+REPO = "openssl"
 
-def add_reviewers(
+
+def resolve(
     git: Git,
     candidates: Sequence[str],
     *,
     author_email: str | None = None,
     query=None,
 ) -> list[str]:
-    """Amend HEAD's message with validated Reviewed-by: trailers.
+    """Validate reviewer names and return their Reviewed-by: tags.
 
-    Returns the reviewer tags that were added.  Does nothing, and reaches no
-    network, when no reviewers were asked for.
+    Raises ReleaseError if any name is unknown, has no CLA, is not a
+    committer, or if too few reviewers were named for the repository.
     """
     if not candidates:
         return []
@@ -38,25 +54,28 @@ def add_reviewers(
     if author_email is None:
         author_email = git.user_email()
 
-    original = git.head_message()
     try:
-        rewritten = resolve_and_rewrite(
-            original,
+        return resolve_reviewers(
             candidates,
             author_email=author_email,
-            repo="openssl",
-            # Matches the shell's `addrev --release --nopr`: a Release: yes
-            # line, and no "(Merged from ...)" reference.
+            repo=REPO,
             release=True,
-            prnum=None,
             query=query,
         )
     except ReviewError as error:
-        raise ReleaseError(f"Could not add reviewers: {error}") from error
+        raise ReleaseError(f"Reviewer check failed: {error}") from error
 
-    git.amend_message(rewritten)
-    return [
-        line.split(":", 1)[1].strip()
-        for line in rewritten.splitlines()
-        if line.startswith("Reviewed-by:")
-    ]
+
+def credit(git: Git, tags: Sequence[str]) -> None:
+    """Amend HEAD's message with already-validated Reviewed-by: tags."""
+    if not tags:
+        return
+    git.amend_message(
+        review_message.rewrite(
+            git.head_message(),
+            reviewers=tags,
+            repo=REPO,
+            release=True,
+            prnum=None,
+        )
+    )

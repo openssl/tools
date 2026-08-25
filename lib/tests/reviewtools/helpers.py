@@ -26,6 +26,8 @@ STEVE = "Steve Henson <steve@openssl.org>"
 LEVITTE = "Richard Levitte <levitte@openssl.org>"
 RICH = "Rich Salz <rich@openssl.org>"
 NOCLA = "No Cla <nocla@example.invalid>"
+#: Known and CLA-holding, but not a committer.
+OUTSIDER = "Out Sider <outsider@openssl.org>"
 
 #: Every identity the database resolves, mapped to its 'rev' tag.
 PEOPLE = {
@@ -38,6 +40,8 @@ PEOPLE = {
     "rich@openssl.org": RICH,
     "nocla": NOCLA,
     "nocla@example.invalid": NOCLA,
+    "outsider": OUTSIDER,
+    "outsider@openssl.org": OUTSIDER,
 }
 
 #: Addresses with a CLA on file.
@@ -45,10 +49,14 @@ CLA_EMAILS = {
     "steve@openssl.org",
     "levitte@openssl.org",
     "rich@openssl.org",
+    "outsider@openssl.org",
     "contributor@example.invalid",
 }
 
-GROUPS = {"commit": {"steve@openssl.org", "levitte@openssl.org", "rich@openssl.org"}}
+#: Group membership, by reviewer tag.  The real API resolves any of a
+#: person's identities to the person, so the fake looks the identity up
+#: first rather than matching one spelling of it.
+GROUPS = {"commit": {STEVE, LEVITTE, RICH}}
 
 
 class FakePeople:
@@ -74,7 +82,7 @@ class FakePeople:
 
     def is_member_of(self, identity, group):
         self.calls.append(("is_member_of", identity, group))
-        return identity in self.groups.get(group, set())
+        return self.people.get(identity) in self.groups.get(group, set())
 
     def list_people(self):
         self.calls.append(("list_people",))
@@ -82,6 +90,7 @@ class FakePeople:
             ["steve", "steve@openssl.org", {"github": "snhenson"}],
             ["levitte", "levitte@openssl.org", {"github": "levitte"}],
             ["nocla", "nocla@example.invalid"],
+            ["outsider", "outsider@openssl.org"],
         ]
 
 

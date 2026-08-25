@@ -17,7 +17,13 @@ from openssl_tools.reviewtools.errors import QueryError, ReviewError
 from openssl_tools.reviewtools.policy import POLICIES, get_policy
 from openssl_tools.reviewtools.reviewers import require_any, resolve, validate
 
-from tests.reviewtools.helpers import LEVITTE, RICH, STEVE, FakePeople
+from tests.reviewtools.helpers import (
+    LEVITTE,
+    OUTSIDER,
+    RICH,
+    STEVE,
+    FakePeople,
+)
 
 OPENSSL = POLICIES["openssl"]
 TOOLS = POLICIES["tools"]
@@ -134,6 +140,125 @@ def test_the_author_named_twice_is_counted_once(people):
 
     assert result.author_count == 1
     assert result.reviewers == []
+
+
+# -- committers -------------------------------------------------------------
+
+
+def test_a_non_committer_cannot_be_credited(people):
+    # Known, and has a CLA, but is not in the commit group.
+    result = resolve(people, ["outsider"], author_email=None, policy=OPENSSL)
+
+    assert result.noncommitters == ["outsider"]
+    assert result.reviewers == []
+    assert result.unknown == [] and result.nocla == []
+
+
+def test_a_non_committer_aborts_validation(people):
+    result = resolve(
+        people, ["steve", "levitte", "outsider"], author_email=None, policy=OPENSSL
+    )
+
+    with pytest.raises(ReviewError, match="not committers: outsider"):
+        validate(result, author_email=None, policy=OPENSSL)
+
+
+def test_the_non_committer_error_says_what_to_do(people):
+    result = resolve(people, ["outsider"], author_email=None, policy=OPENSSL)
+
+    with pytest.raises(ReviewError, match="addrev --list"):
+        validate(result, author_email=None, policy=OPENSSL)
+
+
+def test_committer_membership_is_checked_by_identity_not_spelling(people):
+    # A GitHub handle resolves to the same person as the short name.
+    result = resolve(people, ["@snhenson"], author_email=None, policy=OPENSSL)
+
+    assert result.reviewers == [STEVE]
+    assert result.noncommitters == []
+
+
+def test_an_author_need_not_be_a_committer(people):
+    # Authors never get a Reviewed-by: trailer, so the requirement does not
+    # apply to them; an outside contributor's patch must still be mergeable.
+    result = resolve(
+        people,
+        ["outsider@openssl.org", "steve", "levitte"],
+        author_email="outsider@openssl.org",
+        policy=OPENSSL,
+    )
+
+    assert result.noncommitters == []
+    assert result.reviewers == [STEVE, LEVITTE]
+    validate(result, author_email="outsider@openssl.org", policy=OPENSSL)
+
+
+def test_a_non_committer_author_does_not_count_towards_the_total(people):
+    # --tools lets the author count, but only if they are a committer.
+    # Silently counting a non-committer author was how a release run with one
+    # real reviewer passed a two-reviewer policy.
+    result = resolve(
+        people, ["steve"], author_email="outsider@openssl.org", policy=TOOLS
+    )
+
+    assert result.noncommitters == []
+    assert result.author_count == 0
+    assert result.reviewers == [STEVE]
+
+    with pytest.raises(ReviewError, match="at least 2"):
+        validate(result, author_email="outsider@openssl.org", policy=TOOLS)
+
+
+def test_a_committer_author_does_count(people):
+    result = resolve(
+        people, ["levitte"], author_email="steve@openssl.org", policy=TOOLS
+    )
+
+    assert result.author_count == 1
+    validate(result, author_email="steve@openssl.org", policy=TOOLS)
+
+
+def test_naming_yourself_is_an_explicit_claim_and_is_checked(people):
+    # The case that slipped through: 'outsider' resolves to the commit
+    # author, so the author exemption used to skip the committer check even
+    # though the name was given explicitly.
+    result = resolve(
+        people,
+        ["outsider", "steve"],
+        author_email="outsider@openssl.org",
+        policy=OPENSSL,
+        release=True,
+    )
+
+    assert result.noncommitters == ["outsider"]
+
+    with pytest.raises(ReviewError, match="not committers: outsider"):
+        validate(result, author_email="outsider@openssl.org", policy=OPENSSL)
+
+
+def test_an_automatically_collected_self_email_is_not_an_error(people):
+    # addrev adds --myemail on its own, so a non-committer there must not
+    # abort the run; it simply does not count.
+    result = resolve(
+        people,
+        ["steve", "levitte"],
+        author_email=None,
+        self_email="outsider@openssl.org",
+        policy=OPENSSL,
+    )
+
+    assert result.noncommitters == []
+    assert result.reviewers == [STEVE, LEVITTE]
+    validate(result, author_email=None, policy=OPENSSL)
+
+
+def test_a_missing_cla_is_reported_before_committer_status(people):
+    # Both are wrong for this person; the CLA is the more fundamental
+    # problem, and reporting one thing at a time keeps the message clear.
+    result = resolve(people, ["nocla"], author_email=None, policy=OPENSSL)
+
+    assert result.nocla == ["nocla"]
+    assert result.noncommitters == []
 
 
 # -- validation -------------------------------------------------------------

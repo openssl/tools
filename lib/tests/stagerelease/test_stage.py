@@ -350,21 +350,41 @@ def test_a_missing_release_file_is_reported(tmp_path):
 
 
 class FakePeople:
-    """Stands in for reviewtools' api.openssl.org client."""
+    """Stands in for reviewtools' api.openssl.org client.
+
+    Records every question asked, so a test can assert that the database is
+    consulted once for the whole run rather than once per commit.
+    """
 
     STEVE = "Steve Henson <steve@openssl.org>"
     LEVITTE = "Richard Levitte <levitte@openssl.org>"
+    #: Known and CLA-holding, but not a committer.
+    OUTSIDER = "Out Sider <outsider@openssl.org>"
+
+    PEOPLE = {
+        "steve": STEVE,
+        "steve@openssl.org": STEVE,
+        "levitte": LEVITTE,
+        "levitte@openssl.org": LEVITTE,
+        "outsider": OUTSIDER,
+        "outsider@openssl.org": OUTSIDER,
+    }
+    COMMITTERS = {STEVE, LEVITTE}
+
+    def __init__(self):
+        self.calls: list[tuple] = []
 
     def find_person_tag(self, identity, tag):
-        return {
-            "steve": self.STEVE,
-            "steve@openssl.org": self.STEVE,
-            "levitte": self.LEVITTE,
-            "levitte@openssl.org": self.LEVITTE,
-        }.get(identity)
+        self.calls.append(("find_person_tag", identity, tag))
+        return self.PEOPLE.get(identity) if tag == "rev" else None
 
     def has_cla(self, identity):
+        self.calls.append(("has_cla", identity))
         return "openssl.org" in identity
+
+    def is_member_of(self, identity, group):
+        self.calls.append(("is_member_of", identity, group))
+        return group == "commit" and self.PEOPLE.get(identity) in self.COMMITTERS
 
 
 def test_reviewers_are_credited_in_the_commit_messages(tmp_path):
@@ -406,11 +426,86 @@ def test_crediting_reviewers_does_not_shell_out(tmp_path):
     assert not any(argv[0] == "addrev" for argv in runner.history)
 
 
+def stage_with_people(root, people=None, **kwargs):
+    """Stage with a fake person database, so nothing reaches the network."""
+    runner = Runner(cwd=root)
+    build = FakeBuild()
+    result = stage_release(
+        StageOptions(**kwargs),
+        runner=runner,
+        git=Git(runner),
+        build=build,
+        today=TODAY,
+        query=people or FakePeople(),
+    )
+    return result, build, runner
+
+
 def test_an_unknown_reviewer_aborts_the_run(tmp_path):
     root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
 
-    with pytest.raises(ReleaseError, match="Could not add reviewers"):
-        stage(root, reviewers=("steve", "nosuchperson"))
+    with pytest.raises(ReleaseError, match="Reviewer check failed: Unknown"):
+        stage_with_people(root, reviewers=("steve", "nosuchperson"))
+
+
+def test_a_non_committer_reviewer_aborts_the_run(tmp_path):
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+
+    with pytest.raises(ReleaseError, match="not committers"):
+        stage_with_people(root, reviewers=("steve", "outsider"))
+
+
+def test_a_bad_reviewer_is_caught_before_anything_is_built(tmp_path):
+    # The whole point of the preflight: no Configure, no make, no commit.
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    before = run_git(root, "rev-parse", "HEAD").strip()
+    runner = Runner(cwd=root)
+    build = FakeBuild()
+
+    with pytest.raises(ReleaseError, match="Reviewer check failed"):
+        stage_release(
+            StageOptions(reviewers=("nosuchperson",)),
+            runner=runner,
+            git=Git(runner),
+            build=build,
+            today=TODAY,
+            query=FakePeople(),
+        )
+
+    assert build.calls == []
+    assert run_git(root, "rev-parse", "HEAD").strip() == before
+    assert run_git(root, "status", "--porcelain") == ""
+    assert run_git(root, "tag", "-l").strip() == ""
+
+
+def test_a_bad_reviewer_is_caught_before_the_copyright_pass(tmp_path):
+    # The copyright pass rewrites files in the worktree, so it must not run
+    # either.
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    notice = root / "notice.c"
+    notice.write_text(
+        "# Copyright 2019 The OpenSSL Project Authors. All Rights Reserved.\n"
+    )
+    commit_all(root, "Add a file with a copyright notice")
+    original = notice.read_text()
+
+    with pytest.raises(ReleaseError, match="Reviewer check failed"):
+        stage_with_people(root, reviewers=("nosuchperson",))
+
+    assert notice.read_text() == original
+
+
+def test_the_database_is_consulted_once_for_the_whole_run(tmp_path):
+    # Five commits get trailers; resolving once means one round of lookups,
+    # not five.
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    people = FakePeople()
+
+    stage_with_people(root, people, reviewers=("steve", "levitte"))
+
+    lookups = [call for call in people.calls if call[0] == "find_person_tag"]
+    # One for the author, one per named reviewer.
+    assert len(lookups) == 3
 
 
 def test_the_tagged_commit_carries_its_reviewers(tmp_path):

@@ -20,6 +20,11 @@ library, so it runs on release build hosts without installing anything.
 `api.openssl.org`, so that option needs network access.  Without it, nothing
 here reaches the network.
 
+That validation is a preflight check: it runs before the copyright pass,
+before `./Configure`, and before any commit.  A reviewer who is unknown, has
+no CLA or is not a committer aborts the run in well under a second, leaving
+the worktree exactly as it was.
+
 Usage
 -----
 
@@ -73,7 +78,9 @@ decisions, commit sequence, artifact naming -- is exercised in milliseconds;
 see `lib/tests/stagerelease/test_stage.py`.
 
 Reviewer trailers are added in-process: `reviewers.py` imports
-`..reviewtools`, so `addrev` does not need to be on PATH.
+`..reviewtools`, so `addrev` does not need to be on PATH.  It resolves the
+names once, up front, and then only rewrites messages -- so the five commits
+a run makes cost one round trip between them, not five.
 
 Both filename conventions are handled throughout: pre-3.0 OpenSSL uses
 `CHANGES`/`NEWS`, while 3.0 and later use `CHANGES.md`/`NEWS.md`.  They are

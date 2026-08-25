@@ -51,6 +51,14 @@ automatically as a reviewer.
 Reviewer names can be given as simple known lower case names, or as github
 IDs prefixed with a @, or known email addresses if given with --reviewer.
 
+Every reviewer must be a known person, must have a CLA on file, and must be
+a committer -- that is, a member of the 'commit' group, which is the same set
+'addrev --list' prints.  Naming anyone else fails the run and says who.
+
+The commit's author is exempt from the committer requirement: authors never
+get a Reviewed-by: trailer, and an outside contributor's patch still has to
+be mergeable.
+
 Run 'addrev --list' to ge a list of known reviewer names.
 
 The tool accesses databases on api.openssl.org.

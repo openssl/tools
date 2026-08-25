@@ -19,6 +19,8 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+from .reviewers import COMMIT_GROUP
+
 #: Identities worth showing: a bare alphabetic name, or an '@handle'.  The
 #: handle pattern is odd -- it accepts '@ab' and '@a-b' but not '@a-b-c' --
 #: and is kept as it was so the listing does not change.
@@ -68,7 +70,7 @@ def list_reviewers(query) -> list[tuple[str, str]]:
             continue
         if not query.has_cla(tag.lower()):
             continue
-        if not query.is_member_of(email, "commit"):
+        if not query.is_member_of(email, COMMIT_GROUP):
             continue
         for name in usable_identities(record):
             found[name] = tag

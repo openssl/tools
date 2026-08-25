@@ -108,19 +108,15 @@ def main(
         if args.verbose and trivial:
             print("Detected trivial marker", file=stderr)
 
-        author_email = environ.get("GIT_AUTHOR_EMAIL")
-        candidates = [author_email] if author_email else []
-        candidates += args.reviewers
-        if args.myemail:
-            candidates.append(args.myemail)
-
         resolution = reviewers.resolve(
             query,
-            candidates,
-            author_email=author_email,
+            args.reviewers,
+            author_email=environ.get("GIT_AUTHOR_EMAIL"),
+            self_email=args.myemail,
             policy=policy,
             release=args.release,
         )
+        author_email = environ.get("GIT_AUTHOR_EMAIL")
         reviewers.validate(
             resolution,
             author_email=author_email,
