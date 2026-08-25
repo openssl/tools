@@ -1,7 +1,0 @@
-A collection of tools and instructions useful in OpenSSL development.
-
-Each set of tools is in its own subdirectory and has its own manuals
-and READMEs.
-
-More generic instructions are in this top directory, called
-HOWTO-something.md

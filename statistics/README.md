@@ -1,4 +1,3 @@
-
 This collection of scripts contains statistical scripts.
 
 

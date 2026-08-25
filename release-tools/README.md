@@ -1,5 +1,4 @@
-Release tools
-=============
+# Release tools
 
 `stage-release` stages an OpenSSL release: it makes the release commits, tags
 the release, and writes the tarball, checksums and a metadata file.
@@ -9,8 +8,7 @@ but **not** signed, because the signing key lives on an HSM that the build
 host cannot reach — signing the tag and the tarball is a separate step, run
 where that access exists.  Shipping the artifacts is the caller's job.
 
-Requirements
-------------
+## Requirements
 
 Python 3.10 or later, and nothing else: the tool uses only the standard
 library, so it runs on release build hosts without installing anything.
@@ -25,8 +23,7 @@ before `./Configure`, and before any commit.  A reviewer who is unknown, has
 no CLA or is not a committer aborts the run in well under a second, leaving
 the worktree exactly as it was.
 
-Usage
------
+## Usage
 
 Run it from inside an OpenSSL **source** worktree, with the branch you are
 releasing from checked out:
@@ -46,8 +43,7 @@ It refuses to run unless the branch is `master` or a recognised release
 branch, and unless the worktree is clean.  With no `--alpha`, `--beta` or
 `--final`, the next release is worked out from the state of the branch.
 
-Layout
-------
+## Layout
 
 The executable lives here; the code lives in `lib/openssl_tools/`, shared
 with review-tools so the two can import each other directly.
@@ -91,8 +87,7 @@ Both filename conventions are handled throughout: pre-3.0 OpenSSL uses
 `CHANGES`/`NEWS`, while 3.0 and later use `CHANGES.md`/`NEWS.md`.  They are
 not interchangeable.
 
-Tests
------
+## Tests
 
 ```sh
 cd lib
@@ -111,8 +106,7 @@ Two things worth knowing when changing this code:
   is expensive.  `lib/tests/stagerelease/test_fixups.py` asserts on exact output text rather
   than on substrings, deliberately.
 
-Linting
--------
+## Linting
 
 ```sh
 cd lib
@@ -160,8 +154,7 @@ default, which changes between releases.  Two rules are switched off there
 with reasons: `DTZ011`, because release dates are naive local dates by
 design, and nothing else.  Individual `noqa` comments all carry a reason.
 
-Self-contained executables
---------------------------
+## Self-contained executables
 
 `lib/build-pyz` packs the shared package plus one entry point into a
 zipapp, so a single file runs with nothing but a Python 3.10 interpreter --
@@ -242,8 +235,7 @@ does know.
 
 `lib/dist/` is build output and is git-ignored.
 
-History
--------
+## History
 
 This replaces `stage-release.sh`, the `release-aux/*-fn.sh` helpers and the
 twelve `release-aux/fixup-*.pl` scripts.  The port was verified against the
