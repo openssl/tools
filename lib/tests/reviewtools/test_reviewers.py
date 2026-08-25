@@ -9,6 +9,7 @@
 These rules decide whether a change is allowed to be merged, so they are
 covered case by case rather than in aggregate.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -16,11 +17,8 @@ import pytest
 from openssl_tools.reviewtools.errors import QueryError, ReviewError
 from openssl_tools.reviewtools.policy import POLICIES, get_policy
 from openssl_tools.reviewtools.reviewers import require_any, resolve, validate
-
 from tests.reviewtools.helpers import (
     LEVITTE,
-    OUTSIDER,
-    RICH,
     STEVE,
     FakePeople,
 )
@@ -53,9 +51,7 @@ def test_a_github_handle_has_its_at_sign_stripped(people):
 
 
 def test_the_same_person_named_twice_is_credited_once(people):
-    result = resolve(
-        people, ["steve", "@snhenson"], author_email=None, policy=OPENSSL
-    )
+    result = resolve(people, ["steve", "@snhenson"], author_email=None, policy=OPENSSL)
 
     assert result.reviewers == [STEVE]
 
@@ -69,9 +65,7 @@ def test_an_unknown_name_is_collected(people):
 
 
 def test_an_unknown_address_with_a_cla_is_unknown_but_not_claless(people):
-    result = resolve(
-        people, ["contributor@example.invalid"], author_email=None, policy=OPENSSL
-    )
+    result = resolve(people, ["contributor@example.invalid"], author_email=None, policy=OPENSSL)
 
     assert result.unknown == ["contributor@example.invalid"]
     assert result.nocla == []
@@ -155,9 +149,7 @@ def test_a_non_committer_cannot_be_credited(people):
 
 
 def test_a_non_committer_aborts_validation(people):
-    result = resolve(
-        people, ["steve", "levitte", "outsider"], author_email=None, policy=OPENSSL
-    )
+    result = resolve(people, ["steve", "levitte", "outsider"], author_email=None, policy=OPENSSL)
 
     with pytest.raises(ReviewError, match="not committers: outsider"):
         validate(result, author_email=None, policy=OPENSSL)
@@ -197,9 +189,7 @@ def test_a_non_committer_author_does_not_count_towards_the_total(people):
     # --tools lets the author count, but only if they are a committer.
     # Silently counting a non-committer author was how a release run with one
     # real reviewer passed a two-reviewer policy.
-    result = resolve(
-        people, ["steve"], author_email="outsider@openssl.org", policy=TOOLS
-    )
+    result = resolve(people, ["steve"], author_email="outsider@openssl.org", policy=TOOLS)
 
     assert result.noncommitters == []
     assert result.author_count == 0
@@ -210,9 +200,7 @@ def test_a_non_committer_author_does_not_count_towards_the_total(people):
 
 
 def test_a_committer_author_does_count(people):
-    result = resolve(
-        people, ["levitte"], author_email="steve@openssl.org", policy=TOOLS
-    )
+    result = resolve(people, ["levitte"], author_email="steve@openssl.org", policy=TOOLS)
 
     assert result.author_count == 1
     validate(result, author_email="steve@openssl.org", policy=TOOLS)
@@ -273,7 +261,7 @@ def test_two_reviewers_satisfy_the_main_repository(people):
 def test_one_reviewer_does_not(people):
     result = resolve(people, ["steve"], author_email=None, policy=OPENSSL)
 
-    with pytest.raises(ReviewError, match="Too few reviewers .* at least 2"):
+    with pytest.raises(ReviewError, match=r"Too few reviewers .* at least 2"):
         validate(result, author_email=None, policy=OPENSSL)
 
 
@@ -295,18 +283,14 @@ def test_fuzz_corpora_needs_only_one(people):
 
 
 def test_an_unknown_reviewer_aborts(people):
-    result = resolve(
-        people, ["steve", "levitte", "ghost"], author_email=None, policy=OPENSSL
-    )
+    result = resolve(people, ["steve", "levitte", "ghost"], author_email=None, policy=OPENSSL)
 
     with pytest.raises(ReviewError, match="Unknown reviewers: ghost"):
         validate(result, author_email=None, policy=OPENSSL)
 
 
 def test_a_reviewer_without_a_cla_aborts(people):
-    result = resolve(
-        people, ["steve", "levitte", "nocla"], author_email=None, policy=OPENSSL
-    )
+    result = resolve(people, ["steve", "levitte", "nocla"], author_email=None, policy=OPENSSL)
 
     with pytest.raises(ReviewError, match="Reviewers without CLA: nocla"):
         validate(result, author_email=None, policy=OPENSSL)
@@ -332,9 +316,7 @@ def test_an_author_without_a_cla_is_allowed_on_a_trivial_commit(people):
         policy=OPENSSL,
     )
 
-    validate(
-        result, author_email="nocla@example.invalid", policy=OPENSSL, trivial=True
-    )
+    validate(result, author_email="nocla@example.invalid", policy=OPENSSL, trivial=True)
 
 
 def test_the_author_is_not_reported_as_an_unknown_reviewer(people):
@@ -351,9 +333,7 @@ def test_the_author_is_not_reported_as_an_unknown_reviewer(people):
         validate(result, author_email="someone@example.invalid", policy=OPENSSL)
 
     # ...and with the CLA question settled, no further error.
-    validate(
-        result, author_email="someone@example.invalid", policy=OPENSSL, trivial=True
-    )
+    validate(result, author_email="someone@example.invalid", policy=OPENSSL, trivial=True)
 
 
 def test_require_any_is_the_final_backstop():
@@ -378,7 +358,7 @@ def test_a_database_outage_is_not_mistaken_for_a_missing_reviewer():
 
 
 def test_every_policy_names_a_repository():
-    for name, policy in POLICIES.items():
+    for policy in POLICIES.values():
         assert policy.name
         assert policy.min_reviewers >= 1
 

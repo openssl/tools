@@ -14,9 +14,10 @@ reviewer names against the committer database and returns a rewritten commit
 message.  release-tools uses it directly, rather than shelling out to the
 `addrev` script and needing it on PATH.
 """
+
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from . import message as _message
 from . import reviewers as _reviewers
@@ -65,9 +66,7 @@ def resolve_reviewers(
         policy=policy,
         release=release,
     )
-    _reviewers.validate(
-        resolution, author_email=author_email, policy=policy, trivial=False
-    )
+    _reviewers.validate(resolution, author_email=author_email, policy=policy, trivial=False)
     _reviewers.require_any(resolution.reviewers)
     return resolution.reviewers
 

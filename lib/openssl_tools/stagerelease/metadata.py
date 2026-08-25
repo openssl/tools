@@ -9,6 +9,7 @@
 Written for whatever runs next in the pipeline -- signing, publishing -- so
 it stays in the shell-variable-assignment form those consumers already parse.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

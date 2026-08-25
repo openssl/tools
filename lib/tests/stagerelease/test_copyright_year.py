@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The copyright year pass."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -12,10 +13,13 @@ from pathlib import Path
 
 import pytest
 
-from openssl_tools.stagerelease.copyright_year import update_copyright_years, update_line, update_text
+from openssl_tools.stagerelease.copyright_year import (
+    update_copyright_years,
+    update_line,
+    update_text,
+)
 from openssl_tools.stagerelease.git import Git
 from openssl_tools.stagerelease.run import Runner
-
 from tests.stagerelease.helpers import commit_all, init_repo, run_git
 
 NOTICE = "# Copyright {} The OpenSSL Project Authors. All Rights Reserved.\n"
@@ -91,7 +95,8 @@ def test_updates_files_touched_this_year_and_always_the_readme(copyright_repo):
 
     assert set(result.updated) == {"new.c", "README"}
     assert (copyright_repo / "new.c").read_text().startswith(NOTICE.format("2019-2026"))
-    assert (copyright_repo / "README").read_text().startswith(NOTICE.format("2018-2026"))
+    readme = (copyright_repo / "README").read_text()
+    assert readme.startswith(NOTICE.format("2018-2026"))
     # old.c was not touched this year, so it is left alone.
     assert (copyright_repo / "old.c").read_text().startswith(NOTICE.format("2015"))
 

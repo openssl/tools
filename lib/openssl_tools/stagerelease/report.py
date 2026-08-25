@@ -9,6 +9,7 @@
 Replaces the shell's $ECHO / $VERBOSE / $DEBUG variables, which held either
 `echo` or `:` and were invoked as commands.
 """
+
 from __future__ import annotations
 
 import sys

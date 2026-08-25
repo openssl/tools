@@ -106,6 +106,26 @@ Two things worth knowing when changing this code:
   is expensive.  `lib/tests/stagerelease/test_fixups.py` asserts on exact output text rather
   than on substrings, deliberately.
 
+Linting
+-------
+
+```sh
+cd lib
+uvx ruff check . && uvx ruff format --check .
+# the entry scripts have no .py extension, so name them explicitly:
+uvx ruff check --config pyproject.toml \
+    ../release-tools/stage-release ../review-tools/addrev \
+    ../review-tools/gitaddrev ../review-tools/cherry-checker
+```
+
+The code is `ruff format`-ed at the 100 column limit set in
+`lib/pyproject.toml`; keep it that way rather than hand-wrapping.
+
+The rule set is pinned in `lib/pyproject.toml` rather than left to ruff's
+default, which changes between releases.  Two rules are switched off there
+with reasons: `DTZ011`, because release dates are naive local dates by
+design, and nothing else.  Individual `noqa` comments all carry a reason.
+
 History
 -------
 

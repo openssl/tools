@@ -5,14 +5,12 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The addrev and gitaddrev command line interfaces."""
+
 from __future__ import annotations
 
 import io
 
-import pytest
-
 from openssl_tools.reviewtools import addrev_cli, gitaddrev_cli, listing
-
 from tests.reviewtools.helpers import LEVITTE, STEVE, FakePeople
 
 BODY = "Fix a thing\n\nThe thing was broken.\n"
@@ -70,27 +68,19 @@ def test_an_unknown_reviewer_fails_the_run():
 
 
 def test_a_pr_number_adds_a_merged_from_line():
-    _, out, _ = run_gitaddrev(
-        ["--reviewer=steve", "--reviewer=levitte", "--prnum=999"]
-    )
+    _, out, _ = run_gitaddrev(["--reviewer=steve", "--reviewer=levitte", "--prnum=999"])
 
-    assert out.rstrip("\n").endswith(
-        "(Merged from https://github.com/openssl/openssl/pull/999)"
-    )
+    assert out.rstrip("\n").endswith("(Merged from https://github.com/openssl/openssl/pull/999)")
 
 
 def test_the_web_selector_names_the_web_repository():
-    _, out, _ = run_gitaddrev(
-        ["--web", "--reviewer=steve", "--reviewer=levitte", "--prnum=5"]
-    )
+    _, out, _ = run_gitaddrev(["--web", "--reviewer=steve", "--reviewer=levitte", "--prnum=5"])
 
     assert "https://github.com/openssl/web/pull/5)" in out
 
 
 def test_release_adds_a_release_line():
-    _, out, _ = run_gitaddrev(
-        ["--release", "--reviewer=steve", "--reviewer=levitte"]
-    )
+    _, out, _ = run_gitaddrev(["--release", "--reviewer=steve", "--reviewer=levitte"])
 
     assert "Release: yes\n" in out
 
@@ -149,17 +139,13 @@ def test_a_non_trivial_commit_from_an_author_without_a_cla_is_refused():
 
 
 def test_trivial_flag_warns_that_it_does_nothing():
-    _, _, err = run_gitaddrev(
-        ["--trivial", "--reviewer=steve", "--reviewer=levitte"]
-    )
+    _, _, err = run_gitaddrev(["--trivial", "--reviewer=steve", "--reviewer=levitte"])
 
     assert "--trivial has no effect" in err
 
 
 def test_verbose_reports_the_chosen_reviewers():
-    _, _, err = run_gitaddrev(
-        ["--verbose", "--reviewer=steve", "--reviewer=levitte"]
-    )
+    _, _, err = run_gitaddrev(["--verbose", "--reviewer=steve", "--reviewer=levitte"])
 
     assert "Going with these reviewers" in err
     assert STEVE in err
@@ -397,9 +383,7 @@ def test_a_failing_filter_branch_is_reported():
             return Completed() if argv[0] == "git" else super().__call__(argv, **kwargs)
 
     err = io.StringIO()
-    code = addrev_cli.main(
-        ["--nopr", "steve"], stdout=io.StringIO(), stderr=err, runner=Failing()
-    )
+    code = addrev_cli.main(["--nopr", "steve"], stdout=io.StringIO(), stderr=err, runner=Failing())
 
     assert code == 1
     assert "addrev failed" in err.getvalue()

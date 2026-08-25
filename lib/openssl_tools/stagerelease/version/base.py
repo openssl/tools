@@ -15,15 +15,15 @@ the version file.  Everything else -- series, version, full_version, the
 pre-release tag -- is derived by the scheme, because the derivation differs
 between OpenSSL 1.x and 3.0+.
 """
+
 from __future__ import annotations
 
 import abc
 from dataclasses import dataclass, replace
-from typing import Union
 
 # `patch` is an int under the 3.0+ scheme (3.2.1) and a letter chain under the
 # 1.x scheme (1.0.2zh), so it has to be one or the other depending on scheme.
-Patch = Union[int, str]
+Patch = int | str
 
 #: The transitions `bump()` understands, matching the shell's fixup_version().
 BUMP_KINDS = ("alpha", "beta", "final", "minor", "")

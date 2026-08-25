@@ -22,6 +22,7 @@ The phases a worktree can be in (the shell's "$PRE_LABEL$TYPE"):
 Each staging run applies two transitions: one to move the tree *to* the
 release being made, and one to move it on to the next development state.
 """
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -34,8 +35,18 @@ from .version import ReleaseState, Scheme
 NEXT_METHODS = ("", "alpha", "beta", "final", "minor")
 
 _MONTHS = (
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
 )
 
 
@@ -140,9 +151,7 @@ def next_release_state(
     raise ReleaseError("Invalid combination of options")
 
 
-def _release(
-    scheme: Scheme, state: ReleaseState, kind: str, date_string: str
-) -> ReleaseState:
+def _release(scheme: Scheme, state: ReleaseState, kind: str, date_string: str) -> ReleaseState:
     """Move to a released state: stamp the date and drop the -dev marker."""
     return scheme.bump(replace(state, dev=False, release_date=date_string), kind)
 

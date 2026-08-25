@@ -5,13 +5,19 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Argument handling and the closing message."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
 
-from openssl_tools.stagerelease.cli import build_parser, format_result, main, resolve_methods
+from openssl_tools.stagerelease.cli import (
+    build_parser,
+    format_result,
+    main,
+    resolve_methods,
+)
 from openssl_tools.stagerelease.errors import ReleaseError
 from openssl_tools.stagerelease.stage import StageResult
 from openssl_tools.stagerelease.tarball import Artifacts
@@ -29,7 +35,11 @@ def test_no_options_means_work_it_out():
 
 @pytest.mark.parametrize(
     "flag,expected",
-    [("--alpha", ("alpha", "alpha")), ("--beta", ("beta", "beta")), ("--final", ("final", "final"))],
+    [
+        ("--alpha", ("alpha", "alpha")),
+        ("--beta", ("beta", "beta")),
+        ("--final", ("final", "final")),
+    ],
 )
 def test_a_single_step_option(flag, expected):
     args = parse(flag)
@@ -89,8 +99,18 @@ def test_help_mentions_every_option(capsys):
         parse("--help")
 
     out = capsys.readouterr().out
-    for flag in ["--alpha", "--beta", "--final", "--next-beta", "--reviewer",
-                 "--quiet", "--verbose", "--debug", "--porcelain", "--manual"]:
+    for flag in [
+        "--alpha",
+        "--beta",
+        "--final",
+        "--next-beta",
+        "--reviewer",
+        "--quiet",
+        "--verbose",
+        "--debug",
+        "--porcelain",
+        "--manual",
+    ]:
         assert flag in out
 
 
@@ -103,11 +123,11 @@ def make_result(created_branch: bool) -> StageResult:
         release_branch="openssl-3.2" if created_branch else "master",
         created_release_branch=created_branch,
         artifacts=Artifacts(
-            tarball=Path("/tmp/openssl-3.2.0.tar.gz"),
-            sha1=Path("/tmp/openssl-3.2.0.tar.gz.sha1"),
-            sha256=Path("/tmp/openssl-3.2.0.tar.gz.sha256"),
+            tarball=Path("/artifacts/openssl-3.2.0.tar.gz"),
+            sha1=Path("/artifacts/openssl-3.2.0.tar.gz.sha1"),
+            sha256=Path("/artifacts/openssl-3.2.0.tar.gz.sha256"),
         ),
-        metadata_path=Path("/tmp/openssl-3.2.0.dat"),
+        metadata_path=Path("/artifacts/openssl-3.2.0.dat"),
         orig_head="abc123",
     )
 
@@ -121,8 +141,11 @@ def test_porcelain_output_is_shell_assignments():
 def test_instructions_list_the_artifacts():
     output = format_result(make_result(False), porcelain=False)
 
-    for name in ["openssl-3.2.0.tar.gz", "openssl-3.2.0.tar.gz.sha1",
-                 "openssl-3.2.0.tar.gz.sha256"]:
+    for name in [
+        "openssl-3.2.0.tar.gz",
+        "openssl-3.2.0.tar.gz.sha1",
+        "openssl-3.2.0.tar.gz.sha256",
+    ]:
         assert name in output
 
 

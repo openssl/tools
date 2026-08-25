@@ -10,10 +10,11 @@ This is the layer the shell version had no tests for at all: it called
 ./Configure and make from the middle of its logic, so exercising the branch
 decisions meant building OpenSSL.  Here the build is injected.
 """
+
 from __future__ import annotations
 
-import os
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -22,7 +23,6 @@ from openssl_tools.stagerelease.git import Git
 from openssl_tools.stagerelease.run import Runner
 from openssl_tools.stagerelease.stage import StageOptions, stage_release
 from openssl_tools.stagerelease.version.modern import parse_assignments
-
 from tests.stagerelease.helpers import (
     CHANGES_MD,
     FAKE_MKTAR,
@@ -54,9 +54,8 @@ def make_repo(tmp_path: Path, *, branch: str, patch: int, tag: str = "dev") -> P
     root = tmp_path / "openssl"
     init_repo(root, branch=branch)
 
-    version = (
-        MODERN_VERSION_DAT.replace("PATCH=0", f"PATCH={patch}")
-        .replace("PRE_RELEASE_TAG=dev", f"PRE_RELEASE_TAG={tag}")
+    version = MODERN_VERSION_DAT.replace("PATCH=0", f"PATCH={patch}").replace(
+        "PRE_RELEASE_TAG=dev", f"PRE_RELEASE_TAG={tag}"
     )
     (root / "VERSION.dat").write_text(version)
     (root / "CHANGES.md").write_text(CHANGES_MD)
@@ -150,9 +149,7 @@ def test_the_tagged_tree_carries_the_release_version(tmp_path):
 
     result, _, _ = stage(root, next_method="alpha", next_method2="alpha")
 
-    tagged = parse_assignments(
-        run_git(root, "show", f"{result.release_tag}^{{}}:VERSION.dat")
-    )
+    tagged = parse_assignments(run_git(root, "show", f"{result.release_tag}^{{}}:VERSION.dat"))
     assert tagged["PRE_RELEASE_TAG"] == "alpha1"
     assert tagged["RELEASE_DATE"] == TODAY_TEXT
 
@@ -174,7 +171,8 @@ def test_artifacts_land_in_the_parent_directory(tmp_path):
 
     result, _, _ = stage(root, next_method="alpha", next_method2="alpha")
 
-    for path in (result.artifacts.tarball, result.artifacts.sha1, result.artifacts.sha256):
+    artifacts = result.artifacts
+    for path in (artifacts.tarball, artifacts.sha1, artifacts.sha256):
         assert path.parent == root.parent
         assert path.is_file()
     assert result.artifacts.tarball.name == "openssl-3.2.0-alpha1.tar.gz"
@@ -259,9 +257,7 @@ def test_a_pre_3_0_branch_stages(tmp_path):
     (root / "crypto" / "opensslv.h").write_text(LEGACY_OPENSSLV_H)
     (root / "openssl.spec").write_text("Version:  1.0.2zg\n")
     (root / "README").write_text(" OpenSSL 1.0.2zh-dev\n\n Body.\n")
-    (root / "CHANGES").write_text(
-        " Changes between 1.0.2zg and 1.0.2zh [xx XXX xxxx]\n\n *)\n"
-    )
+    (root / "CHANGES").write_text(" Changes between 1.0.2zg and 1.0.2zh [xx XXX xxxx]\n\n *)\n")
     (root / "NEWS").write_text(
         "  Major changes between OpenSSL 1.0.2zg and OpenSSL 1.0.2zh"
         " [under development]\n\n      o\n"
@@ -361,7 +357,7 @@ class FakePeople:
     #: Known and CLA-holding, but not a committer.
     OUTSIDER = "Out Sider <outsider@openssl.org>"
 
-    PEOPLE = {
+    PEOPLE: ClassVar[dict[str, str]] = {
         "steve": STEVE,
         "steve@openssl.org": STEVE,
         "levitte": LEVITTE,
@@ -369,7 +365,7 @@ class FakePeople:
         "outsider": OUTSIDER,
         "outsider@openssl.org": OUTSIDER,
     }
-    COMMITTERS = {STEVE, LEVITTE}
+    COMMITTERS: ClassVar[set[str]] = {STEVE, LEVITTE}
 
     def __init__(self):
         self.calls: list[tuple] = []
@@ -483,9 +479,7 @@ def test_a_bad_reviewer_is_caught_before_the_copyright_pass(tmp_path):
     # either.
     root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
     notice = root / "notice.c"
-    notice.write_text(
-        "# Copyright 2019 The OpenSSL Project Authors. All Rights Reserved.\n"
-    )
+    notice.write_text("# Copyright 2019 The OpenSSL Project Authors. All Rights Reserved.\n")
     commit_all(root, "Add a file with a copyright notice")
     original = notice.read_text()
 

@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Building the release tarball and its checksums."""
+
 from __future__ import annotations
 
 import hashlib
@@ -63,9 +64,7 @@ def build_tarball(runner: Runner, source_dir: Path, tar_name: str) -> Path:
     if mktar.is_file():
         runner.run(["./util/mktar.sh", f"--tarfile={relative}"], echo_output=True)
     else:
-        runner.run(
-            ["make", f"DISTTARVARS=TARFILE={relative}", "dist"], echo_output=True
-        )
+        runner.run(["make", f"DISTTARVARS=TARFILE={relative}", "dist"], echo_output=True)
 
     tgz = source_dir.parent / f"{tar_name}.gz"
     if not tgz.is_file():

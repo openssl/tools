@@ -10,6 +10,7 @@ The first test walks exactly the sequence release-aux/test_suite.sh walked,
 asserting the same values, so the port is pinned to the shell's behaviour.
 The rest cover the transitions and rejections that suite never reached.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -20,8 +21,12 @@ from openssl_tools.stagerelease.errors import ReleaseError
 from openssl_tools.stagerelease.state import format_release_date, next_release_state
 from openssl_tools.stagerelease.version.legacy import LegacyScheme
 from openssl_tools.stagerelease.version.modern import ModernScheme
-
-from tests.stagerelease.helpers import LEGACY_OPENSSLV_H, MODERN_VERSION_DAT, TODAY, TODAY_TEXT
+from tests.stagerelease.helpers import (
+    LEGACY_OPENSSLV_H,
+    MODERN_VERSION_DAT,
+    TODAY,
+    TODAY_TEXT,
+)
 
 
 @pytest.fixture
@@ -111,8 +116,9 @@ def test_legacy_release_cycle_matches_the_shell_test_suite(legacy):
 
 def state_with(scheme, tag, patch=0):
     return scheme.parse(
-        MODERN_VERSION_DAT.replace("PRE_RELEASE_TAG=dev", f"PRE_RELEASE_TAG={tag}")
-        .replace("PATCH=0", f"PATCH={patch}")
+        MODERN_VERSION_DAT.replace("PRE_RELEASE_TAG=dev", f"PRE_RELEASE_TAG={tag}").replace(
+            "PATCH=0", f"PATCH={patch}"
+        )
     )
 
 
@@ -131,17 +137,13 @@ def test_bare_next_continues_an_alpha_series(modern):
     # With no option given, an ongoing alpha series carries on as alpha.
     state = state_with(modern, "alpha2-dev")
 
-    assert modern.full_version(next_release_state(modern, state, "", TODAY)) == (
-        "3.2.0-alpha2"
-    )
+    assert modern.full_version(next_release_state(modern, state, "", TODAY)) == ("3.2.0-alpha2")
 
 
 def test_bare_next_continues_a_beta_series(modern):
     state = state_with(modern, "beta4-dev")
 
-    assert modern.full_version(next_release_state(modern, state, "", TODAY)) == (
-        "3.2.0-beta4"
-    )
+    assert modern.full_version(next_release_state(modern, state, "", TODAY)) == ("3.2.0-beta4")
 
 
 @pytest.mark.parametrize(

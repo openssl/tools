@@ -11,6 +11,7 @@ impossible release transition, an unrecognised branch -- is a ReleaseError.
 The CLI catches it, prints the message to stderr and exits 1, so a stack
 trace only ever means a genuine bug.
 """
+
 from __future__ import annotations
 
 

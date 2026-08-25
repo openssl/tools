@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """How many reviewers each repository requires."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -47,9 +48,7 @@ POLICIES: dict[str, RepoPolicy] = {
     # `--technical-policies` reached addrev from ghmerge, matched none of its
     # patterns, and was silently used as a commit range -- which made
     # `ghmerge --technical-policies` fail on a bogus revision.
-    "technical-policies": RepoPolicy(
-        "technical-policies", min_reviewers=2, min_authors=0
-    ),
+    "technical-policies": RepoPolicy("technical-policies", min_reviewers=2, min_authors=0),
 }
 
 DEFAULT_POLICY = POLICIES["openssl"]
@@ -60,8 +59,7 @@ def get_policy(name: str | None) -> RepoPolicy:
         return DEFAULT_POLICY
     try:
         return POLICIES[name]
-    except KeyError:
+    except KeyError as error:
         raise ReviewError(
-            f"Unknown repository {name!r}; expected one of: "
-            + ", ".join(sorted(POLICIES))
-        )
+            f"Unknown repository {name!r}; expected one of: " + ", ".join(sorted(POLICIES))
+        ) from error

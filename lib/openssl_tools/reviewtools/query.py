@@ -27,13 +27,15 @@ must not be confused with the database being unreachable.
 Standard http_proxy / https_proxy / no_proxy variables are honoured, because
 urllib's default opener reads them, as LWP's env_proxy did.
 """
+
 from __future__ import annotations
 
 import json
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from .errors import QueryError
 
@@ -52,7 +54,7 @@ def encode_id(identity: str | Mapping[str, str]) -> str:
         return identity
     if len(identity) != 1:
         raise ReviewMalformedID("Malformed input ID")
-    (tag, value), = identity.items()
+    ((tag, value),) = identity.items()
     return f"{tag}:{value}"
 
 
@@ -70,6 +72,9 @@ class Query:
         timeout: int = DEFAULT_TIMEOUT,
         opener: urllib.request.OpenerDirector | None = None,
     ) -> None:
+        scheme = urllib.parse.urlsplit(base_url).scheme
+        if scheme not in ("http", "https"):
+            raise QueryError(f"Unsupported scheme in base URL: {base_url!r}")
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._opener = opener or urllib.request.build_opener()
@@ -82,24 +87,27 @@ class Query:
 
     def _get(self, *path_segments: str) -> tuple[int, str]:
         """GET a path, returning (status, body).  Raises only on 5xx."""
-        quoted = "/".join(
-            urllib.parse.quote(segment, safe="") for segment in path_segments
-        )
+        quoted = "/".join(urllib.parse.quote(segment, safe="") for segment in path_segments)
         url = f"{self.base_url}/{quoted}"
 
         if url in self._cache:
             return self._cache[url]
 
-        request = urllib.request.Request(url, headers={"Accept": "application/json"})
+        # The scheme is validated in __init__, so this can only ever be
+        # http or https -- never file: or anything else unexpected.
+        request = urllib.request.Request(  # noqa: S310
+            url, headers={"Accept": "application/json"}
+        )
         try:
             with self._opener.open(request, timeout=self.timeout) as response:
                 result = (response.status, response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
-            body = ""
+            # The body is only used for context in the message; failing to
+            # read it must not mask the status we came here for.
             try:
                 body = error.read().decode("utf-8", errors="replace")
-            except Exception:  # pragma: no cover - the body is best-effort
-                pass
+            except OSError:  # pragma: no cover - the body is best-effort
+                body = ""
             if error.code >= 500:
                 raise QueryError(f"Server error: {error.reason}") from error
             result = (error.code, body)
@@ -167,7 +175,7 @@ def extract_email(identity: str) -> str:
     start = identity.find("<")
     end = identity.find(">", start + 1)
     if start != -1 and end != -1:
-        inner = identity[start + 1:end]
+        inner = identity[start + 1 : end]
         if "@" in inner and " " not in inner:
             return inner
     if "@" not in identity or " " in identity or identity.startswith("@"):

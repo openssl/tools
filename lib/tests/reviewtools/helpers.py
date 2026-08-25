@@ -14,6 +14,7 @@ Note the shape of a 'rev' tag: it is the full `Name <email>` string that
 ends up on a Reviewed-by: line, not a short handle.  That is why CLA lookups
 have to pull the address back out of it.
 """
+
 from __future__ import annotations
 
 import time

@@ -20,6 +20,7 @@ directory on sys.path and imports from here; there is no install step.
 
 Standard library only.
 """
+
 from __future__ import annotations
 
 __version__ = "1.0.0"

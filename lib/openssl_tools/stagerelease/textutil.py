@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Line handling and file I/O shared by the text-rewriting passes."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -31,7 +32,7 @@ def read_text(path: Path) -> str:
     Undecodable bytes become surrogates and are written back unchanged by
     `write_text`, so a pass over a file with mixed encodings is lossless.
     """
-    with open(path, "r", encoding="utf-8", errors="surrogateescape", newline="") as fh:
+    with open(path, encoding="utf-8", errors="surrogateescape", newline="") as fh:
         return fh.read()
 
 

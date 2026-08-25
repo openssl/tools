@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The .dat metadata file."""
+
 from __future__ import annotations
 
 from pathlib import Path

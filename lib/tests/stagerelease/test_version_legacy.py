@@ -5,13 +5,17 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The pre-3.0 versioning scheme, including the patch letter chain."""
+
 from __future__ import annotations
 
 import pytest
 
 from openssl_tools.stagerelease.errors import ReleaseError
-from openssl_tools.stagerelease.version.legacy import LegacyScheme, decode_patch, encode_patch
-
+from openssl_tools.stagerelease.version.legacy import (
+    LegacyScheme,
+    decode_patch,
+    encode_patch,
+)
 from tests.stagerelease.helpers import LEGACY_OPENSSLV_H
 
 
@@ -41,7 +45,7 @@ def test_patch_encoding_matches_the_documented_scheme(number, letters):
     assert decode_patch(letters) == number
 
 
-@pytest.mark.parametrize("number", range(0, 120))
+@pytest.mark.parametrize("number", range(120))
 def test_patch_encoding_round_trips(number):
     # The shell's set_version() could not do this: its `^(z)*(.)$` captured
     # only the last 'z', so any chain longer than one 'z' decoded wrongly.
@@ -150,7 +154,8 @@ def test_render_leaves_unrelated_lines_alone(scheme):
     state = scheme.parse(LEGACY_OPENSSLV_H)
     rendered = scheme.render(state, LEGACY_OPENSSLV_H)
 
-    assert '# define OPENSSL_VERSION_PTEXT   " part of " OPENSSL_VERSION_TEXT' in rendered
+    untouched = '# define OPENSSL_VERSION_PTEXT   " part of " OPENSSL_VERSION_TEXT'
+    assert untouched in rendered
 
 
 def test_branch_and_tag_names(scheme):

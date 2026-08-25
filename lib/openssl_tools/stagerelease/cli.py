@@ -5,13 +5,14 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Command line entry point."""
+
 from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
-from typing import Sequence
 
 from .errors import ReleaseError
 from .git import Git
@@ -149,9 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     noise = parser.add_mutually_exclusive_group()
-    noise.add_argument(
-        "--quiet", action="store_true", help="only print the final output"
-    )
+    noise.add_argument("--quiet", action="store_true", help="only print the final output")
     noise.add_argument("--verbose", action="store_true", help="verbose output")
 
     parser.add_argument("--debug", action="store_true", help="include debug output")
@@ -160,9 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="print the result in an easy-to-parse form",
     )
-    parser.add_argument(
-        "--manual", action="store_true", help="print the manual and exit"
-    )
+    parser.add_argument("--manual", action="store_true", help="print the manual and exit")
     return parser
 
 
@@ -171,8 +168,7 @@ def resolve_methods(next_method: str, next_beta: bool) -> tuple[str, str]:
     next_method2 = "beta" if next_beta else next_method
     if (next_method, next_method2) not in VALID_METHOD_PAIRS:
         raise ReleaseError(
-            f"Invalid combination of options ({next_method or 'none'},"
-            f" {next_method2 or 'none'})",
+            f"Invalid combination of options ({next_method or 'none'}, {next_method2 or 'none'})",
             "--next-beta only goes with --alpha.",
         )
     return next_method, next_method2
@@ -181,10 +177,7 @@ def resolve_methods(next_method: str, next_beta: bool) -> tuple[str, str]:
 def format_result(result: StageResult, porcelain: bool) -> str:
     """The closing message: instructions, or parseable assignments."""
     if porcelain:
-        return (
-            f"orig_head='{result.orig_head}'\n"
-            f"metadata='{result.metadata_path.name}'\n"
-        )
+        return f"orig_head='{result.orig_head}'\nmetadata='{result.metadata_path.name}'\n"
 
     lines = [
         "",

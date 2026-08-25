@@ -12,12 +12,13 @@ an equivalent on the other side.  See `--cherry-mark` in git-log(1).
 The subprocess calls are confined to `GitLog` so the parsing, sorting and
 formatting below can be tested directly.
 """
+
 from __future__ import annotations
 
 import re
 import subprocess
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Iterator, Sequence
 
 from .errors import ReviewError
 
@@ -30,9 +31,7 @@ _PRNUM_RE = re.compile(
     r"|GH: #(\d+)"
 )
 
-_FIXES_RE = re.compile(
-    r"Fixes:?\s+(?:#|https://github\.com/openssl/openssl/pull/)(\d+)"
-)
+_FIXES_RE = re.compile(r"Fixes:?\s+(?:#|https://github\.com/openssl/openssl/pull/)(\d+)")
 
 _RELEASE_BRANCH_RE = re.compile(r"^(?:.*/)?openssl-(\d+)\.(\d+)$")
 
@@ -102,18 +101,14 @@ class GitLog:
     def _capture(self, argv: Sequence[str]) -> str:
         completed = self._runner(argv, capture_output=True, text=True)
         if completed.returncode != 0:
-            raise ReviewError(
-                f"{' '.join(argv)} failed: {(completed.stderr or '').strip()}"
-            )
+            raise ReviewError(f"{' '.join(argv)} failed: {(completed.stderr or '').strip()}")
         return completed.stdout or ""
 
     def remotes(self) -> str:
         return self._capture(["git", "remote", "-v"])
 
     def branches(self) -> list[str]:
-        output = self._capture(
-            ["git", "for-each-ref", "--format=%(refname:short)", "refs/heads"]
-        )
+        output = self._capture(["git", "for-each-ref", "--format=%(refname:short)", "refs/heads"])
         return output.splitlines()
 
     def master_remote(self) -> str:
@@ -205,17 +200,16 @@ def format_table(commits: Sequence[Commit], left: str, right: str) -> str:
         "  ==  both",
         "",
         " prnum  | fixes  | br |   commit   |   subject",
-        "------- | ------ | -- | ---------- | "
-        + "-" * 43,
+        "------- | ------ | -- | ---------- | " + "-" * 43,
     ]
-    for entry in commits:
-        lines.append(
-            " {:>6} | {:>6} | {} | {} | {} ".format(
-                f"#{entry.prnum}",
-                entry.fixes,
-                BRANCH_MARKERS[entry.branch],
-                entry.commit,
-                entry.subject,
-            )
+    lines.extend(
+        " {:>6} | {:>6} | {} | {} | {} ".format(
+            f"#{entry.prnum}",
+            entry.fixes,
+            BRANCH_MARKERS[entry.branch],
+            entry.commit,
+            entry.subject,
         )
+        for entry in commits
+    )
     return "".join(f"{line}\n" for line in lines)

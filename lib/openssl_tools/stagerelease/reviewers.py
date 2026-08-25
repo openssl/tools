@@ -21,9 +21,10 @@ The shell ran `addrev --release --nopr --reviewer=...` after each commit,
 which needed addrev on PATH, re-queried the database every time, and drove
 `git filter-branch` over a commit created seconds earlier.
 """
+
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..reviewtools import ReviewError, resolve_reviewers
 from ..reviewtools import message as review_message

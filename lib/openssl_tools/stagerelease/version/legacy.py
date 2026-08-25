@@ -20,6 +20,7 @@ PP=0, 1.0.2a is PP=1, 1.0.2y is PP=25, 1.0.2za is PP=26.  See `encode_patch`.
 All 1.x branches are end-of-life; this exists so the tool can still read and
 tag an old branch, not because new 1.x releases are expected.
 """
+
 from __future__ import annotations
 
 import re
@@ -95,9 +96,7 @@ class LegacyScheme(Scheme):
     def parse(self, text: str) -> ReleaseState:
         match = _VERSION_NUMBER_RE.search(text)
         if not match:
-            raise ReleaseError(
-                f"No OPENSSL_VERSION_NUMBER definition found in {self.version_file}"
-            )
+            raise ReleaseError(f"No OPENSSL_VERSION_NUMBER definition found in {self.version_file}")
 
         major = int(match.group(1), 16)
         minor = int(match.group(2), 16)
@@ -113,25 +112,20 @@ class LegacyScheme(Scheme):
             # The shell parsed SHLIB_VERSION_NUMBER out of the header and then
             # immediately overwrote it with this, so only this value ever had
             # any effect.
-            shlib_version=(
-                f"{major}.{minor}.0" if minor == 0 else f"{major}.{minor}"
-            ),
+            shlib_version=(f"{major}.{minor}.0" if minor == 0 else f"{major}.{minor}"),
             dev=dev,
             pre_label="",
             pre_num=0,
         )
 
     def render(self, state: ReleaseState, current: str) -> str:
-        number = "{:x}{:02x}{:02x}{:02x}{:x}".format(
-            state.major,
-            state.minor,
-            state.fix or 0,
-            decode_patch(str(state.patch)),
-            0 if state.dev else 0xF,
+        # 0xMNNFFPPSL: see the module docstring.
+        patch_number = decode_patch(str(state.patch))
+        state_digit = 0 if state.dev else 0xF
+        number = (
+            f"{state.major:x}{state.minor:02x}{state.fix or 0:02x}{patch_number:02x}{state_digit:x}"
         )
-        text = "{}.{}.{}{}".format(
-            state.major, state.minor, state.fix or 0, state.patch
-        )
+        text = f"{state.major}.{state.minor}.{state.fix or 0}{state.patch}"
         release_date = state.release_date or "xx XXX xxxx"
         tag = state.marked_pre_release_tag
 
@@ -139,9 +133,7 @@ class LegacyScheme(Scheme):
         # replaces ran under `perl -pi`, which applied each substitution once
         # per line, and the headers define OPENSSL_VERSION_TEXT twice -- once
         # inside `#ifdef OPENSSL_FIPS` and once outside.  Both must move.
-        result = _SUB_VERSION_NUMBER_RE.sub(
-            lambda m: f"{m.group(1)}{number}L", current
-        )
+        result = _SUB_VERSION_NUMBER_RE.sub(lambda m: f"{m.group(1)}{number}L", current)
         result = _SUB_VERSION_TEXT_RE.sub(
             # Group 2 is an optional '-fips' marker, which is preserved.  The
             # header's own '-dev' marker (group 3) is dropped and replaced by
@@ -151,9 +143,7 @@ class LegacyScheme(Scheme):
             ),
             result,
         )
-        result = _SUB_SHLIB_RE.sub(
-            lambda m: f'{m.group(1)}"{state.shlib_version}"', result
-        )
+        result = _SUB_SHLIB_RE.sub(lambda m: f'{m.group(1)}"{state.shlib_version}"', result)
         return result
 
     def series(self, state: ReleaseState) -> str:

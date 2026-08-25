@@ -19,11 +19,12 @@ Two conventions carried over from the Perl:
 Both filename conventions are handled: pre-3.0 OpenSSL uses CHANGES/NEWS,
 3.0 and later use CHANGES.md/NEWS.md.  They are not interchangeable.
 """
+
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from .textutil import split_lines
 
@@ -81,7 +82,7 @@ def _edit_first_match(
         match = pattern.match(line)
         if not match:
             continue
-        replacement = build(match, line[match.end():])
+        replacement = build(match, line[match.end() :])
         if replacement is not None:
             lines[index] = replacement
         break
@@ -96,8 +97,7 @@ def changes_release(text: str, ctx: FixupContext) -> str:
         text,
         _CHANGES_RE,
         lambda m, post: (
-            f" Changes between {m[1]} and {ctx.release_text}"
-            f" [{ctx.release_date}]{post}"
+            f" Changes between {m[1]} and {ctx.release_text} [{ctx.release_date}]{post}"
         ),
     )
 
@@ -107,8 +107,7 @@ def changes_md_release(text: str, ctx: FixupContext) -> str:
         text,
         _CHANGES_MD_RE,
         lambda m, post: (
-            f"### Changes between {m[1]} and {ctx.release_text}"
-            f" [{ctx.release_date}]{post}"
+            f"### Changes between {m[1]} and {ctx.release_text} [{ctx.release_date}]{post}"
         ),
     )
 
@@ -155,9 +154,7 @@ def spec_version(text: str, ctx: FixupContext) -> str:
     if "-pre" in ctx.release:
         return text
     release = re.sub(r"-dev$", "", ctx.release)
-    return _edit_first_match(
-        text, _SPEC_RE, lambda m, post: f"Version: {release}{post}"
-    )
+    return _edit_first_match(text, _SPEC_RE, lambda m, post: f"Version: {release}{post}")
 
 
 # -- post-release fixups ----------------------------------------------------
@@ -241,9 +238,7 @@ def news_md_postrelease(text: str, ctx: FixupContext) -> str:
 
 
 def readme_postrelease(text: str, ctx: FixupContext) -> str:
-    return _edit_first_match(
-        text, _README_RE, lambda m, post: f" OpenSSL {ctx.release}{post}"
-    )
+    return _edit_first_match(text, _README_RE, lambda m, post: f" OpenSSL {ctx.release}{post}")
 
 
 #: (filename, direction) -> the edit to apply.

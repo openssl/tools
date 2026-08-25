@@ -11,12 +11,13 @@ of the code that make decisions can be tested against a fake.  The shell
 version had no such seam: `./Configure`, `make` and `git` were called inline
 from the middle of the logic, which is why none of it could be tested.
 """
+
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
 
 from .errors import ReleaseError
 
@@ -79,7 +80,9 @@ class Runner:
 
             full_env = {**os.environ, **env}
 
-        proc = subprocess.Popen(
+        # argv is always a list and shell is never used, so nothing here
+        # goes through a shell parser.
+        proc = subprocess.Popen(  # noqa: S603
             argv,
             cwd=str(cwd or self.cwd),
             env=full_env,
@@ -90,19 +93,19 @@ class Runner:
         )
 
         chunks: list[str] = []
-        assert proc.stdout is not None
-        for line in proc.stdout:
-            chunks.append(line)
-            if echo_output:
-                self.log(f"> {line.rstrip()}")
+        # Always a pipe, because stdout=PIPE above; the guard is for type
+        # checkers rather than for a case that can happen.
+        if proc.stdout is not None:
+            for line in proc.stdout:
+                chunks.append(line)
+                if echo_output:
+                    self.log(f"> {line.rstrip()}")
         proc.wait()
 
         result = Result(argv=argv, returncode=proc.returncode, stdout="".join(chunks))
         if check and not result.ok:
             raise ReleaseError(
-                "Command failed ({}): {}".format(
-                    result.returncode, " ".join(argv)
-                ),
+                "Command failed ({}): {}".format(result.returncode, " ".join(argv)),
                 result.stdout.strip() or None,
             )
         return result

@@ -21,12 +21,14 @@ metadata file describing what was staged.
 Nothing is signed, pushed or uploaded here.  The signing key lives on an HSM
 the build host cannot reach, so that is a separate step run elsewhere.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from . import reviewers
 from .build import Build
 from .copyright_year import update_copyright_years
 from .errors import ReleaseError
@@ -34,7 +36,6 @@ from .fixups import FIXUPS, POSTRELEASE, RELEASE, FixupContext, get_fixup
 from .git import Git, is_recognised_branch
 from .metadata import Metadata
 from .report import Reporter
-from . import reviewers
 from .run import Runner
 from .state import next_release_state
 from .tarball import Artifacts, make_artifacts
@@ -88,10 +89,7 @@ def postrelease_text_for(scheme: Scheme, state: ReleaseState) -> str:
 
 
 def _pre_release_text(scheme: Scheme, state: ReleaseState) -> str:
-    return (
-        f"{scheme.series(state)}{state.marked_build_metadata}"
-        f" {state.pre_label} {state.pre_num}"
-    )
+    return f"{scheme.series(state)}{state.marked_build_metadata} {state.pre_label} {state.pre_num}"
 
 
 def check_fixups_available(scheme: Scheme) -> None:
@@ -226,9 +224,7 @@ def stage_release(
 
     # -- make update --------------------------------------------------------
 
-    reporter.echo(
-        "== Configuring OpenSSL for update and release.  This may take a bit of time"
-    )
+    reporter.echo("== Configuring OpenSSL for update and release.  This may take a bit of time")
     build.configure()
 
     reporter.verbose("== Checking source file updates and fips checksums")
@@ -243,9 +239,7 @@ def stage_release(
     # -- the release commit -------------------------------------------------
 
     if created_release_branch:
-        reporter.verbose(
-            f"== Creating a local release branch and switch to it: {release_branch}"
-        )
+        reporter.verbose(f"== Creating a local release branch and switch to it: {release_branch}")
         git.create_branch(release_branch)
 
     write_version(scheme, root, release_state)
@@ -255,8 +249,7 @@ def stage_release(
     reporter.verbose(f"== Updated version information to {release}")
 
     reporter.verbose(
-        f"== Updating files with release date for {release}"
-        f" : {release_state.release_date}"
+        f"== Updating files with release date for {release} : {release_state.release_date}"
     )
     apply_fixups(
         root,
@@ -308,9 +301,7 @@ def stage_release(
     prev_release_text = release_text
     prev_release_date = release_state.release_date
 
-    post_state = next_release_state(
-        scheme, release_state, options.next_method2, today
-    )
+    post_state = next_release_state(scheme, release_state, options.next_method2, today)
     write_version(scheme, root, post_state)
 
     post_release = scheme.full_version(post_state)
@@ -347,9 +338,7 @@ def stage_release(
         write_version(scheme, root, minor_state)
 
         minor_release = scheme.full_version(minor_state)
-        minor_text = (
-            f"{scheme.series(minor_state)}{minor_state.marked_build_metadata}"
-        )
+        minor_text = f"{scheme.series(minor_state)}{minor_state.marked_build_metadata}"
         reporter.verbose(f"== Updated version information to {minor_release}")
 
         reporter.verbose(f"== Updating files for {minor_release} :")

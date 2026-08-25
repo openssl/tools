@@ -5,12 +5,14 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """`cherry-checker` -- list commits eligible for cherry-picking."""
+
 from __future__ import annotations
 
 import argparse
 import subprocess
 import sys
-from typing import Sequence, TextIO
+from collections.abc import Sequence
+from typing import TextIO
 
 from .cherry import (
     GitLog,
@@ -41,8 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "right",
         nargs="?",
-        help="the branch to compare against (default: the highest local"
-        " openssl-N.M branch)",
+        help="the branch to compare against (default: the highest local openssl-N.M branch)",
     )
     parser.add_argument(
         "-a",

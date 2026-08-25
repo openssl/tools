@@ -9,6 +9,7 @@
 The fake person database lives in helpers.py; see the note in the
 stagerelease conftest.
 """
+
 from __future__ import annotations
 
 from tests.reviewtools.helpers import frozen_time, people  # noqa: F401

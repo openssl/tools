@@ -10,6 +10,7 @@ These replace twelve `perl -pi` scripts.  Because a mistake here silently
 corrupts a published changelog, each is checked against the exact text the
 Perl produced.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -41,18 +42,13 @@ CHANGES_MD = (
 )
 
 NEWS_MD = (
-    "### Major changes between OpenSSL 3.1 and OpenSSL 3.2 [under development]\n"
-    "\n"
-    "  * Something.\n"
+    "### Major changes between OpenSSL 3.1 and OpenSSL 3.2 [under development]\n\n  * Something.\n"
 )
 
 CHANGES = " Changes between 1.0.2zg and 1.0.2zh [xx XXX xxxx]\n\n *)\n"
 
 NEWS = (
-    "  Major changes between OpenSSL 1.0.2zg and OpenSSL 1.0.2zh"
-    " [under development]\n"
-    "\n"
-    "      o\n"
+    "  Major changes between OpenSSL 1.0.2zg and OpenSSL 1.0.2zh [under development]\n\n      o\n"
 )
 
 
@@ -110,8 +106,7 @@ def test_news_release_uses_the_pre_3_0_heading():
     result = news_release(NEWS, ctx)
 
     assert result.startswith(
-        "  Major changes between OpenSSL 1.0.2zg and OpenSSL 1.0.2zh"
-        " [25 Aug 2026]\n"
+        "  Major changes between OpenSSL 1.0.2zg and OpenSSL 1.0.2zh [25 Aug 2026]\n"
     )
 
 
@@ -210,7 +205,9 @@ def test_news_md_postrelease_opens_a_new_section():
 
 def test_changes_postrelease_uses_the_pre_3_0_placeholder():
     ctx = FixupContext(
-        release_text="1.0.2zi", prev_release_text="1.0.2zh", prev_release_date="25 Aug 2026"
+        release_text="1.0.2zi",
+        prev_release_text="1.0.2zh",
+        prev_release_date="25 Aug 2026",
     )
 
     result = changes_postrelease(CHANGES, ctx)

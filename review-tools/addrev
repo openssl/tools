@@ -10,12 +10,15 @@
 The current branch must be the merge target.  Run `addrev --help` for
 the argument grammar.
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-if sys.version_info < (3, 10):
+# Checked at runtime, not statically: this runs under whatever python3
+# the host provides, and the package needs 3.10 for `int | str` aliases.
+if sys.version_info < (3, 10):  # noqa: UP036
     sys.exit(
         "addrev needs Python 3.10 or later, found "
         f"{sys.version_info.major}.{sys.version_info.minor}"
@@ -25,7 +28,7 @@ if sys.version_info < (3, 10):
 # install step, so put it on sys.path.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from openssl_tools.reviewtools.addrev_cli import main  # noqa: E402
+from openssl_tools.reviewtools.addrev_cli import main
 
 if __name__ == "__main__":
     sys.exit(main())

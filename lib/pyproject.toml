@@ -18,3 +18,44 @@ markers = [
     "network: tests that talk to api.openssl.org (deselected by default)",
 ]
 addopts = "-m 'not network'"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+# Pinned explicitly rather than relying on the default set, which varies
+# between ruff releases.
+select = [
+    "F",     # pyflakes
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # import sorting
+    "UP",    # pyupgrade
+    "B",     # bugbear
+    "SIM",   # simplify
+    "C4",    # comprehensions
+    "PIE",
+    "PERF",
+    "RUF",
+    "DTZ",   # naive datetimes
+    "S",     # bandit
+    "BLE",   # blind except
+    "FURB",
+]
+ignore = [
+    # Release dates are naive calendar dates in the local zone, matching the
+    # `date '+%-d %b %Y'` the shell used.  Making them timezone-aware would
+    # change what gets written into CHANGES.md.
+    "DTZ011",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["openssl_tools", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # asserts are the point
+    "S603",    # subprocess calls with a literal argv
+    "S607",    # git, make and gzip are found on PATH deliberately
+]

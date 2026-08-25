@@ -11,13 +11,15 @@ year of its OpenSSL copyright notice extended to this year.  A notice that
 already names a single year becomes a range, and a range that would collapse
 to one year (2026-2026) is written as that year alone.
 """
+
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Protocol
 
 from .textutil import read_text, split_lines, write_text
 
@@ -73,9 +75,7 @@ def update_copyright_years(
     new_year_day = f"{today.year}-01-01"
 
     candidates: list[str] = [path for _, path in git.changed_since(new_year_day)]
-    for name in ALWAYS_CONSIDER:
-        if (root / name).is_file():
-            candidates.append(name)
+    candidates.extend(name for name in ALWAYS_CONSIDER if (root / name).is_file())
 
     considered = 0
     updated: list[str] = []

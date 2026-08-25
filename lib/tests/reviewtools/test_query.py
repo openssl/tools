@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The api.openssl.org client, against a stubbed transport."""
+
 from __future__ import annotations
 
 import io
@@ -14,7 +15,12 @@ import urllib.error
 import pytest
 
 from openssl_tools.reviewtools.errors import QueryError
-from openssl_tools.reviewtools.query import Query, ReviewMalformedID, encode_id, extract_email
+from openssl_tools.reviewtools.query import (
+    Query,
+    ReviewMalformedID,
+    encode_id,
+    extract_email,
+)
 
 
 class StubOpener:
@@ -140,9 +146,7 @@ def test_has_cla_is_false_on_404():
 
 
 def test_is_member_of():
-    query = make_query(
-        {f"{BASE}/0/Person/steve/IsMemberOf/commit": (200, json.dumps([1]))}
-    )
+    query = make_query({f"{BASE}/0/Person/steve/IsMemberOf/commit": (200, json.dumps([1]))})
 
     assert query.is_member_of("steve", "commit") is True
     assert query.is_member_of("steve", "otc") is False

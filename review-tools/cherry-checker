@@ -5,14 +5,16 @@
 # this file except in compliance with the License.  You can obtain a copy
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
-"""List commits eligible for cherry-picking between two branches.
-"""
+"""List commits eligible for cherry-picking between two branches."""
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-if sys.version_info < (3, 10):
+# Checked at runtime, not statically: this runs under whatever python3
+# the host provides, and the package needs 3.10 for `int | str` aliases.
+if sys.version_info < (3, 10):  # noqa: UP036
     sys.exit(
         "cherry-checker needs Python 3.10 or later, found "
         f"{sys.version_info.major}.{sys.version_info.minor}"
@@ -22,7 +24,7 @@ if sys.version_info < (3, 10):
 # install step, so put it on sys.path.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from openssl_tools.reviewtools.cherry_cli import main  # noqa: E402
+from openssl_tools.reviewtools.cherry_cli import main
 
 if __name__ == "__main__":
     sys.exit(main())

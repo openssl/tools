@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """cherry-checker's parsing, sorting and formatting."""
+
 from __future__ import annotations
 
 import io
@@ -30,8 +31,14 @@ SEP = "\x1f"
 class FakeGit:
     """Answers the handful of git questions cherry-checker asks."""
 
-    def __init__(self, log=(), messages=None, branches=(), remote="upstream",
-                 remotes="origin\tgit@github.com:me/openssl.git (push)\n"):
+    def __init__(
+        self,
+        log=(),
+        messages=None,
+        branches=(),
+        remote="upstream",
+        remotes="origin\tgit@github.com:me/openssl.git (push)\n",
+    ):
         self._log = list(log)
         self._messages = messages or {}
         self._branches = list(branches)
@@ -152,8 +159,7 @@ def test_pr_numbers_come_from_the_commit_message():
     git = FakeGit(
         log=[f"100{SEP}<{SEP}aaa{SEP}Fix"],
         messages={
-            "aaa": "Fix\n\nFixes #7\n"
-            "(Merged from https://github.com/openssl/openssl/pull/99)\n"
+            "aaa": "Fix\n\nFixes #7\n(Merged from https://github.com/openssl/openssl/pull/99)\n"
         },
     )
 

@@ -10,6 +10,7 @@ Replaces release-tools/stage-release.sh, its release-aux/*.sh helpers and the
 release-aux/fixup-*.pl scripts.  Standard library only: this runs on release
 build hosts where installing packages is not always possible.
 """
+
 from __future__ import annotations
 
 __version__ = "1.0.0"

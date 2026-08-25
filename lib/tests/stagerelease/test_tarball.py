@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Tarball construction and checksums."""
+
 from __future__ import annotations
 
 import hashlib
@@ -14,7 +15,12 @@ import pytest
 
 from openssl_tools.stagerelease.errors import ReleaseError
 from openssl_tools.stagerelease.run import Runner
-from openssl_tools.stagerelease.tarball import build_tarball, hash_file, make_artifacts, write_checksums
+from openssl_tools.stagerelease.tarball import (
+    build_tarball,
+    hash_file,
+    make_artifacts,
+    write_checksums,
+)
 
 
 def test_hash_file_matches_hashlib(tmp_path: Path):
@@ -23,7 +29,9 @@ def test_hash_file_matches_hashlib(tmp_path: Path):
     target.write_bytes(payload)
 
     assert hash_file(target, "sha256") == hashlib.sha256(payload).hexdigest()
-    assert hash_file(target, "sha1") == hashlib.sha1(payload).hexdigest()
+    # SHA1 is published alongside every release for historical
+    # compatibility; it is a checksum here, not a security primitive.
+    assert hash_file(target, "sha1") == hashlib.sha1(payload).hexdigest()  # noqa: S324
 
 
 def test_hash_file_reads_more_than_one_chunk(tmp_path: Path):
@@ -47,7 +55,7 @@ def test_checksum_files_use_the_binary_mode_marker(tmp_path: Path):
         f"{hashlib.sha256(b'payload').hexdigest()} *openssl-3.2.0.tar.gz\n"
     )
     assert sha1.read_text() == (
-        f"{hashlib.sha1(b'payload').hexdigest()} *openssl-3.2.0.tar.gz\n"
+        f"{hashlib.sha1(b'payload').hexdigest()} *openssl-3.2.0.tar.gz\n"  # noqa: S324
     )
 
 

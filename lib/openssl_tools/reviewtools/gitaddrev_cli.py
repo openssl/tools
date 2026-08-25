@@ -9,12 +9,14 @@
 Reads a commit message on stdin, writes the rewritten message on stdout.
 git supplies GIT_AUTHOR_EMAIL and GIT_COMMIT for the commit being rewritten.
 """
+
 from __future__ import annotations
 
 import argparse
 import os
 import sys
-from typing import Mapping, Sequence, TextIO
+from collections.abc import Mapping, Sequence
+from typing import TextIO
 
 from . import listing, message, reviewers
 from .errors import ReviewError
@@ -31,9 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Rewrite a commit message's reviewer trailers.",
     )
     parser.add_argument("--list", action="store_true", help="list known reviewers")
-    parser.add_argument(
-        "--reviewer", dest="reviewers", action="append", default=[], metavar="ID"
-    )
+    parser.add_argument("--reviewer", dest="reviewers", action="append", default=[], metavar="ID")
     parser.add_argument("--myemail", metavar="EMAIL", help="the caller's own address")
     parser.add_argument("--prnum", metavar="N", help="GitHub pull request number")
     parser.add_argument(
@@ -126,8 +126,7 @@ def main(
 
         if args.verbose:
             print(
-                "Going with these reviewers:\n  "
-                + "\n  ".join(resolution.reviewers),
+                "Going with these reviewers:\n  " + "\n  ".join(resolution.reviewers),
                 file=stderr,
             )
 

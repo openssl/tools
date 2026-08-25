@@ -28,10 +28,12 @@ erroring would make an outside contributor's patch unmergeable.
 Note that one person can arrive by both routes: `--reviewer=<yourself>` on
 a commit you authored is an explicit claim, and is checked as one.
 """
+
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Iterable, Protocol, Sequence
+from typing import Protocol
 
 from .errors import QueryError, ReviewError
 from .policy import RepoPolicy
@@ -68,7 +70,13 @@ class Resolution:
 
 def _strip_handle(identity: str) -> str:
     """'@someone' -> 'someone'; anything else unchanged."""
-    return identity[1:] if identity.startswith("@") else identity
+    return identity.removeprefix("@")
+
+
+def _record(bucket: list[str], candidate: str) -> None:
+    """Add `candidate` to `bucket` once, preserving the order given."""
+    if candidate not in bucket:
+        bucket.append(candidate)
 
 
 def _has_cla_quietly(source: PersonSource, identity: str) -> bool:
@@ -140,19 +148,17 @@ def resolve(
         tag = lookup(identity)
 
         if tag is None:
-            if candidate not in result.unknown:
-                result.unknown.append(candidate)
+            _record(result.unknown, candidate)
             # An unrecognised name might still be an email address with a CLA,
             # in which case it is "unknown" but not "no CLA".
             looks_like_email = "@" in candidate[1:] if candidate else False
-            if not (looks_like_email and _has_cla_quietly(source, candidate.lower())):
-                if candidate not in result.nocla:
-                    result.nocla.append(candidate)
+            has_cla = looks_like_email and _has_cla_quietly(source, candidate.lower())
+            if not has_cla:
+                _record(result.nocla, candidate)
             continue
 
         if not source.has_cla(tag.lower()):
-            if candidate not in result.nocla:
-                result.nocla.append(candidate)
+            _record(result.nocla, candidate)
             continue
 
         author = is_author(tag)
@@ -163,8 +169,7 @@ def resolve(
 
         if not source.is_member_of(identity, COMMIT_GROUP):
             if explicit:
-                if candidate not in result.noncommitters:
-                    result.noncommitters.append(candidate)
+                _record(result.noncommitters, candidate)
             # Otherwise: picked up automatically, so silently does not count.
             continue
 
@@ -193,8 +198,7 @@ def validate(
     # is allowed from someone who has not signed one.
     if not trivial and author_email and author_email in resolution.nocla:
         raise ReviewError(
-            f"Commit author {author_email} has no CLA,"
-            " and this is a non-trivial commit"
+            f"Commit author {author_email} has no CLA, and this is a non-trivial commit"
         )
 
     # Now that that is settled, drop the author from both lists so they cannot

@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Expected, operator-facing failures."""
+
 from __future__ import annotations
 
 

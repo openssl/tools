@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The git wrapper, exercised against real throwaway repositories."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,13 +15,23 @@ import pytest
 from openssl_tools.stagerelease.errors import ReleaseError
 from openssl_tools.stagerelease.git import Git, is_recognised_branch
 from openssl_tools.stagerelease.run import Runner
-
-from tests.stagerelease.helpers import MODERN_VERSION_DAT, commit_all, init_repo, run_git
+from tests.stagerelease.helpers import (
+    MODERN_VERSION_DAT,
+    commit_all,
+    init_repo,
+    run_git,
+)
 
 
 @pytest.mark.parametrize(
     "name",
-    ["master", "openssl-3.2", "openssl-3.0", "OpenSSL_1_1_1-stable", "OpenSSL_1_0_2u-stable"],
+    [
+        "master",
+        "openssl-3.2",
+        "openssl-3.0",
+        "OpenSSL_1_1_1-stable",
+        "OpenSSL_1_0_2u-stable",
+    ],
 )
 def test_recognised_branches(name):
     assert is_recognised_branch(name)
@@ -124,9 +135,7 @@ def test_upstream_or_head_falls_back_to_the_commit(git):
 
 
 def test_remote_url_passes_through_a_bare_url(git):
-    assert git.remote_url("https://example.invalid/x.git") == (
-        "https://example.invalid/x.git"
-    )
+    assert git.remote_url("https://example.invalid/x.git") == ("https://example.invalid/x.git")
     assert git.remote_url("") == ""
 
 
@@ -155,7 +164,7 @@ def test_changed_since_lists_touched_paths(tmp_path: Path):
     commit_all(root, "New commit")
 
     git = Git(Runner(cwd=root))
-    changed = dict((path, status) for status, path in git.changed_since("2021-01-01"))
+    changed = {path: status for status, path in git.changed_since("2021-01-01")}
 
     assert set(changed) == {"new.txt", "old.txt"}
     assert changed["new.txt"] == "A"

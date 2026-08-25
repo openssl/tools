@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The OpenSSL 3.0+ versioning scheme, stored in VERSION.dat."""
+
 from __future__ import annotations
 
 import re
@@ -58,20 +59,16 @@ class ModernScheme(Scheme):
 
         missing = [k for k in ("MAJOR", "MINOR", "PATCH") if k not in values]
         if missing:
-            raise ReleaseError(
-                f"{self.version_file} is missing {', '.join(missing)}"
-            )
+            raise ReleaseError(f"{self.version_file} is missing {', '.join(missing)}")
 
         try:
             major = int(values["MAJOR"])
             minor = int(values["MINOR"])
             patch = int(values["PATCH"])
         except ValueError as exc:
-            raise ReleaseError(f"{self.version_file} has a non-numeric version: {exc}")
+            raise ReleaseError(f"{self.version_file} has a non-numeric version: {exc}") from exc
 
-        dev, pre_label, pre_num = self._parse_pre_release_tag(
-            values.get("PRE_RELEASE_TAG", "")
-        )
+        dev, pre_label, pre_num = self._parse_pre_release_tag(values.get("PRE_RELEASE_TAG", ""))
 
         return ReleaseState(
             major=major,
@@ -124,11 +121,7 @@ class ModernScheme(Scheme):
         return f"{state.major}.{state.minor}.{state.patch}"
 
     def full_version(self, state: ReleaseState) -> str:
-        return (
-            self.version(state)
-            + state.marked_pre_release_tag
-            + state.marked_build_metadata
-        )
+        return self.version(state) + state.marked_pre_release_tag + state.marked_build_metadata
 
     def branch_name(self, state: ReleaseState) -> str:
         return f"openssl-{self.series(state)}"

@@ -20,11 +20,12 @@ Trailer handling, carried over from gitaddrev:
   below the reviewer trailers.
 - `MergeDate:` is added unless the message already has one.
 """
+
 from __future__ import annotations
 
 import re
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
 TRIVIAL_RE = re.compile(r"^CLA:\s*Trivial\s*$", re.IGNORECASE)
 REVIEWED_BY_RE = re.compile(r"^Reviewed-by:\s*(\S.*\S)\s*$")
@@ -46,7 +47,7 @@ def split_lines(message: str) -> list[str]:
     lines = message.split("\n")
     if lines and lines[-1] == "":
         lines.pop()
-    return [line[:-1] if line.endswith("\r") else line for line in lines]
+    return [line.removesuffix("\r") for line in lines]
 
 
 def is_trivial(message: str) -> bool:

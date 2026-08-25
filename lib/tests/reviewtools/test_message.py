@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """Commit message trailer rewriting."""
+
 from __future__ import annotations
 
 import pytest
@@ -16,7 +17,6 @@ from openssl_tools.reviewtools.message import (
     rewrite,
     split_lines,
 )
-
 from tests.reviewtools.helpers import FROZEN_MERGE_DATE, FROZEN_TIME, LEVITTE, STEVE
 
 BODY = "Fix a thing\n\nThe thing was broken.\n"
@@ -46,17 +46,13 @@ def test_a_reviewer_is_appended_after_a_blank_line():
 def test_several_reviewers_keep_their_order():
     result = rewritten(reviewers=[LEVITTE, STEVE])
 
-    assert result.index(f"Reviewed-by: {LEVITTE}") < result.index(
-        f"Reviewed-by: {STEVE}"
-    )
+    assert result.index(f"Reviewed-by: {LEVITTE}") < result.index(f"Reviewed-by: {STEVE}")
 
 
 def test_a_pr_reference_is_added_last():
     result = rewritten(prnum="12345")
 
-    assert result.endswith(
-        "(Merged from https://github.com/openssl/openssl/pull/12345)\n"
-    )
+    assert result.endswith("(Merged from https://github.com/openssl/openssl/pull/12345)\n")
 
 
 def test_the_pr_reference_names_the_right_repository():
@@ -122,10 +118,7 @@ def test_a_release_line_is_left_alone_when_not_a_release_run():
 
 
 def test_an_old_pr_reference_is_replaced():
-    message = (
-        "Fix a thing\n\n"
-        "(Merged from https://github.com/openssl/openssl/pull/1)\n"
-    )
+    message = "Fix a thing\n\n(Merged from https://github.com/openssl/openssl/pull/1)\n"
 
     result = rewritten(message, prnum="2")
 
@@ -135,19 +128,13 @@ def test_an_old_pr_reference_is_replaced():
 
 def test_a_pr_reference_is_dropped_when_no_number_is_given():
     # This is what `--nopr` does, and it is deliberate.
-    message = (
-        "Fix a thing\n\n"
-        "(Merged from https://github.com/openssl/openssl/pull/1)\n"
-    )
+    message = "Fix a thing\n\n(Merged from https://github.com/openssl/openssl/pull/1)\n"
 
     assert "Merged from" not in rewritten(message)
 
 
 def test_a_pr_reference_for_another_repository_is_left_alone():
-    message = (
-        "Fix a thing\n\n"
-        "(Merged from https://github.com/openssl/tools/pull/1)\n"
-    )
+    message = "Fix a thing\n\n(Merged from https://github.com/openssl/tools/pull/1)\n"
 
     assert "openssl/tools/pull/1" in rewritten(message, repo="openssl")
 
@@ -176,9 +163,7 @@ def test_remove_reviewers_adds_none():
 def test_trailing_blank_lines_are_dropped_before_trailers_are_added():
     result = rewritten("Fix a thing\n\n\n\n")
 
-    assert result == (
-        f"Fix a thing\n\nReviewed-by: {STEVE}\nMergeDate: {FROZEN_MERGE_DATE}\n"
-    )
+    assert result == (f"Fix a thing\n\nReviewed-by: {STEVE}\nMergeDate: {FROZEN_MERGE_DATE}\n")
 
 
 def test_an_all_blank_message_does_not_hang():
@@ -238,6 +223,4 @@ def test_split_lines(text, expected):
 
 
 def test_merged_from_prefix():
-    assert merged_from_prefix("web") == (
-        "(Merged from https://github.com/openssl/web/pull/"
-    )
+    assert merged_from_prefix("web") == ("(Merged from https://github.com/openssl/web/pull/")

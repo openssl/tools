@@ -5,6 +5,7 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The git operations the staging run needs."""
+
 from __future__ import annotations
 
 import re
@@ -33,7 +34,7 @@ class Git:
         self.runner = runner
 
     def _git(self, *args: str, check: bool = True):
-        return self.runner.run(("git",) + args, check=check)
+        return self.runner.run(("git", *args), check=check)
 
     # -- inspection ---------------------------------------------------------
 
@@ -84,9 +85,7 @@ class Git:
         symbolic = self._git("symbolic-ref", "-q", "HEAD", check=False).one_line()
         if not symbolic:
             return ""
-        return self._git(
-            "for-each-ref", "--format=%(push:remotename)", symbolic
-        ).one_line()
+        return self._git("for-each-ref", "--format=%(push:remotename)", symbolic).one_line()
 
     def remote_url(self, remote: str) -> str:
         """The URL of `remote`, or `remote` itself when it is already a URL."""
@@ -127,9 +126,7 @@ class Git:
         `before` is a date understood by `git rev-list --before`.  Used by the
         copyright pass to find files touched during the current year.
         """
-        start = self._git(
-            "rev-list", "-1", f"--before={before}", "HEAD", check=False
-        ).one_line()
+        start = self._git("rev-list", "-1", f"--before={before}", "HEAD", check=False).one_line()
         if not start:
             return []
         result = self._git("diff-tree", "-r", "--name-status", f"{start}..HEAD")

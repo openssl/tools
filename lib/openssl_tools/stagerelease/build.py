@@ -9,6 +9,7 @@
 Kept behind a class so the orchestration can be tested without configuring
 and building OpenSSL, which is what made the shell version untestable.
 """
+
 from __future__ import annotations
 
 import re

@@ -11,6 +11,7 @@ hand and forwarded verbatim from ghmerge.  A bare number is a PR number, a
 bare word is a reviewer, a word that looks like an object id is a commit
 range, and `-3` means the last three commits.
 """
+
 from __future__ import annotations
 
 import os
@@ -18,9 +19,10 @@ import re
 import shlex
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence, TextIO
+from typing import TextIO
 
 from .errors import ReviewError
 from .policy import POLICIES
@@ -97,9 +99,7 @@ def parse_args(argv: Sequence[str]) -> Invocation:
 
     def set_filter(value: str) -> None:
         if result.filter_args:
-            result.warnings.append(
-                f"Warning: overriding previous filter args {result.filter_args}"
-            )
+            result.warnings.append(f"Warning: overriding previous filter args {result.filter_args}")
         result.filter_args = value
 
     for arg in argv:
@@ -201,9 +201,7 @@ def child_env() -> dict[str, str]:
         "FILTER_BRANCH_SQUELCH_WARNING": "1",
         # git runs the msg-filter through a shell, so openssl_tools has to be
         # importable there too.
-        "PYTHONPATH": (
-            f"{LIB_DIR}{os.pathsep}{existing}" if existing else str(LIB_DIR)
-        ),
+        "PYTHONPATH": (f"{LIB_DIR}{os.pathsep}{existing}" if existing else str(LIB_DIR)),
     }
 
 
@@ -229,7 +227,7 @@ def main(
     base = gitaddrev_command()
 
     if invocation.list_reviewers:
-        return runner(base + ["--list"]).returncode
+        return runner([*base, "--list"]).returncode
 
     try:
         if not invocation.have_prnum:

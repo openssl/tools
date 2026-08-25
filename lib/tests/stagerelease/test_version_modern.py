@@ -5,13 +5,13 @@
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
 """The OpenSSL 3.0+ versioning scheme."""
+
 from __future__ import annotations
 
 import pytest
 
 from openssl_tools.stagerelease.errors import ReleaseError
 from openssl_tools.stagerelease.version.modern import ModernScheme, parse_assignments
-
 from tests.stagerelease.helpers import MODERN_VERSION_DAT
 
 
@@ -52,7 +52,9 @@ def test_derives_the_documented_values(scheme):
     ],
 )
 def test_pre_release_tags_round_trip(scheme, tag, dev, label, num):
-    state = scheme.parse(MODERN_VERSION_DAT.replace("PRE_RELEASE_TAG=dev", f"PRE_RELEASE_TAG={tag}"))
+    state = scheme.parse(
+        MODERN_VERSION_DAT.replace("PRE_RELEASE_TAG=dev", f"PRE_RELEASE_TAG={tag}")
+    )
 
     assert (state.dev, state.pre_label, state.pre_num) == (dev, label, num)
     assert state.pre_release_tag == tag
@@ -104,7 +106,9 @@ def test_render_parse_round_trip(scheme):
 
 
 def test_branch_and_tag_names(scheme):
-    state = scheme.parse(MODERN_VERSION_DAT.replace("PRE_RELEASE_TAG=dev", "PRE_RELEASE_TAG=alpha1"))
+    state = scheme.parse(
+        MODERN_VERSION_DAT.replace("PRE_RELEASE_TAG=dev", "PRE_RELEASE_TAG=alpha1")
+    )
 
     assert scheme.branch_name(state) == "openssl-3.2"
     assert scheme.tag_name(state) == "openssl-3.2.0-alpha1"

@@ -10,6 +10,7 @@ The git-backed fixtures build real (tiny) repositories rather than mocking
 git out.  Nothing here needs the network and nothing configures or builds
 OpenSSL, so the whole suite stays fast.
 """
+
 from __future__ import annotations
 
 import os
@@ -94,7 +95,7 @@ def run_git(cwd: Path, *args: str, when: str | None = None) -> str:
         # date while --date only sets the author date.
         env = {**os.environ, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
     result = subprocess.run(
-        ("git",) + args,
+        ("git", *args),
         cwd=str(cwd),
         check=True,
         capture_output=True,
@@ -154,9 +155,7 @@ def legacy_repo(tmp_path: Path) -> Path:
     (root / "crypto" / "opensslv.h").write_text(LEGACY_OPENSSLV_H)
     (root / "openssl.spec").write_text("Version:  1.0.2zh\n")
     (root / "README").write_text(" OpenSSL 1.0.2zh-dev\n\n Text follows.\n")
-    (root / "CHANGES").write_text(
-        " Changes between 1.0.2zg and 1.0.2zh [xx XXX xxxx]\n\n *)\n"
-    )
+    (root / "CHANGES").write_text(" Changes between 1.0.2zg and 1.0.2zh [xx XXX xxxx]\n\n *)\n")
     (root / "NEWS").write_text(
         "  Major changes between OpenSSL 1.0.2zg and OpenSSL 1.0.2zh"
         " [under development]\n\n      o\n"

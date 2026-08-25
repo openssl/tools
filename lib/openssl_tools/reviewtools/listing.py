@@ -14,10 +14,11 @@ reviewer name.
 This asks the API three questions per person, so it is inherently slow; the
 client caches within a run, but there is no bulk endpoint.
 """
+
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 from .reviewers import COMMIT_GROUP
 
@@ -43,9 +44,7 @@ def usable_identities(record: Iterable) -> list[str]:
             flattened.append(str(identity))
 
     return sorted(
-        name
-        for name in flattened
-        if _PLAIN_NAME_RE.match(name) or _HANDLE_RE.match(name)
+        name for name in flattened if _PLAIN_NAME_RE.match(name) or _HANDLE_RE.match(name)
     )
 
 
