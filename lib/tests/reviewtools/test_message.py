@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from reviewtools.message import (
+from openssl_tools.reviewtools.message import (
     format_merge_date,
     is_trivial,
     merged_from_prefix,
@@ -17,7 +17,7 @@ from reviewtools.message import (
     split_lines,
 )
 
-from conftest import FROZEN_MERGE_DATE, FROZEN_TIME, LEVITTE, STEVE
+from tests.reviewtools.helpers import FROZEN_MERGE_DATE, FROZEN_TIME, LEVITTE, STEVE
 
 BODY = "Fix a thing\n\nThe thing was broken.\n"
 

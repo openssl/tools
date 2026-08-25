@@ -17,13 +17,13 @@ from pathlib import Path
 
 import pytest
 
-from stagerelease.errors import ReleaseError
-from stagerelease.git import Git
-from stagerelease.run import Runner
-from stagerelease.stage import StageOptions, stage_release
-from stagerelease.version.modern import parse_assignments
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.git import Git
+from openssl_tools.stagerelease.run import Runner
+from openssl_tools.stagerelease.stage import StageOptions, stage_release
+from openssl_tools.stagerelease.version.modern import parse_assignments
 
-from conftest import (
+from tests.stagerelease.helpers import (
     CHANGES_MD,
     FAKE_MKTAR,
     LEGACY_OPENSSLV_H,

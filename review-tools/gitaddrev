@@ -7,8 +7,8 @@
 # https://www.openssl.org/source/license.html
 """Rewrite a commit message's reviewer trailers.
 
-Used as `git filter-branch --msg-filter`: the message arrives on stdin and
-the rewritten one leaves on stdout.  Usually invoked through `addrev`.
+Used as `git filter-branch --msg-filter`: the message arrives on stdin
+and the rewritten one leaves on stdout.  Usually invoked via `addrev`.
 """
 from __future__ import annotations
 
@@ -21,9 +21,11 @@ if sys.version_info < (3, 10):
         f"{sys.version_info.major}.{sys.version_info.minor}"
     )
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The package lives in lib/ at the top of the tools repository; there is no
+# install step, so put it on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from reviewtools.gitaddrev_cli import main  # noqa: E402
+from openssl_tools.reviewtools.gitaddrev_cli import main  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(main())

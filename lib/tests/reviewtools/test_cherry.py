@@ -11,7 +11,7 @@ import io
 
 import pytest
 
-from reviewtools.cherry import (
+from openssl_tools.reviewtools.cherry import (
     Commit,
     extract_fixes,
     extract_prnum,
@@ -21,7 +21,8 @@ from reviewtools.cherry import (
     pick_default_right,
     shorten,
 )
-from reviewtools.cherry_cli import main
+from openssl_tools.reviewtools.cherry_cli import main
+from openssl_tools.reviewtools.errors import ReviewError
 
 SEP = "\x1f"
 
@@ -277,8 +278,6 @@ def test_remote_prefixes_both_branches():
 def test_running_outside_a_repository_reports_the_intended_message():
     class NoRepo(FakeGit):
         def remotes(self):
-            from reviewtools.errors import ReviewError
-
             raise ReviewError("git remote -v failed: not a git repository")
 
     code, _, err = run([], NoRepo())

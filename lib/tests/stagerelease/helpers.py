@@ -19,8 +19,8 @@ from pathlib import Path
 
 import pytest
 
-from stagerelease.git import Git
-from stagerelease.run import Runner
+from openssl_tools.stagerelease.git import Git
+from openssl_tools.stagerelease.run import Runner
 
 #: A fixed date, so nothing in the suite depends on when it runs.
 TODAY = date(2026, 8, 25)

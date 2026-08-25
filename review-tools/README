@@ -3,18 +3,22 @@ Requirements
 
 addrev, gitaddrev and cherry-checker are Python and need only Python 3.10 or
 later -- no packages, and no OpenSSL-Query.  They query api.openssl.org
-directly; see reviewtools/query.py.
+directly; see lib/openssl_tools/reviewtools/query.py.
+
+The scripts here are thin entry points; the code lives in
+lib/openssl_tools/reviewtools/, alongside the release-staging package so the
+two can import each other.
 
 The remaining scripts are shell: ghmerge additionally needs jq, and gitlabutil
 is Perl.
 
 OpenSSL-Query is still in the tools repository, and is still what the ansible
-role provisions on hsm-client, but nothing in review-tools uses it any more.
+role provisions on hsm-client, but nothing here uses it any more.
 
 Tests
 =====
 
-    cd review-tools
+    cd lib
     uvx pytest          # or: pytest, with pytest installed
 
 Environment
@@ -34,8 +38,8 @@ addrev and gitaddrev is a simple pair of scripts to add or edit reviewers to
 commits.
 
 To use add the scripts gitaddrev and addrev to your PATH.  release-tools
-calls the same code in-process via the reviewtools package, so staging a
-release does not need them on PATH.
+calls the same code in-process, so staging a release does not need them on
+PATH.
 
 Run 'addrev --help' for usage.
 

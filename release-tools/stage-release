@@ -7,9 +7,7 @@
 # https://www.openssl.org/source/license.html
 """Stage an OpenSSL release.
 
-Run from inside an OpenSSL source worktree.  This lives beside the
-`stagerelease` package and is invoked by absolute path, so it puts its own
-directory on sys.path rather than requiring an install.
+Run from inside an OpenSSL source worktree.
 """
 from __future__ import annotations
 
@@ -22,9 +20,11 @@ if sys.version_info < (3, 10):
         f"{sys.version_info.major}.{sys.version_info.minor}"
     )
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The package lives in lib/ at the top of the tools repository; there is no
+# install step, so put it on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 
-from stagerelease.cli import main  # noqa: E402
+from openssl_tools.stagerelease.cli import main  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(main())

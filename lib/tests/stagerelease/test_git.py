@@ -11,11 +11,11 @@ from pathlib import Path
 
 import pytest
 
-from stagerelease.errors import ReleaseError
-from stagerelease.git import Git, is_recognised_branch
-from stagerelease.run import Runner
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.git import Git, is_recognised_branch
+from openssl_tools.stagerelease.run import Runner
 
-from conftest import MODERN_VERSION_DAT, commit_all, init_repo, run_git
+from tests.stagerelease.helpers import MODERN_VERSION_DAT, commit_all, init_repo, run_git
 
 
 @pytest.mark.parametrize(

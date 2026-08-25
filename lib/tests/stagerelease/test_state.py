@@ -16,12 +16,12 @@ from datetime import date
 
 import pytest
 
-from stagerelease.errors import ReleaseError
-from stagerelease.state import format_release_date, next_release_state
-from stagerelease.version.legacy import LegacyScheme
-from stagerelease.version.modern import ModernScheme
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.state import format_release_date, next_release_state
+from openssl_tools.stagerelease.version.legacy import LegacyScheme
+from openssl_tools.stagerelease.version.modern import ModernScheme
 
-from conftest import LEGACY_OPENSSLV_H, MODERN_VERSION_DAT, TODAY, TODAY_TEXT
+from tests.stagerelease.helpers import LEGACY_OPENSSLV_H, MODERN_VERSION_DAT, TODAY, TODAY_TEXT
 
 
 @pytest.fixture

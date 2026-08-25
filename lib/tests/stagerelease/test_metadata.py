@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from stagerelease.metadata import Metadata
+from openssl_tools.stagerelease.metadata import Metadata
 
 FILES = [
     "openssl-3.2.0.tar.gz",

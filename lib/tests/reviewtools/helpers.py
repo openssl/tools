@@ -20,7 +20,7 @@ import time
 
 import pytest
 
-from reviewtools.query import extract_email
+from openssl_tools.reviewtools.query import extract_email
 
 STEVE = "Steve Henson <steve@openssl.org>"
 LEVITTE = "Richard Levitte <levitte@openssl.org>"

@@ -16,9 +16,9 @@ Python 3.10 or later, and nothing else: the tool uses only the standard
 library, so it runs on release build hosts without installing anything.
 `pytest` is needed to run the tests, but not to run the tool.
 
-`--reviewer` shells out to `addrev` from `review-tools/`, which needs the
-`OpenSSL::Query` Perl module.  Without `--reviewer` there is no such
-dependency.
+`--reviewer` validates names against the committer and CLA databases at
+`api.openssl.org`, so that option needs network access.  Without it, nothing
+here reaches the network.
 
 Usage
 -----
@@ -39,9 +39,12 @@ branch, and unless the worktree is clean.  With no `--alpha`, `--beta` or
 Layout
 ------
 
+The executable lives here; the code lives in `lib/openssl_tools/`, shared
+with review-tools so the two can import each other directly.
+
 ```
-stage-release            the executable; adds this directory to sys.path
-stagerelease/
+release-tools/stage-release          the executable; puts lib/ on sys.path
+lib/openssl_tools/stagerelease/
     cli.py               argument handling and the closing message
     stage.py             the staging run, start to finish
     state.py             the release state machine (pure function)
@@ -53,19 +56,24 @@ stagerelease/
     copyright_year.py    the copyright year pass
     tarball.py           tarball construction and checksums
     metadata.py          the .dat file describing a staged release
+    reviewers.py         Reviewed-by: trailers, via ..reviewtools
     build.py             ./Configure and make
     git.py               the git operations a staging run needs
     run.py               running external commands
     report.py            progress output
     textutil.py          line handling and file I/O
     errors.py            ReleaseError
-tests/                   pytest suite
+lib/tests/stagerelease/              pytest suite
 ```
 
 `build.py`, `git.py` and `run.py` exist so that `stage.py` can be tested
-without configuring or building OpenSSL.  Inject a stub `Build` and the whole
-staging run — branch decisions, commit sequence, artifact naming — is
-exercised in milliseconds; see `tests/test_stage.py`.
+without configuring or building OpenSSL, which is what made the shell version
+untestable.  Inject a stub `Build` and the whole staging run -- branch
+decisions, commit sequence, artifact naming -- is exercised in milliseconds;
+see `lib/tests/stagerelease/test_stage.py`.
+
+Reviewer trailers are added in-process: `reviewers.py` imports
+`..reviewtools`, so `addrev` does not need to be on PATH.
 
 Both filename conventions are handled throughout: pre-3.0 OpenSSL uses
 `CHANGES`/`NEWS`, while 3.0 and later use `CHANGES.md`/`NEWS.md`.  They are
@@ -75,20 +83,20 @@ Tests
 -----
 
 ```sh
-cd release-tools
+cd lib
 uvx pytest              # or: pytest, with pytest installed
 ```
 
-The suite needs `git`, `make` and `gzip` on PATH, builds throwaway
-repositories under the pytest tmp directory, and touches neither the network
-nor any OpenSSL checkout.
+The suite covers both subpackages.  It needs `git`, `make` and `gzip` on
+PATH, builds throwaway repositories under the pytest tmp directory, and
+touches neither the network nor any OpenSSL checkout.
 
 Two things worth knowing when changing this code:
 
-- `state.py` is a pure function of (scheme, state, method, date).  Every
+- `stagerelease/state.py` is a pure function of (scheme, state, method, date).  Every
   release transition is testable without a repository; keep it that way.
-- The fixups in `fixups.py` rewrite published changelogs, so a mistake there
-  is expensive.  `tests/test_fixups.py` asserts on exact output text rather
+- The fixups in `stagerelease/fixups.py` rewrite published changelogs, so a mistake there
+  is expensive.  `lib/tests/stagerelease/test_fixups.py` asserts on exact output text rather
   than on substrings, deliberately.
 
 History

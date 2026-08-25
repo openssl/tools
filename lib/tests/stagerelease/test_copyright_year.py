@@ -12,11 +12,11 @@ from pathlib import Path
 
 import pytest
 
-from stagerelease.copyright_year import update_copyright_years, update_line, update_text
-from stagerelease.git import Git
-from stagerelease.run import Runner
+from openssl_tools.stagerelease.copyright_year import update_copyright_years, update_line, update_text
+from openssl_tools.stagerelease.git import Git
+from openssl_tools.stagerelease.run import Runner
 
-from conftest import commit_all, init_repo, run_git
+from tests.stagerelease.helpers import commit_all, init_repo, run_git
 
 NOTICE = "# Copyright {} The OpenSSL Project Authors. All Rights Reserved.\n"
 

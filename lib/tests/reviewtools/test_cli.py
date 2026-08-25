@@ -11,9 +11,9 @@ import io
 
 import pytest
 
-from reviewtools import addrev_cli, gitaddrev_cli, listing
+from openssl_tools.reviewtools import addrev_cli, gitaddrev_cli, listing
 
-from conftest import LEVITTE, STEVE, FakePeople
+from tests.reviewtools.helpers import LEVITTE, STEVE, FakePeople
 
 BODY = "Fix a thing\n\nThe thing was broken.\n"
 

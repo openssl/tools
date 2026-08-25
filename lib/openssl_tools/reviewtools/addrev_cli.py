@@ -175,15 +175,36 @@ def parse_args(argv: Sequence[str]) -> Invocation:
     return result
 
 
+#: The directory holding the openssl_tools package, so a child process can
+#: import it.  Derived from this file rather than from a sibling directory:
+#: the package locates its own root, and nothing outside it.
+LIB_DIR = Path(__file__).resolve().parents[2]
+
+
 def gitaddrev_command() -> list[str]:
-    """How to invoke gitaddrev, honouring the GITADDREV override."""
+    """How to invoke gitaddrev, honouring the GITADDREV override.
+
+    Runs the module rather than looking for the `gitaddrev` script, so this
+    works regardless of where that script lives or whether it is on PATH.
+    """
     override = os.environ.get("GITADDREV")
     if override:
         return shlex.split(override)
-    beside = Path(__file__).resolve().parent.parent / "gitaddrev"
-    if beside.is_file():
-        return [sys.executable, str(beside)]
-    return ["gitaddrev"]
+    return [sys.executable, "-m", "openssl_tools.reviewtools.gitaddrev_cli"]
+
+
+def child_env() -> dict[str, str]:
+    """The environment for git filter-branch and the msg-filter it spawns."""
+    existing = os.environ.get("PYTHONPATH")
+    return {
+        **os.environ,
+        "FILTER_BRANCH_SQUELCH_WARNING": "1",
+        # git runs the msg-filter through a shell, so openssl_tools has to be
+        # importable there too.
+        "PYTHONPATH": (
+            f"{LIB_DIR}{os.pathsep}{existing}" if existing else str(LIB_DIR)
+        ),
+    }
 
 
 def main(
@@ -221,7 +242,7 @@ def main(
                 args.append(f"--myemail={email}")
 
         filter_command = " ".join(shlex.quote(part) for part in base + args)
-        env = {**os.environ, "FILTER_BRANCH_SQUELCH_WARNING": "1"}
+        env = child_env()
         completed = runner(
             [
                 "git",

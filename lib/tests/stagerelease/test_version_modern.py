@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import pytest
 
-from stagerelease.errors import ReleaseError
-from stagerelease.version.modern import ModernScheme, parse_assignments
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.version.modern import ModernScheme, parse_assignments
 
-from conftest import MODERN_VERSION_DAT
+from tests.stagerelease.helpers import MODERN_VERSION_DAT
 
 
 @pytest.fixture

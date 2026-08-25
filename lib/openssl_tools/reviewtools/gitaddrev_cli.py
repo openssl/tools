@@ -12,6 +12,7 @@ git supplies GIT_AUTHOR_EMAIL and GIT_COMMIT for the commit being rewritten.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from typing import Mapping, Sequence, TextIO
 
@@ -78,8 +79,6 @@ def main(
     environ: Mapping[str, str] | None = None,
     query=None,
 ) -> int:
-    import os
-
     args = build_parser().parse_args(argv)
     stdin = stdin or sys.stdin
     stdout = stdout or sys.stdout
@@ -172,3 +171,7 @@ def _is_targeted(commit_id: str | None, wanted: Sequence[str]) -> bool:
     if not commit_id:
         return False
     return any(commit_id.startswith(candidate) for candidate in wanted)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

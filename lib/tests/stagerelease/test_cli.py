@@ -11,10 +11,10 @@ from pathlib import Path
 
 import pytest
 
-from stagerelease.cli import build_parser, format_result, main, resolve_methods
-from stagerelease.errors import ReleaseError
-from stagerelease.stage import StageResult
-from stagerelease.tarball import Artifacts
+from openssl_tools.stagerelease.cli import build_parser, format_result, main, resolve_methods
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.stage import StageResult
+from openssl_tools.stagerelease.tarball import Artifacts
 
 
 def parse(*argv):

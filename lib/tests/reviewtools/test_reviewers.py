@@ -13,11 +13,11 @@ from __future__ import annotations
 
 import pytest
 
-from reviewtools.errors import ReviewError
-from reviewtools.policy import POLICIES, get_policy
-from reviewtools.reviewers import require_any, resolve, validate
+from openssl_tools.reviewtools.errors import QueryError, ReviewError
+from openssl_tools.reviewtools.policy import POLICIES, get_policy
+from openssl_tools.reviewtools.reviewers import require_any, resolve, validate
 
-from conftest import LEVITTE, RICH, STEVE, FakePeople
+from tests.reviewtools.helpers import LEVITTE, RICH, STEVE, FakePeople
 
 OPENSSL = POLICIES["openssl"]
 TOOLS = POLICIES["tools"]
@@ -243,11 +243,9 @@ def test_require_any_is_the_final_backstop():
 def test_a_database_outage_is_not_mistaken_for_a_missing_reviewer():
     class Broken(FakePeople):
         def has_cla(self, identity):
-            from reviewtools.errors import QueryError
-
             raise QueryError("Server error: Service Unavailable")
 
-    with pytest.raises(Exception, match="Server error"):
+    with pytest.raises(QueryError, match="Server error"):
         resolve(Broken(), ["steve"], author_email=None, policy=OPENSSL)
 
 

@@ -1,11 +1,11 @@
 [project]
-name = "reviewtools"
+name = "openssl-tools"
 version = "1.0.0"
-description = "OpenSSL PR review and merge helpers"
+description = "Shared Python for the OpenSSL maintainer tools"
 requires-python = ">=3.10"
-# No runtime dependencies, by design.  These tools are symlinked into
-# /usr/local/bin on hosts that are provisioned by ansible; needing nothing
-# beyond a Python interpreter keeps that provisioning trivial.
+# No runtime dependencies, by design: these run on release build hosts and
+# on provisioned review hosts, where installing packages is not always
+# possible.  pytest is a development-only dependency.
 dependencies = []
 
 [dependency-groups]

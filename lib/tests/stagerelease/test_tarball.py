@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from stagerelease.errors import ReleaseError
-from stagerelease.run import Runner
-from stagerelease.tarball import build_tarball, hash_file, make_artifacts, write_checksums
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.run import Runner
+from openssl_tools.stagerelease.tarball import build_tarball, hash_file, make_artifacts, write_checksums
 
 
 def test_hash_file_matches_hashlib(tmp_path: Path):

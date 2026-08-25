@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from stagerelease.fixups import (
+from openssl_tools.stagerelease.fixups import (
     FIXUPS,
     POSTRELEASE,
     RELEASE,

@@ -13,8 +13,8 @@ import urllib.error
 
 import pytest
 
-from reviewtools.errors import QueryError
-from reviewtools.query import Query, ReviewMalformedID, encode_id, extract_email
+from openssl_tools.reviewtools.errors import QueryError
+from openssl_tools.reviewtools.query import Query, ReviewMalformedID, encode_id, extract_email
 
 
 class StubOpener:

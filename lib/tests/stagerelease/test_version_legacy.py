@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import pytest
 
-from stagerelease.errors import ReleaseError
-from stagerelease.version.legacy import LegacyScheme, decode_patch, encode_patch
+from openssl_tools.stagerelease.errors import ReleaseError
+from openssl_tools.stagerelease.version.legacy import LegacyScheme, decode_patch, encode_patch
 
-from conftest import LEGACY_OPENSSLV_H
+from tests.stagerelease.helpers import LEGACY_OPENSSLV_H
 
 
 @pytest.fixture
