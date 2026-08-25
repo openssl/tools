@@ -15,6 +15,37 @@ is Perl.
 OpenSSL-Query is still in the tools repository, and is still what the ansible
 role provisions on hsm-client, but nothing here uses it any more.
 
+Putting the scripts on PATH
+===========================
+
+ghmerge invokes `addrev` by bare name, and addrev invokes `gitaddrev`, so at
+least those two need to be reachable.  Two ways work:
+
+    # add the directory
+    export PATH="$TOOLS/review-tools:$PATH"
+
+    # or symlink individual scripts
+    ln -s "$TOOLS/review-tools/addrev"    ~/bin/addrev
+    ln -s "$TOOLS/review-tools/gitaddrev" ~/bin/gitaddrev
+
+Symlinks are fine because each script resolves its own real path before
+locating the shared lib/openssl_tools package.  This is what the ansible role
+for hsm-client does when it links them into /usr/local/bin.
+
+Do NOT copy the scripts out of the checkout.  They find the package at
+../lib relative to their own location, so a copy elsewhere cannot see it.
+The scripts say so rather than dying with a traceback:
+
+    addrev: cannot import openssl_tools from /somewhere/lib: No module ...
+    This script has to stay inside the tools repository checkout. To
+    put it on PATH, add its directory or symlink the script -- do not
+    copy it out.
+
+If a copy is genuinely needed -- a container image that installs the scripts
+to a fixed location, say -- set PYTHONPATH to the lib directory instead:
+
+    PYTHONPATH=$TOOLS/lib addrev ...
+
 Tests
 =====
 

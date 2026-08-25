@@ -37,6 +37,11 @@ $TOOLS/release-tools/stage-release --help
 $TOOLS/release-tools/stage-release --manual
 ```
 
+`stage-release` needs no `PATH` setup -- Jenkins invokes it by absolute
+path.  If you do want it on `PATH`, add the directory or symlink the script;
+it resolves its own real path before locating `lib/openssl_tools`.  Do not
+copy it out of the checkout, because then it cannot find the package.
+
 It refuses to run unless the branch is `master` or a recognised release
 branch, and unless the worktree is clean.  With no `--alpha`, `--beta` or
 `--final`, the next release is worked out from the state of the branch.
