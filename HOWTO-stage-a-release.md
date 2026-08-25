@@ -26,7 +26,7 @@ Updates pending!
     -   [PGP / GnuPG key](#pgp-gnupg-key)
     -   [Prepare your repository checkouts](#prepare-your-repository-checkouts)
 -   [Staging tasks](#staging-tasks)
-    -   [Generate the announcement text](#generating-the-tarball-and-announcement-text)
+    -   [Generate the tarball](#generate-the-tarball)
     -   [Remember the results](#remember-the-results)
 
 # Prerequisites
@@ -106,41 +106,44 @@ team that has it.
 
 # Staging tasks
 
-## Generate the announcement text
+## Generate the tarball
 
 *The changes in this section should be made in your clone of the openssl
 source repo*
 
-To generate and stage announcement text, there is a script
-`$TOOLS/release-tools/stage-release.sh`.  It's expected to be run
-while standing in the worktree of an OpenSSL source repository, and the
-expects the checked out branch to be the branch to stage the release from,
-matching one of OpenSSL release branch patterns.
+To stage a release, there is a script `$TOOLS/release-tools/stage-release`.
+It's expected to be run while standing in the worktree of an OpenSSL source
+repository, and expects the checked out branch to be the branch to stage the
+release from, matching one of OpenSSL release branch patterns.  It needs
+Python 3.10 or later, and nothing else.
 
-The stage-release script has a multitude of other options that are useful
-for specific cases, and is also self-documented:
+The stage-release script has a number of other options that are useful for
+specific cases, and is also self-documented:
 
 -   To get a quick usage reminder:
 
-        $TOOLS/release-tools/stage-release.sh --help
+        $TOOLS/release-tools/stage-release --help
 
--   To get a man-page:
+-   To get the manual:
 
-        $TOOLS/release-tools/stage-release.sh --manual
+        $TOOLS/release-tools/stage-release --manual
 
 It is generally called like this:
 
-    $TOOLS/release-tools/stage-release.sh --reviewer=NAME \
-        --local-user=BA5473A2B0587B07FB27CF2D216094DFD0CB81EF
+    $TOOLS/release-tools/stage-release --reviewer=NAME
 
-This scripts will perform a number of preparatory tasks, such as updating
+This script will perform a number of preparatory tasks, such as updating
 the copyright year, running `make update`, update release dates, and move
-the branch to the next development version.  This results not only in a
-staged announcement text, but also in a set of commits.
+the branch to the next development version.  This results in a set of
+commits, an annotated release tag, and the tarball with its checksums.
+
+Nothing is signed, pushed or uploaded by this script.  The release tag is
+annotated but not signed: the signing key lives on an HSM that the build
+host cannot reach, so signing the tag and the tarball happens separately.
 
 After having run the stage-release script, verify that its results are
 sensible.  Check the commits that were added, using for example `git log`.
-Review the announcment file. Check the data left in the metadata .dat file.
+Check the data left in the metadata .dat file.
 
 *Do not push* the local commits to the source repo at this stage.
 

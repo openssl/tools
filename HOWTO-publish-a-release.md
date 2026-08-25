@@ -80,7 +80,7 @@ that user with sudo:
 ## Update the source repositories
 
 Finish up by pushing your local changes to the appropriate source repo as
-instructed by `$TOOLS/release-tools/stage-release.sh`, which was performed
+instructed by `$TOOLS/release-tools/stage-release`, which was performed
 when [staging the releases](HOWTO-stage-a-release.md).  You may want to
 sanity check the pushes by inserting the `-n` (dry-run) option.
 
