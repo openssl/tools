@@ -46,6 +46,31 @@ to a fixed location, say -- set PYTHONPATH to the lib directory instead:
 
     PYTHONPATH=$TOOLS/lib addrev ...
 
+Self-contained executables
+==========================
+
+If you would rather not depend on the checkout at all, build zipapps:
+
+    cd lib
+    ./build-pyz addrev gitaddrev cherry-checker
+    cp dist/addrev dist/gitaddrev /usr/local/bin/
+
+Each is about 60 KiB, carries the whole package, and runs with only a
+Python 3.10 interpreter.  They are named exactly like the scripts they
+replace -- no .pyz suffix -- so they drop straight over an existing
+install.  The archived addrev does not need the archived gitaddrev beside
+it: it points PYTHONPATH at its own archive when spawning the msg-filter.
+
+Or one busybox-style archive for all of them, symlinked to each name:
+
+    cd lib
+    ./build-pyz --multicall --links
+
+Symlinks, hardlinks and copies all work there, since the dispatch reads
+argv[0].  `openssl-tools addrev ...` works too.
+
+See release-tools/README.md for the full description.
+
 Tests
 =====
 

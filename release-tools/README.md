@@ -146,6 +146,88 @@ default, which changes between releases.  Two rules are switched off there
 with reasons: `DTZ011`, because release dates are naive local dates by
 design, and nothing else.  Individual `noqa` comments all carry a reason.
 
+Self-contained executables
+--------------------------
+
+`lib/build-pyz` packs the shared package plus one entry point into a
+zipapp, so a single file runs with nothing but a Python 3.10 interpreter --
+no checkout, no PATH setup, no installed packages:
+
+```sh
+cd lib
+./build-pyz                       # all four, into lib/dist/
+./build-pyz addrev gitaddrev      # just these
+./build-pyz -o /tmp/x -p /usr/bin/python3.11
+```
+
+Each archive is about 60 KiB and carries the whole `openssl_tools` package,
+so any of them can stand alone:
+
+```
+lib/dist/stage-release
+lib/dist/addrev
+lib/dist/gitaddrev
+lib/dist/cherry-checker
+```
+
+They are named exactly like the scripts they replace, with **no `.pyz`
+suffix**, so one can be copied straight over an existing install:
+
+```sh
+cp lib/dist/addrev lib/dist/gitaddrev /usr/local/bin/
+```
+
+The suffix is unnecessary on Unix -- the kernel reads the shebang -- and
+would only stop the file being a drop-in replacement.  Pass
+`--extension .pyz` if you want it anyway.  Note that `file` reports these
+as "Zip archive data" rather than as a script; that is what a zipapp is.
+
+Two things worth knowing:
+
+- **They are byte-reproducible.** Member timestamps are normalised, so
+  building the same tree twice gives identical archives.  Set
+  `SOURCE_DATE_EPOCH` to pin the timestamp to something other than the
+  default.
+- **`addrev.pyz` needs nothing beside it.** It runs gitaddrev as a
+  subprocess, and inside an archive it points `PYTHONPATH` at the `.pyz`
+  itself, which Python imports from happily.  Verified with
+  `gitaddrev.pyz` absent.
+
+### One archive for everything
+
+`--multicall` builds a single busybox-style archive that decides which tool
+to run from the name it was invoked as:
+
+```sh
+cd lib
+./build-pyz --multicall --links
+```
+
+```
+lib/dist/openssl-tools
+lib/dist/addrev         -> openssl-tools
+lib/dist/gitaddrev      -> openssl-tools
+lib/dist/stage-release  -> openssl-tools
+lib/dist/cherry-checker -> openssl-tools
+```
+
+60 KiB total instead of 240 KiB, and one file to install rather than four.
+Symlinks, hardlinks and plain copies all work,
+because the dispatch reads `argv[0]` rather than locating anything on disk
+-- so unlike the scripts in `release-tools/` and `review-tools/`, copying
+one of these out to a fixed path is fine.
+
+It also answers to a subcommand, for when `argv[0]` is not yours to choose:
+
+```sh
+./openssl-tools addrev --nopr --reviewer=...
+```
+
+Invoked under an unrecognised name with no subcommand, it lists what it
+does know.
+
+`lib/dist/` is build output and is git-ignored.
+
 History
 -------
 
