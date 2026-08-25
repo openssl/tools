@@ -1,0 +1,20 @@
+[project]
+name = "reviewtools"
+version = "1.0.0"
+description = "OpenSSL PR review and merge helpers"
+requires-python = ">=3.10"
+# No runtime dependencies, by design.  These tools are symlinked into
+# /usr/local/bin on hosts that are provisioned by ansible; needing nothing
+# beyond a Python interpreter keeps that provisioning trivial.
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "network: tests that talk to api.openssl.org (deselected by default)",
+]
+addopts = "-m 'not network'"

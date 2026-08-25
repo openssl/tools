@@ -1,249 +1,29 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
+# Copyright 2026 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+"""Rewrite a commit message's reviewer trailers.
 
-use strict;
-use warnings;
+Used as `git filter-branch --msg-filter`: the message arrives on stdin and
+the rewritten one leaves on stdout.  Usually invoked through `addrev`.
+"""
+from __future__ import annotations
 
-use File::Basename;
-use FindBin;
+import sys
+from pathlib import Path
 
-use OpenSSL::Query::REST;
-use Module::Load::Conditional qw(can_load);
-use IPC::Open2;
+if sys.version_info < (3, 10):
+    sys.exit(
+        "gitaddrev needs Python 3.10 or later, found "
+        f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
 
-can_load(modules => { 'OpenSSL::Query::DB' => undef });
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-my $rmrev = 0;
-my @commits;
-my $skip = 0;
-my $matchstr;
-my $clatype;
-my $found = 0;
-my $num = 0;
-my $refuse = 0;
-my $prnum = 0;
-my $release = 0;
-my $skipmdate = 0;
-my $verbose = 0;
-my $WHAT = 'openssl';
+from reviewtools.gitaddrev_cli import main  # noqa: E402
 
-my $query = OpenSSL::Query->new();
-
-my @reviewers;
-my @nocla_reviewers;
-my @unknown_reviewers;
-my $min_reviewers = 2;          # All source default
-my $authorcount = 0;
-# $min_authors is special in so far that 0 denotes that authors MUST NOT
-# be counted as reviewers.  For all other values, it works as a minimum.
-my $min_authors = 0;            # Main source default
-my $author = $ENV{GIT_AUTHOR_EMAIL};
-my $authorrev = $query->find_person_tag($author, 'rev');
-
-sub is_author {
-    my $rev = shift;
-
-    return defined $authorrev && $rev eq $authorrev;
-}
-
-sub try_add_reviewer {
-    my $id = shift;
-    my $rc = undef;
-    my $id2 = $id =~ /^\@(.*)$/ ? $1 : $id;
-    my $rev = $query->find_person_tag($id2, 'rev');
-    if ($rev) {
-        my $cla = $query->has_cla(lc $rev);
-        if ($cla) {
-            # $rc is made to hold and return the reviewer string if it's
-            # valid to count that reviewer string.
-            if (is_author($rev)) {
-                $rc = $rev if $min_authors > 0 || $release;
-            } else {
-                $rc = $rev;
-            }
-            if ($rc && !(grep {$_ eq $rc} @reviewers)) {
-                $authorcount++ if is_author($rc);
-                # Authors don't get Reviewed-by trailers
-                push @reviewers, $rc unless is_author($rc);
-            }
-        } else {
-            push @nocla_reviewers, $id
-                unless grep {$_ eq $id} @nocla_reviewers;
-        }
-    } else {
-        push @unknown_reviewers, $id
-            unless grep {$_ eq $id} @unknown_reviewers;
-        unless ($id =~ m|^.+\@.*$| && $query->has_cla(lc $id)) {
-            push @nocla_reviewers, $id
-                unless grep {$_ eq $id} @nocla_reviewers;
-        }
-    }
-    return $rc;
-}
-
-my @collect_possible_reviewers = ($author);
-foreach (@ARGV) {
-    if (/^--list$/) {
-	my %list = ();
-	foreach ($query->list_people()) {
-	    my $email_id = (grep { ref($_) eq "" && $_ =~ m|\@| } @$_)[0];
-	    my $rev = $query->find_person_tag($email_id, 'rev');
-	    next unless defined $rev;
-	    next unless $query->has_cla(lc $rev);
-	    next unless $query->is_member_of($email_id, 'commit');
-	    my @ids =
-		sort grep { $_ =~ /^[A-Za-z]+$/ || $_ =~ /^\@(?:\w|\w-\w)+$/ }
-		map {
-		    if (ref($_) eq "HASH") {
-			my %h = %$_;
-			map {
-                            if ($_ eq "github" || $_ eq "ghe") {
-                                '@'.$h{$_};
-                            } else {
-                                $h{$_};
-                            }
-                        } keys %h;
-		    } else {
-			$_;
-		    }
-		} @$_;
-	    foreach (@ids) {
-		$list{$_} = { tag => $rev };
-	    }
-	}
-	foreach (sort { my $res = $list{$a}->{tag} cmp $list{$b}->{tag};
-			$res != 0 ? $res : ($a cmp $b) } keys %list) {
-	    printf "%-15s  (%s)\n", $_, $list{$_}->{tag};
-	}
-	exit 0;
-    } elsif (/^--reviewer=(.+)$/) {
-        push @collect_possible_reviewers, $1;
-    } elsif (/^--prnum=(.+)$/) {
-        $prnum = $1;
-    } elsif (/^--commit=(.+)$/) {
-        push @commits, $1;
-        $skip = 1;
-    } elsif (/^--rmreviewers$/) {
-        $rmrev = 1;
-    } elsif (/^--myemail=(.+\@.+)$/) {
-        push @collect_possible_reviewers, $1;
-    } elsif (/^--verbose$/) {
-	$verbose = 1;
-    } elsif (/--tools$/) {
-        $WHAT = 'tools';
-        $min_authors = 1;
-    } elsif (/--fuzz-corpora$/) {
-        $WHAT = 'fuzz-corpora';
-        $min_authors = 1;
-        $min_reviewers = 1;
-    } elsif (/--perftools$/) {
-        $WHAT = 'perftools';
-        $min_authors = 1;
-    } elsif (/--installer$/) {
-        $WHAT = 'installer';
-        $min_authors = 1;
-    } elsif (/^--release$/) {
-        $release = 1;
-    }
-}
-
-try_add_reviewer($_) foreach (@collect_possible_reviewers);
-
-my @commit_message = map { (my $x = $_) =~ s|\R$||; $x } <STDIN>;
-my $trivial = !! grep(/^CLA:\s*Trivial\s*$/i, @commit_message);
-
-# Note: it really should be enough to check if $author is unknown, since
-# the databases are supposed to be consistent with each other.  However,
-# let's be cautious and check both, in case someone has been registered
-# as a known identity without having a CLA in place.
-die "Commit author ",$author," has no CLA, and this is a non-trivial commit\n"
-    if !$trivial && grep { $_ eq $author } @nocla_reviewers;
-
-# Now that that's cleared, remove the author from anything that could cause
-# more unnecessary errors (false positives).
-@nocla_reviewers = grep { $_ ne $author } @nocla_reviewers;
-@unknown_reviewers = grep { $_ ne $author } @unknown_reviewers;
-
-if (@unknown_reviewers) {
-    die "Unknown reviewers: ", join(", ", @unknown_reviewers), "\n";
-}
-if (@nocla_reviewers) {
-    die "Reviewers without CLA: ", join(", ", @nocla_reviewers), "\n";
-}
-
-print STDERR "Detected trivial marker\n" if $verbose && $trivial;
-
-if (scalar @reviewers < $min_reviewers - $authorcount) {
-    die "Too few reviewers (total must be at least ",
-        $min_reviewers - $authorcount, ")\n";
-}
-
-print STDERR "Going with these reviewers:\n  ", join("\n  ", @reviewers), "\n"
-    if $verbose;
-
-if ($skip == 1) {
-    my $commit_id = $ENV{GIT_COMMIT};
-    foreach(@commits) {
-        if ($commit_id =~ /^$_/) {
-            $skip = 0;
-            last;
-        }
-    }
-    if ($skip == 1) {
-        while(<STDIN>) {
-            print;
-        }
-    exit(0);
-    }
-}
-
-if (scalar @reviewers == 0 && $rmrev == 0) {
-    die "No reviewer set!\n";
-}
-
-# Remove blank lines from the end of commit message
-pop @commit_message while $commit_message[$#commit_message] =~ m|^\s*$|;
-
-# Filter out the lines that we manage; they are re-added as proper
-# trailers via git-interpret-trailers further down, as appropriate.
-my @body;
-foreach (@commit_message) {
-    if (/^\(Merged from https:\/\/github\.com\/openssl\/$WHAT\/pull\//
-        || /^Merged-from:\s*\S/i) {
-        next;			# Rewritten as a Merged-from trailer below,
-				# if a PR number was given
-    } elsif (/^Reviewed-by:\s*\S/i) {
-        next if $rmrev == 1;
-        # Existing reviewers are kept in the message; the
-        # git-interpret-trailers option --if-exists addIfDifferent
-        # dedups them against @reviewers.
-    } elsif (/^Release:\s*yes\s*$/i) {
-        next if $release == 1;  # Re-added as a trailer below
-    } elsif (/^Merge-?date:\s*\S/i) {
-        $skipmdate = 1;
-    }
-    push @body, $_;
-}
-
-my @trailers;
-push @trailers, map { "Reviewed-by: $_" } @reviewers if $rmrev == 0;
-if ($skipmdate == 0) {
-    my $currdate = gmtime;
-    push @trailers, "Merge-date: $currdate";
-}
-push @trailers, "Release: yes" if $release == 1;
-push @trailers, "Merged-from: https://github.com/openssl/$WHAT/pull/$prnum"
-    if $prnum;
-
-# Pass the message through git-interpret-trailers, which takes care of
-# merging the new trailers into an already existing trailer block, or
-# adding a separating blank line when the message doesn't end with one.
-my @cmd = ('git', 'interpret-trailers', '--if-exists', 'addIfDifferent',
-           map { ('--trailer', $_) } @trailers);
-my ($rd, $wr);
-my $pid = open2($rd, $wr, @cmd);
-print $wr join("\n", @body), "\n";
-close $wr;
-print while <$rd>;
-close $rd;
-waitpid $pid, 0;
-die "git interpret-trailers failed\n" if $? != 0;
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,160 +1,25 @@
 #!/usr/bin/env python3
+# Copyright 2026 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+"""List commits eligible for cherry-picking between two branches."""
+from __future__ import annotations
 
-import argparse
-import subprocess
-import re
 import sys
+from pathlib import Path
 
-left  = "master"
-right = "OpenSSL_1_1_1-stable"
+if sys.version_info < (3, 10):
+    sys.exit(
+        "cherry-checker needs Python 3.10 or later, found "
+        f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description = """Shows the commits in '{left}...{right}'
-        which are eligible for cherry-picking. A commit is considered
-        cherry-picked, if there is another commit on the "other side"
-        which introduces an equivalent patch.
-        For details, see the documentation of the '--cherry-mark' option
-        in the git-log(1) manpage.
-        """.format(left=left, right=right))
+from reviewtools.cherry_cli import main  # noqa: E402
 
-    parser.add_argument(
-        '-a', '--all',
-        action = 'store_true',
-        help = "Show all commits, also those which have been cherry-picked."\
-        )
-
-    parser.add_argument(
-        '-s', '--sort',
-        action = 'store_true',
-        help = "Sort commits w.r.t. pull request number and author date."\
-        )
-
-    parser.add_argument(
-        '-r', '--remote',
-        action = 'store_true',
-        help = "Compare the remote branches instead of the local ones."\
-        )
-
-    args = parser.parse_args()
-
-    return args
-
-
-def check_openssl_git_repo():
-    """Checks whether we're inside a openssl.git downstrem repository"""
-    try:
-        if "/openssl.git" in subprocess.check_output(
-                ["git", "remote", "-v"]
-        ).decode():
-            return True;
-    except:
-        pass
-
-    return False
-
-
-def get_remote():
-    try:
-        return subprocess.check_output(
-            ["git", "config", "branch.master.remote"]
-            ).decode().trim()
-    except:
-        return "origin"
-
-
-def pick_cherries(left, right, all = False):
-    """Lists all commits from the symmetric difference of left and right
-
-    By default, all commits are omitted which have an 'equivalent' commit
-    on the other side, unless 'all' == True.
-    """
-
-    git_command = [
-        "git", "log", "--oneline", "--cherry-mark", "--left-right",
-        left + "..." + right, "--pretty=%at;%m;%h;%s"
-    ]
-
-    prnum_regex   = re.compile("|".join([
-        # The standard pull request annotation
-        "\(Merged from https://github.com/openssl/openssl/pull/([0-9]+)\)",
-        # @kroeck's special pull request annotation ;-)
-        "GH: #([0-9]+)",
-        # The standard pull request annotation as a trailer
-        "Merged-from: https://github.com/openssl/openssl/pull/([0-9]+)"
-    ]))
-
-    fixes_regex   = re.compile(
-        "Fixes[:]?\s+(#|https://github.com/openssl/openssl/pull/)([0-9]+)")
-
-    for line in subprocess.check_output(git_command).decode().splitlines():
-
-        timestamp, branch, commit, subject = line.split(";", maxsplit=3)
-
-        if branch == '=' and not all:
-            continue
-
-        # shorten overlong subject lines
-        if len(subject) > 70:
-            subject = subject[:70] + "..."
-
-        # search commit message for pull request number
-        message = subprocess.check_output(
-            ["git", "show", "--no-patch", commit]
-        ).decode()
-
-        match = prnum_regex.search(message)
-        if match:
-            prnum = next(g for g in match.groups() if g)
-        else:
-            prnum = "????"
-
-        match = fixes_regex.search(message)
-        if match:
-            fixes = "#" + match.group(2)
-        else:
-            fixes = ""
-
-        yield prnum, fixes, timestamp, branch, commit, subject
-
-
-
-if __name__ == '__main__':
-    args = parse_arguments()
-
-    if not check_openssl_git_repo():
-        print("cherry-checker: Not inside an openssl git repository.", file=sys.stderr)
-        sys.exit(1)
-
-
-    if args.remote:
-        remote = get_remote()
-        left  = remote+"/"+left
-        right = remote+"/"+right
-
-    commits = pick_cherries(left, right, args.all)
-
-    if args.sort:
-        commits = sorted(commits, reverse=True)
-
-    print("""These cherries are hanging on the git-tree:
-
-  <-  {left}
-  ->  {right}
-  ==  both
-
- prnum  | fixes  | br |   commit   |   subject
-------- | ------ | -- | ---------- | -------------------------------------------""".format(
-         left = left,
-         right = right))
-
-    branch_marker = { '<': '<-', '>': '->', '=' : '==' }
-
-    try:
-        for prnum, fixes, _, branch, commit, subject in commits:
-            print(' {:>6} | {:>6} | {} | {} | {} '.format(
-                '#'+prnum, fixes, branch_marker[branch], commit, subject
-            ))
-    except subprocess.CalledProcessError as e:
-        print(e, file=sys.stderr)
+if __name__ == "__main__":
+    sys.exit(main())

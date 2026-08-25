@@ -26,7 +26,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Sequence
 
 from .build import Build
 from .copyright_year import update_copyright_years
@@ -35,6 +34,7 @@ from .fixups import FIXUPS, POSTRELEASE, RELEASE, FixupContext, get_fixup
 from .git import Git, is_recognised_branch
 from .metadata import Metadata
 from .report import Reporter
+from .reviewers import add_reviewers
 from .run import Runner
 from .state import next_release_state
 from .tarball import Artifacts, make_artifacts
@@ -140,6 +140,7 @@ def stage_release(
     build: Build | None = None,
     reporter: Reporter | None = None,
     today: date | None = None,
+    query=None,
 ) -> StageResult:
     """Stage a release in the worktree `git` points at."""
     reporter = reporter or Reporter()
@@ -211,7 +212,7 @@ def stage_release(
         reporter.verbose("== Committing copyright year updates")
         git.add_update()
         git.commit("Copyright year updates\n\nRelease: yes")
-        _add_reviewers(runner, options.reviewers)
+        _credit_reviewers(git, options, reporter, query)
 
     # -- make update --------------------------------------------------------
 
@@ -227,7 +228,7 @@ def stage_release(
         reporter.verbose("== Committing updates")
         git.add_update()
         git.commit("make update\n\nRelease: yes")
-        _add_reviewers(runner, options.reviewers)
+        _credit_reviewers(git, options, reporter, query)
 
     # -- the release commit -------------------------------------------------
 
@@ -262,7 +263,7 @@ def stage_release(
     reporter.verbose("== Committing updates and tagging")
     git.add_update()
     git.commit(f"Prepare for release of {release_text}\n\nRelease: yes")
-    _add_reviewers(runner, options.reviewers)
+    _credit_reviewers(git, options, reporter, query)
 
     reporter.echo(f"Tagging release with tag {release_tag}.")
     git.tag(release_tag, f"OpenSSL {release} release tag")
@@ -323,7 +324,7 @@ def stage_release(
     reporter.verbose("== Committing updates")
     git.add_update()
     git.commit(f"Prepare for {post_text}\n\nRelease: yes")
-    _add_reviewers(runner, options.reviewers)
+    _credit_reviewers(git, options, reporter, query)
 
     # -- move the update branch on to the next minor version ----------------
 
@@ -355,7 +356,7 @@ def stage_release(
         reporter.verbose("== Committing updates")
         git.add_update()
         git.commit(f"Prepare for {minor_text}\n\nRelease: yes")
-        _add_reviewers(runner, options.reviewers)
+        _credit_reviewers(git, options, reporter, query)
 
     reporter.verbose("== Done")
 
@@ -372,15 +373,16 @@ def stage_release(
     )
 
 
-def _add_reviewers(runner: Runner, reviewers: Sequence[str]) -> None:
+def _credit_reviewers(
+    git: Git, options: StageOptions, reporter: Reporter, query=None
+) -> None:
     """Add Reviewed-by: trailers to the commit just made.
 
-    `addrev` lives in review-tools and needs the OpenSSL::Query Perl module;
-    it is invoked rather than reimplemented.
+    Runs in-process against review-tools' reviewtools package, so nothing
+    has to be on PATH.  Reviewer names are validated against the committer
+    and CLA databases, and an unknown or CLA-less name aborts the run.
     """
-    if not reviewers:
+    if not options.reviewers:
         return
-    runner.run(
-        ["addrev", "--release", "--nopr"]
-        + [f"--reviewer={reviewer}" for reviewer in reviewers]
-    )
+    credited = add_reviewers(git, options.reviewers, query=query)
+    reporter.verbose("== Reviewed-by: " + ", ".join(credited))

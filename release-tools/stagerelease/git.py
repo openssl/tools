@@ -60,6 +60,15 @@ class Git:
     def head(self) -> str:
         return self._git("rev-parse", "HEAD").one_line()
 
+    def head_message(self) -> str:
+        """The full commit message of HEAD, subject and body."""
+        return self._git("log", "-1", "--pretty=%B").stdout
+
+    def user_email(self) -> str | None:
+        """The configured author address, or None if git has no opinion."""
+        result = self._git("config", "--get", "user.email", check=False)
+        return result.one_line() or None
+
     def current_branch(self) -> str:
         return self._git("rev-parse", "--abbrev-ref", "HEAD").one_line()
 
@@ -150,6 +159,15 @@ class Git:
 
     def commit(self, message: str) -> None:
         self._git("commit", "-m", message)
+
+    def amend_message(self, message: str) -> None:
+        """Replace HEAD's message, keeping its author and its tree.
+
+        `--cleanup=verbatim` because the message has already been assembled
+        exactly as it should be stored; git's default would strip trailing
+        whitespace and could disturb the trailer block.
+        """
+        self._git("commit", "--amend", "--cleanup=verbatim", "-m", message)
 
     def tag(self, name: str, message: str) -> None:
         """Create an annotated tag.

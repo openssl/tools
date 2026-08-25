@@ -1,135 +1,29 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
+# Copyright 2026 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+"""Add Reviewed-by: trailers to a range of commits.
 
-use strict;
-use warnings;
+The current branch must be the merge target.  Run `addrev --help` for the
+argument grammar.
+"""
+from __future__ import annotations
 
-my $gitaddrev = $ENV{GITADDREV} || "gitaddrev";
+import sys
+from pathlib import Path
 
-my $args = "";
-my $filterargs = "";
-my $list_reviewers = 0;
-my $help = 0;
-my $haveprnum = 0;
-my $trivial = 0;
-my $useself = 1;
+if sys.version_info < (3, 10):
+    sys.exit(
+        "addrev needs Python 3.10 or later, found "
+        f"{sys.version_info.major}.{sys.version_info.minor}"
+    )
 
-my $my_email;
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-foreach (@ARGV) {
-    if (/^(--prnum=)?(\d{1,6}+)$/) {
-        $args .= "--prnum=$2 ";
-        $haveprnum = 1;
-    } elsif (/^\@.+$/) {
-        $args .= "--reviewer=$_ ";
-    } elsif (/^\w[-\w]*$/) {
-        if (/^[0-9a-f]{7,}+/) {
-            print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
-            $filterargs = $_;
-        } else {
-            $args .= "--reviewer=$_ ";
-        }
-    } elsif (/^--reviewer=(.+)$/) {
-        $args .= "--reviewer=$1 ";
-    } elsif (/^--rmreviewers$/) {
-        $args .= "--rmreviewers ";
-    } elsif (/^--trivial$/) {
-        $args .= "--trivial ";
-    } elsif (/^--web$/) {
-        $args .= "--web ";
-    } elsif (/^--tools$/) {
-        $args .= "--tools ";
-    } elsif (/^--fuzz-corpora$/) {
-        $args .= "--fuzz-corpora ";
-    } elsif (/^--perftools$/) {
-        $args .= "--perftools ";
-    } elsif (/^--installer/) {
-        $args .= "--installer ";
-    } elsif (/^--verbose$/) {
-        $args .= "--verbose ";
-    } elsif (/^--noself$/) {
-        $useself = 0;
-    } elsif (/^--myemail=(.+)$/) {
-        $my_email = $1;
-    } elsif (/^--nopr$/) {
-        $haveprnum = 1;
-    } elsif (/^--security$/) {
-        $haveprnum = 1;
-    } elsif (/^--commit=(.+)$/) {
-        $args .= "--commit=$1 ";
-    } elsif (/^--release$/) {
-        $args .= "--release ";
-    } elsif (/^-(\d+)$/) {
-        print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
-        $filterargs = "HEAD~$1..";
-    } elsif (/^--list$/) {
-        $list_reviewers = 1;
-        last;
-    } elsif (/^--help$/ || /^-h$/) {
-        $help = 1;
-        last;
-    } else {
-        print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
-        $filterargs = $_;
-    }
-}
-$filterargs = "HEAD^.." if $filterargs eq "";
+from reviewtools.addrev_cli import main  # noqa: E402
 
-if ($list_reviewers) {
-    system("$gitaddrev --list");
-    exit(0);
-}
-if ($help) {
-    usage();
-    exit(0);
-}
-
-die "Need either [--prnum=]NNN or --nopr flag" unless $haveprnum;
-
-if ($useself) {
-    if (!defined $my_email) {
-        $my_email = `git config --get user.email`;
-    }
-
-    $args .= "--myemail=$my_email ";
-}
-
-my $err = "/tmp/addrev$$";
-$ENV{FILTER_BRANCH_SQUELCH_WARNING} = 1;
-system("git filter-branch -f --tag-name-filter cat --msg-filter \"$gitaddrev $args\" $filterargs || (echo addrev failed; exit 1)");
-die if $?;
-
-sub usage {
-    print STDERR <<"EOF";
-usage: addrev args...
-
-option style arguments:
-
---help                 Print this help and exit
---list                 List the known reviewers and exit (discards all other arguments)
---verbose              Be a bit more verbose
---trivial              Do not require a CLA
---reviewer=<reviewer>  A reviewer to be added on a Reviewed-by: line
---rmreviewers          Remove all existing Reviewed-by: lines before adding reviewers
---commit=<id>          Only apply to commit <id>
---myemail=<email>      Set email address.
-                       Defaults to the result from git configuration setting user.email
---nopr                 Do not require a PR number
-[--prnum=]NNN          Add a reference to GitHub pull request NNN
--<n>                   Change the last <n> commits.  Defaults to 1
-
-non-option style arguments can be:
-
-a string of alphanumeric or '-' characters, denoting a reviewer name.
-
-a string starting with \@, denoting a reviewer's github ID.
-
-anything else will be used as a commit range.  If no commit range is given,
-HEAD^.. is assumed.
-
-Examples (all meaning the same thing):
-
-  addrev 12345 -2 steve levitte
-  addrev --prnum=12345 steve \@levitte HEAD^^..
-  addrev 12345 --reviewer=steve --reviewer=levitte\@openssl.org -2
-EOF
-}
+if __name__ == "__main__":
+    sys.exit(main())

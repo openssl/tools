@@ -349,30 +349,95 @@ def test_a_missing_release_file_is_reported(tmp_path):
 # -- reviewers --------------------------------------------------------------
 
 
-def test_reviewers_are_passed_to_addrev(tmp_path, monkeypatch):
+class FakePeople:
+    """Stands in for reviewtools' api.openssl.org client."""
+
+    STEVE = "Steve Henson <steve@openssl.org>"
+    LEVITTE = "Richard Levitte <levitte@openssl.org>"
+
+    def find_person_tag(self, identity, tag):
+        return {
+            "steve": self.STEVE,
+            "steve@openssl.org": self.STEVE,
+            "levitte": self.LEVITTE,
+            "levitte@openssl.org": self.LEVITTE,
+        }.get(identity)
+
+    def has_cla(self, identity):
+        return "openssl.org" in identity
+
+
+def test_reviewers_are_credited_in_the_commit_messages(tmp_path):
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    runner = Runner(cwd=root)
+
+    stage_release(
+        StageOptions(reviewers=("steve", "levitte")),
+        runner=runner,
+        git=Git(runner),
+        build=FakeBuild(),
+        today=TODAY,
+        query=FakePeople(),
+    )
+
+    log = run_git(root, "log", "--pretty=%B", "-2")
+    # The release commit and the post-release commit both get trailers.
+    assert log.count(f"Reviewed-by: {FakePeople.STEVE}") == 2
+    assert log.count(f"Reviewed-by: {FakePeople.LEVITTE}") == 2
+    assert log.count("MergeDate: ") == 2
+    assert log.count("Release: yes") == 2
+
+
+def test_crediting_reviewers_does_not_shell_out(tmp_path):
+    # The whole point of the in-process path: addrev no longer has to exist
+    # on PATH for a release to be staged.
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    runner = Runner(cwd=root)
+
+    stage_release(
+        StageOptions(reviewers=("steve", "levitte")),
+        runner=runner,
+        git=Git(runner),
+        build=FakeBuild(),
+        today=TODAY,
+        query=FakePeople(),
+    )
+
+    assert not any(argv[0] == "addrev" for argv in runner.history)
+
+
+def test_an_unknown_reviewer_aborts_the_run(tmp_path):
     root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
 
-    # A stub addrev that records how it was called.
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    log = tmp_path / "addrev.log"
-    addrev = bin_dir / "addrev"
-    addrev.write_text(f'#!/bin/sh\necho "$@" >> {log}\n')
-    addrev.chmod(0o755)
-    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
-
-    stage(root, reviewers=("steve", "@richsalz"))
-
-    invocations = log.read_text().splitlines()
-    # Once for the release commit, once for the post-release commit.
-    assert len(invocations) == 2
-    for line in invocations:
-        assert line == "--release --nopr --reviewer=steve --reviewer=@richsalz"
+    with pytest.raises(ReleaseError, match="Could not add reviewers"):
+        stage(root, reviewers=("steve", "nosuchperson"))
 
 
-def test_no_reviewers_means_addrev_is_never_run(tmp_path):
+def test_the_tagged_commit_carries_its_reviewers(tmp_path):
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    runner = Runner(cwd=root)
+
+    result = stage_release(
+        StageOptions(reviewers=("steve", "levitte")),
+        runner=runner,
+        git=Git(runner),
+        build=FakeBuild(),
+        today=TODAY,
+        query=FakePeople(),
+    )
+
+    # The tag must point at the commit that already has the trailers, or the
+    # release would be tagged before it was attributed.
+    tagged = run_git(root, "log", "-1", "--pretty=%B", f"{result.release_tag}^{{}}")
+    assert f"Reviewed-by: {FakePeople.STEVE}" in tagged
+
+
+def test_no_reviewers_means_no_trailers_and_no_lookup(tmp_path):
     root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
 
     _, _, runner = stage(root)
 
+    # No query object was supplied, so a lookup would have tried the
+    # network; reaching the end proves none was attempted.
     assert not any(argv[0] == "addrev" for argv in runner.history)
+    assert "Reviewed-by:" not in run_git(root, "log", "--pretty=%B")
