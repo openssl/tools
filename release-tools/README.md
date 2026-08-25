@@ -131,6 +131,20 @@ cd lib
 uvx --with pytest mypy
 ```
 
+Against every supported interpreter, using uv to fetch them:
+
+```sh
+cd lib
+for v in 3.10 3.11 3.12 3.13 3.14; do
+    uvx --python $v --with pytest pytest -q
+done
+```
+
+The suite passes on the latest patch of each minor from 3.10 to 3.14.  The
+`sys.version_info` guards in the entry scripts and in the built archives are
+tested too: on 3.9 they refuse with a plain message rather than an import
+error.
+
 The package is fully annotated and `disallow_untyped_defs` is on for it.
 Test functions stay unannotated, but `check_untyped_defs` means their bodies
 are still checked -- which is where the value is, because that is what
