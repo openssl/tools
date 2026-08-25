@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 from .errors import ReleaseError
-from .run import Runner
+from .run import Result, Runner
 
 #: Branches a release may be staged from: master, a 3.0+ release branch, or a
 #: pre-3.0 release branch.
@@ -33,7 +33,7 @@ class Git:
     def __init__(self, runner: Runner) -> None:
         self.runner = runner
 
-    def _git(self, *args: str, check: bool = True):
+    def _git(self, *args: str, check: bool = True) -> Result:
         return self.runner.run(("git", *args), check=check)
 
     # -- inspection ---------------------------------------------------------

@@ -35,7 +35,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Protocol
 
 from .errors import QueryError
 
@@ -58,6 +58,18 @@ def encode_id(identity: str | Mapping[str, str]) -> str:
     return f"{tag}:{value}"
 
 
+class UrlOpener(Protocol):
+    """The one method this client needs from an opener.
+
+    urllib's OpenerDirector satisfies it, and so does a stub that answers
+    from a table of routes.
+    """
+
+    # Positional-only, because urllib names it `fullurl` and a stub is more
+    # likely to name it `request`; only the shape of the call matters.
+    def open(self, request: Any, /, *, timeout: Any = ...) -> Any: ...
+
+
 class ReviewMalformedID(QueryError):
     """The caller passed an identifier this API cannot express."""
 
@@ -70,7 +82,7 @@ class Query:
         base_url: str = DEFAULT_BASE_URL,
         *,
         timeout: int = DEFAULT_TIMEOUT,
-        opener: urllib.request.OpenerDirector | None = None,
+        opener: UrlOpener | None = None,
     ) -> None:
         scheme = urllib.parse.urlsplit(base_url).scheme
         if scheme not in ("http", "https"):

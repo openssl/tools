@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import email.message
 import io
 import json
 import urllib.error
@@ -36,7 +37,11 @@ class StubOpener:
         status, body = self.routes.get(url, (404, ""))
         if status >= 400:
             raise urllib.error.HTTPError(
-                url, status, f"status {status}", {}, io.BytesIO(body.encode())
+                url,
+                status,
+                f"status {status}",
+                email.message.Message(),
+                io.BytesIO(body.encode()),
             )
         return _Response(status, body)
 

@@ -114,8 +114,10 @@ def test_a_subject_containing_the_separator_character_is_impossible():
     # punctuation must survive intact.
     line = f"1700000000{SEP}>{SEP}abc1234{SEP}Fix a; thing | with, punctuation"
 
-    _, _, _, subject = parse_log_line(line)
-    assert subject == "Fix a; thing | with, punctuation"
+    parsed = parse_log_line(line)
+
+    assert parsed is not None
+    assert parsed[3] == "Fix a; thing | with, punctuation"
 
 
 @pytest.mark.parametrize(

@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from typing import Protocol
 
-from .reviewers import COMMIT_GROUP
+from .reviewers import COMMIT_GROUP, PersonSource
 
 #: Identities worth showing: a bare alphabetic name, or an '@handle'.  The
 #: handle pattern is odd -- it accepts '@ab' and '@a-b' but not '@a-b-c' --
@@ -56,7 +57,13 @@ def primary_email(record: Iterable) -> str | None:
     return None
 
 
-def list_reviewers(query) -> list[tuple[str, str]]:
+class ListingSource(PersonSource, Protocol):
+    """PersonSource, plus the bulk listing --list walks."""
+
+    def list_people(self) -> list: ...
+
+
+def list_reviewers(query: ListingSource) -> list[tuple[str, str]]:
     """(identity, reviewer tag) pairs, sorted by tag then identity."""
     found: dict[str, str] = {}
 

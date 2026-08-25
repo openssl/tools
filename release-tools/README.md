@@ -121,6 +121,21 @@ uvx ruff check --config pyproject.toml \
 The code is `ruff format`-ed at the 100 column limit set in
 `lib/pyproject.toml`; keep it that way rather than hand-wrapping.
 
+```sh
+cd lib
+uvx --with pytest mypy
+```
+
+The package is fully annotated and `disallow_untyped_defs` is on for it.
+Test functions stay unannotated, but `check_untyped_defs` means their bodies
+are still checked -- which is where the value is, because that is what
+catches a test double drifting away from the interface it stands in for.
+
+Every injectable seam is typed as a Protocol (`BuildSystem`, `PersonSource`,
+`ListingSource`, `GitQueries`, `CommandRunner`, `UrlOpener`) rather than as
+the concrete class.  That is deliberate: a parameter typed to the one real
+implementation makes substitution a type error, which defeats the point.
+
 The rule set is pinned in `lib/pyproject.toml` rather than left to ruff's
 default, which changes between releases.  Two rules are switched off there
 with reasons: `DTZ011`, because release dates are naive local dates by

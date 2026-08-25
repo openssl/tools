@@ -87,7 +87,7 @@ class LegacyScheme(Scheme):
     def __init__(self, version_file: str, has_spec: bool) -> None:
         # 1.0.x ships an openssl.spec that carries the version too; 1.1.x
         # does not.
-        files = ("README", "CHANGES", "NEWS")
+        files: tuple[str, ...] = ("README", "CHANGES", "NEWS")
         if has_spec:
             files += ("openssl.spec",)
         super().__init__(release_files=files)

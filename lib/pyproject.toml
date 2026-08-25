@@ -59,3 +59,23 @@ known-first-party = ["openssl_tools", "tests"]
     "S603",    # subprocess calls with a literal argv
     "S607",    # git, make and gzip are found on PATH deliberately
 ]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["openssl_tools", "tests"]
+# The package is fully annotated; keep it that way.
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+# Test functions are untyped by convention -- annotating several hundred of
+# them would be noise.  Their bodies are still checked against the package's
+# types, which is where the value is: a test double that stops matching the
+# interface it stands in for gets caught here.
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true

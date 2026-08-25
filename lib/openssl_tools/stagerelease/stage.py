@@ -28,8 +28,9 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from ..reviewtools import PersonSource
 from . import reviewers
-from .build import Build
+from .build import Build, BuildSystem
 from .copyright_year import update_copyright_years
 from .errors import ReleaseError
 from .fixups import FIXUPS, POSTRELEASE, RELEASE, FixupContext, get_fixup
@@ -135,10 +136,10 @@ def stage_release(
     *,
     runner: Runner,
     git: Git,
-    build: Build | None = None,
+    build: BuildSystem | None = None,
     reporter: Reporter | None = None,
     today: date | None = None,
-    query=None,
+    query: PersonSource | None = None,
 ) -> StageResult:
     """Stage a release in the worktree `git` points at."""
     reporter = reporter or Reporter()

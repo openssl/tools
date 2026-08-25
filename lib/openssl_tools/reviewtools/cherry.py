@@ -16,10 +16,11 @@ formatting below can be tested directly.
 from __future__ import annotations
 
 import re
-import subprocess
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
+from typing import Protocol
 
+from .commands import CommandRunner, run_command
 from .errors import ReviewError
 
 #: Where a commit lives: only on the left, only on the right, or both.
@@ -92,10 +93,20 @@ def pick_default_right(branches: Iterable[str]) -> str | None:
     return best[1] if best else None
 
 
+class GitQueries(Protocol):
+    """The git questions cherry-checker asks."""
+
+    def remotes(self) -> str: ...
+    def branches(self) -> list[str]: ...
+    def master_remote(self) -> str: ...
+    def symmetric_difference(self, left: str, right: str) -> list[str]: ...
+    def message(self, commit: str) -> str: ...
+
+
 class GitLog:
     """The git commands this tool runs."""
 
-    def __init__(self, runner=subprocess.run) -> None:
+    def __init__(self, runner: CommandRunner = run_command) -> None:
         self._runner = runner
 
     def _capture(self, argv: Sequence[str]) -> str:
@@ -143,7 +154,7 @@ class GitLog:
         return self._capture(["git", "show", "--no-patch", commit])
 
 
-def is_openssl_repo(git: GitLog) -> bool:
+def is_openssl_repo(git: GitQueries) -> bool:
     """Whether the current directory is a clone of openssl.git.
 
     A failing `git remote -v` -- typically because this is not a repository
@@ -168,7 +179,7 @@ def parse_log_line(line: str) -> tuple[int, str, str, str] | None:
 
 
 def pick_cherries(
-    git: GitLog, left: str, right: str, *, include_picked: bool = False
+    git: GitQueries, left: str, right: str, *, include_picked: bool = False
 ) -> Iterator[Commit]:
     """Commits in `left...right`, skipping already-picked ones by default."""
     for line in git.symmetric_difference(left, right):

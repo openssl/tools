@@ -20,6 +20,7 @@ from typing import TextIO
 
 from . import listing, message, reviewers
 from .errors import ReviewError
+from .listing import ListingSource
 from .policy import POLICIES, get_policy
 from .query import Query
 
@@ -77,7 +78,7 @@ def main(
     stdout: TextIO | None = None,
     stderr: TextIO | None = None,
     environ: Mapping[str, str] | None = None,
-    query=None,
+    query: ListingSource | None = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     stdin = stdin or sys.stdin

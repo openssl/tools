@@ -16,6 +16,7 @@ from typing import TextIO
 
 from .cherry import (
     GitLog,
+    GitQueries,
     format_table,
     is_openssl_repo,
     pick_cherries,
@@ -71,7 +72,7 @@ def main(
     *,
     stdout: TextIO | None = None,
     stderr: TextIO | None = None,
-    git: GitLog | None = None,
+    git: GitQueries | None = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     stdout = stdout or sys.stdout

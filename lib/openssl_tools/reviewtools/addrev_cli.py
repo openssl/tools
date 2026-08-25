@@ -17,13 +17,13 @@ from __future__ import annotations
 import os
 import re
 import shlex
-import subprocess
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TextIO
 
+from .commands import CommandRunner, run_command
 from .errors import ReviewError
 from .policy import POLICIES
 
@@ -210,7 +210,7 @@ def main(
     *,
     stdout: TextIO | None = None,
     stderr: TextIO | None = None,
-    runner=subprocess.run,
+    runner: CommandRunner = run_command,
 ) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     stdout = stdout or sys.stdout
@@ -263,7 +263,7 @@ def main(
         return 1
 
 
-def _git_user_email(runner) -> str | None:
+def _git_user_email(runner: CommandRunner) -> str | None:
     completed = runner(
         ["git", "config", "--get", "user.email"],
         capture_output=True,

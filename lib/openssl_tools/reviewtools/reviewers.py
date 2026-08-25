@@ -45,7 +45,12 @@ COMMIT_GROUP = "commit"
 
 
 class PersonSource(Protocol):
-    """The slice of the API client this module needs."""
+    """The slice of the API client this module needs.
+
+    A Protocol rather than the concrete Query, so the tests can substitute a
+    known database -- and so mypy checks that a substitute really does match
+    the interface.
+    """
 
     def find_person_tag(self, identity: str, tag: str) -> str | None: ...
     def has_cla(self, identity: str) -> bool: ...

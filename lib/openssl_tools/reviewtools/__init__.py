@@ -24,11 +24,13 @@ from . import reviewers as _reviewers
 from .errors import QueryError, ReviewError
 from .policy import POLICIES, RepoPolicy, get_policy
 from .query import Query
+from .reviewers import PersonSource
 
 __version__ = "1.0.0"
 
 __all__ = [
     "POLICIES",
+    "PersonSource",
     "Query",
     "QueryError",
     "RepoPolicy",
@@ -45,7 +47,7 @@ def resolve_reviewers(
     author_email: str | None,
     repo: str = "openssl",
     release: bool = False,
-    query=None,
+    query: PersonSource | None = None,
 ) -> list[str]:
     """Validate explicitly named reviewers and return their tags.
 
@@ -79,7 +81,7 @@ def add_reviewers(
     repo: str = "openssl",
     release: bool = False,
     prnum: str | None = None,
-    query=None,
+    query: PersonSource | None = None,
 ) -> str:
     """Return `commit_message` with validated Reviewed-by: trailers added."""
     tags = resolve_reviewers(

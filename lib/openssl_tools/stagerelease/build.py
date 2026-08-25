@@ -14,8 +14,21 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Protocol
 
 from .run import Runner
+
+
+class BuildSystem(Protocol):
+    """The build steps a staging run drives.
+
+    Stated as a Protocol because the point of this module is that stage.py
+    can be tested against a stub -- so the stub has to be a legitimate
+    substitute, not merely duck-typed past the checker.
+    """
+
+    def configure(self) -> None: ...
+    def update(self, *, is_alpha: bool) -> None: ...
 
 
 class Build:

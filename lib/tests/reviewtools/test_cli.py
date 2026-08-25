@@ -307,7 +307,7 @@ class RecordingRunner:
         self.commands: list[list[str]] = []
         self.email = email
 
-    def __call__(self, argv, **kwargs):
+    def __call__(self, argv, /, **kwargs):
         self.commands.append(list(argv))
 
         class Completed:
@@ -373,7 +373,7 @@ def test_arguments_reaching_the_filter_are_quoted():
 
 def test_a_failing_filter_branch_is_reported():
     class Failing(RecordingRunner):
-        def __call__(self, argv, **kwargs):
+        def __call__(self, argv, /, **kwargs):
             super().__call__(argv, **kwargs)
 
             class Completed:

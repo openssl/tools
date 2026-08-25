@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from ..reviewtools import ReviewError, resolve_reviewers
+from ..reviewtools import PersonSource, ReviewError, resolve_reviewers
 from ..reviewtools import message as review_message
 from .errors import ReleaseError
 from .git import Git
@@ -42,7 +42,7 @@ def resolve(
     candidates: Sequence[str],
     *,
     author_email: str | None = None,
-    query=None,
+    query: PersonSource | None = None,
 ) -> list[str]:
     """Validate reviewer names and return their Reviewed-by: tags.
 
