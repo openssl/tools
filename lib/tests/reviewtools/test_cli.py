@@ -73,12 +73,6 @@ def test_a_pr_number_adds_a_merged_from_line():
     assert out.rstrip("\n").endswith("(Merged from https://github.com/openssl/openssl/pull/999)")
 
 
-def test_the_web_selector_names_the_web_repository():
-    _, out, _ = run_gitaddrev(["--web", "--reviewer=steve", "--reviewer=levitte", "--prnum=5"])
-
-    assert "https://github.com/openssl/web/pull/5)" in out
-
-
 def test_release_adds_a_release_line():
     _, out, _ = run_gitaddrev(["--release", "--reviewer=steve", "--reviewer=levitte"])
 

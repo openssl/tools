@@ -223,4 +223,6 @@ def test_split_lines(text, expected):
 
 
 def test_merged_from_prefix():
-    assert merged_from_prefix("web") == ("(Merged from https://github.com/openssl/web/pull/")
+    assert merged_from_prefix("fuzz-corpora") == (
+        "(Merged from https://github.com/openssl/fuzz-corpora/pull/"
+    )

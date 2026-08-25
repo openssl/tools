@@ -363,11 +363,6 @@ def test_every_policy_names_a_repository():
         assert policy.min_reviewers >= 1
 
 
-def test_web_points_at_the_web_repository():
-    # gitaddrev had no --web branch, so web commits were labelled as openssl.
-    assert get_policy("web").name == "web"
-
-
 def test_an_unknown_repository_is_rejected():
     with pytest.raises(ReviewError, match="Unknown repository"):
         get_policy("nosuchrepo")

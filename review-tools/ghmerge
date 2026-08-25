@@ -10,7 +10,6 @@ Option style arguments:
 --help              Print this help and exit
 --tools             Merge a tools PR (rather than openssl PR)
 --installer         Merge an installer PR (rather than openssl PR)
---web               Merge a web PR (rather than openssl PR)
 --perftools         Merge a perftools PR (rather than openssl PR)
 --fuzz-corpora      Merge a PR against fuzz-corpora (rather than openssl PR)
 --security          Merge a PR in the security repo
@@ -71,9 +70,6 @@ while [ $# -ne 0 ]; do
         ;;
     --tools)
         WHAT=tools ; BUILD=no ; REMOTESRVR="github.com" ; shift
-        ;;
-    --web)
-        WHAT=web ; BUILD=no ; shift
         ;;
     --perftools)
         WHAT=perftools; BUILD=no; REMOTESRVR="github.com" ; shift

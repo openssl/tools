@@ -39,12 +39,6 @@ POLICIES: dict[str, RepoPolicy] = {
     "perftools": RepoPolicy("perftools", min_reviewers=2, min_authors=1),
     "installer": RepoPolicy("installer", min_reviewers=2, min_authors=1),
     "fuzz-corpora": RepoPolicy("fuzz-corpora", min_reviewers=1, min_authors=1),
-    # `--web` was accepted by addrev and forwarded, but gitaddrev had no
-    # branch for it, so it silently fell through to the openssl policy and
-    # wrote "(Merged from .../openssl/pull/N)" into web commits.  The name is
-    # corrected here; the review counts are left at what they effectively
-    # were, since no stricter policy was ever actually applied.
-    "web": RepoPolicy("web", min_reviewers=2, min_authors=0),
     # `--technical-policies` reached addrev from ghmerge, matched none of its
     # patterns, and was silently used as a commit range -- which made
     # `ghmerge --technical-policies` fail on a bogus revision.

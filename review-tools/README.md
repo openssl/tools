@@ -185,7 +185,7 @@ The default commit post-processing is `git rebase -i --autosquash`.  Options:
 | `--remote <remote>` | the git remote to pull from and push to |
 | `--target <branch>`, `--ref <branch>` | the merge target, rather than the current branch |
 | `--cherry-pick [n]` | cherry-pick the last *n* commits instead of rebasing |
-| `--tools`, `--web`, `--installer`, `--perftools`, `--fuzz-corpora`, `--security` | target a sibling repository rather than `openssl` |
+| `--tools`, `--installer`, `--perftools`, `--fuzz-corpora`, `--security` | target a sibling repository rather than `openssl` |
 
 `<prnum>` is the GitHub PR number; the remaining arguments are reviewer
 names, passed through to `addrev`.
