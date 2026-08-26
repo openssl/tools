@@ -3,7 +3,7 @@
 function usage_exit {
     >&2 echo "Usage: ghmerge <options including prnum and reviewer(s)>
     or ghmerge [<options>] -- <prnum> <reviewer>...
-Options may include addrev options and gitaddrev filter args.
+Options may include addrev options and commit range arguments.
 
 Option style arguments:
 

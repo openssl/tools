@@ -4,7 +4,7 @@
 # this file except in compliance with the License.  You can obtain a copy
 # in the file LICENSE in the source distribution or at
 # https://www.openssl.org/source/license.html
-"""`addrev` -- run gitaddrev over a range of commits.
+"""`addrev` -- add reviewer trailers to a range of commits.
 
 The argument grammar is positional and forgiving, because it is typed by
 hand and forwarded verbatim from ghmerge.  A bare number is a PR number, a
@@ -14,18 +14,17 @@ range, and `-3` means the last three commits.
 
 from __future__ import annotations
 
-import os
 import re
-import shlex
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TextIO
 
+from . import listing, message, reviewers, rewrite
 from .commands import CommandRunner, run_command
 from .errors import ReviewError
-from .policy import POLICIES
+from .policy import POLICIES, get_policy
+from .query import Query
 
 USAGE = """\
 usage: addrev args...
@@ -76,15 +75,19 @@ _REVIEWER_OPT_RE = re.compile(r"^--reviewer=(.+)$")
 _MYEMAIL_RE = re.compile(r"^--myemail=(.+)$")
 _COMMIT_RE = re.compile(r"^--commit=(.+)$")
 
-#: Flags forwarded to gitaddrev untouched.
-_PASSTHROUGH = {"--rmreviewers", "--trivial", "--verbose", "--release"}
-
 
 @dataclass
 class Invocation:
     """What a command line asked for."""
 
-    gitaddrev_args: list[str] = field(default_factory=list)
+    reviewers: list[str] = field(default_factory=list)
+    prnum: str | None = None
+    commits: list[str] = field(default_factory=list)
+    repo: str = "openssl"
+    release: bool = False
+    remove_reviewers: bool = False
+    trivial: bool = False
+    verbose: bool = False
     filter_args: str = ""
     have_prnum: bool = False
     use_self: bool = True
@@ -105,12 +108,12 @@ def parse_args(argv: Sequence[str]) -> Invocation:
     for arg in argv:
         prnum = _PRNUM_RE.match(arg)
         if prnum:
-            result.gitaddrev_args.append(f"--prnum={prnum.group(1)}")
+            result.prnum = prnum.group(1)
             result.have_prnum = True
             continue
 
         if arg.startswith("@"):
-            result.gitaddrev_args.append(f"--reviewer={arg}")
+            result.reviewers.append(arg)
             continue
 
         if _BARE_WORD_RE.match(arg):
@@ -118,20 +121,32 @@ def parse_args(argv: Sequence[str]) -> Invocation:
             if _OBJECT_ID_RE.match(arg):
                 set_filter(arg)
             else:
-                result.gitaddrev_args.append(f"--reviewer={arg}")
+                result.reviewers.append(arg)
             continue
 
         reviewer = _REVIEWER_OPT_RE.match(arg)
         if reviewer:
-            result.gitaddrev_args.append(f"--reviewer={reviewer.group(1)}")
+            result.reviewers.append(reviewer.group(1))
             continue
 
-        if arg in _PASSTHROUGH:
-            result.gitaddrev_args.append(arg)
+        if arg == "--rmreviewers":
+            result.remove_reviewers = True
+            continue
+
+        if arg == "--trivial":
+            result.trivial = True
+            continue
+
+        if arg == "--verbose":
+            result.verbose = True
+            continue
+
+        if arg == "--release":
+            result.release = True
             continue
 
         if arg.startswith("--") and arg[2:] in POLICIES:
-            result.gitaddrev_args.append(arg)
+            result.repo = arg[2:]
             continue
 
         if arg == "--noself":
@@ -151,7 +166,7 @@ def parse_args(argv: Sequence[str]) -> Invocation:
 
         commit = _COMMIT_RE.match(arg)
         if commit:
-            result.gitaddrev_args.append(f"--commit={commit.group(1)}")
+            result.commits.append(commit.group(1))
             continue
 
         last_n = _LAST_N_RE.match(arg)
@@ -175,34 +190,83 @@ def parse_args(argv: Sequence[str]) -> Invocation:
     return result
 
 
-#: The directory holding the openssl_tools package, so a child process can
-#: import it.  Derived from this file rather than from a sibling directory:
-#: the package locates its own root, and nothing outside it.
-LIB_DIR = Path(__file__).resolve().parents[2]
+def rewrite_range(
+    invocation: Invocation,
+    *,
+    query: reviewers.PersonSource,
+    stderr: TextIO,
+    runner: CommandRunner = run_command,
+) -> int:
+    """Rewrite the messages of every commit in the range.
 
-
-def gitaddrev_command() -> list[str]:
-    """How to invoke gitaddrev, honouring the GITADDREV override.
-
-    Runs the module rather than looking for the `gitaddrev` script, so this
-    works regardless of where that script lives or whether it is on PATH.
+    Reviewer resolution is per commit, because the author affects it -- the
+    CLA check and whether the author counts towards the total.  Results are
+    cached by author, so a range of commits by one person costs one round of
+    lookups.
     """
-    override = os.environ.get("GITADDREV")
-    if override:
-        return shlex.split(override)
-    return [sys.executable, "-m", "openssl_tools.reviewtools.gitaddrev_cli"]
+    policy = get_policy(invocation.repo)
+    commits = rewrite.read_range(invocation.filter_args, runner=runner)
+    if not commits:
+        print("No commits in range", file=stderr)
+        return 0
 
+    ref = rewrite.current_branch_ref(runner=runner)
+    old_tip = commits[-1].sha
+    resolutions: dict[str | None, reviewers.Resolution] = {}
 
-def child_env() -> dict[str, str]:
-    """The environment for git filter-branch and the msg-filter it spawns."""
-    existing = os.environ.get("PYTHONPATH")
-    return {
-        **os.environ,
-        "FILTER_BRANCH_SQUELCH_WARNING": "1",
-        # git runs the msg-filter through a shell, so openssl_tools has to be
-        # importable there too.
-        "PYTHONPATH": (f"{LIB_DIR}{os.pathsep}{existing}" if existing else str(LIB_DIR)),
-    }
+    def transform(commit: rewrite.CommitInfo) -> str:
+        # A commit the caller did not ask for passes through untouched.
+        if invocation.commits and not any(
+            commit.sha.startswith(wanted) for wanted in invocation.commits
+        ):
+            return commit.message
+
+        author = commit.author_email or None
+        if author not in resolutions:
+            resolutions[author] = reviewers.resolve(
+                query,
+                invocation.reviewers,
+                author_email=author,
+                self_email=invocation.my_email,
+                policy=policy,
+                release=invocation.release,
+            )
+        resolution = resolutions[author]
+
+        reviewers.validate(
+            resolution,
+            author_email=author,
+            policy=policy,
+            trivial=message.is_trivial(commit.message),
+        )
+        if not invocation.remove_reviewers:
+            reviewers.require_any(resolution.reviewers)
+
+        if invocation.verbose:
+            print(
+                f"{commit.sha[:12]} reviewed-by " + ", ".join(resolution.reviewers),
+                file=stderr,
+            )
+
+        return message.rewrite(
+            commit.message,
+            reviewers=resolution.reviewers,
+            repo=policy.name,
+            prnum=invocation.prnum,
+            release=invocation.release,
+            remove_reviewers=invocation.remove_reviewers,
+        )
+
+    mapping = rewrite.replay(commits, transform, runner=runner)
+    new_tip = mapping[old_tip]
+    if new_tip == old_tip:
+        print("Nothing to rewrite", file=stderr)
+        return 0
+
+    rewrite.update_branch(ref, new_tip, old_tip, runner=runner)
+    for name in rewrite.repoint_tags(mapping, runner=runner):
+        print(f"Moved tag {name}", file=stderr)
+    return 0
 
 
 def main(
@@ -211,6 +275,7 @@ def main(
     stdout: TextIO | None = None,
     stderr: TextIO | None = None,
     runner: CommandRunner = run_command,
+    query: listing.ListingSource | None = None,
 ) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     stdout = stdout or sys.stdout
@@ -224,39 +289,27 @@ def main(
         print(USAGE.format(repos=_format_repos()), file=stderr)
         return 0
 
-    base = gitaddrev_command()
-
-    if invocation.list_reviewers:
-        return runner([*base, "--list"]).returncode
-
     try:
+        query = query or Query()
+
+        if invocation.list_reviewers:
+            stdout.write(listing.format_listing(listing.list_reviewers(query)))
+            return 0
+
         if not invocation.have_prnum:
             raise ReviewError("Need either [--prnum=]NNN or --nopr flag")
 
-        args = list(invocation.gitaddrev_args)
-        if invocation.use_self:
-            email = invocation.my_email or _git_user_email(runner)
-            if email:
-                args.append(f"--myemail={email}")
+        if invocation.use_self and not invocation.my_email:
+            invocation.my_email = _git_user_email(runner)
 
-        filter_command = " ".join(shlex.quote(part) for part in base + args)
-        env = child_env()
-        completed = runner(
-            [
-                "git",
-                "filter-branch",
-                "-f",
-                "--tag-name-filter",
-                "cat",
-                "--msg-filter",
-                filter_command,
-                invocation.filter_args,
-            ],
-            env=env,
-        )
-        if completed.returncode != 0:
-            raise ReviewError("addrev failed")
-        return 0
+        if invocation.trivial:
+            print(
+                "Warning: --trivial has no effect; put 'CLA: Trivial' in the"
+                " commit message instead",
+                file=stderr,
+            )
+
+        return rewrite_range(invocation, query=query, runner=runner, stderr=stderr)
 
     except ReviewError as error:
         print(str(error), file=stderr)

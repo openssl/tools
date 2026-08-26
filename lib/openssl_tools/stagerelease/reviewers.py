@@ -19,8 +19,7 @@ round trip between them rather than five.  It does shell out to
 `git interpret-trailers`, which places the trailer block.
 
 The shell ran `addrev --release --nopr --reviewer=...` after each commit,
-which needed addrev on PATH, re-queried the database every time, and drove
-`git filter-branch` over a commit created seconds earlier.
+which needed addrev on PATH and re-queried the database every time.
 """
 
 from __future__ import annotations

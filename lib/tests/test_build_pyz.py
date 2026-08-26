@@ -36,7 +36,7 @@ def test_archives_are_named_like_the_scripts_they_replace(tmp_path):
     assert run_build("-o", str(tmp_path)).returncode == 0
 
     names = sorted(p.name for p in tmp_path.iterdir())
-    assert names == ["addrev", "cherry-checker", "gitaddrev", "stage-release"]
+    assert names == ["addrev", "cherry-checker", "stage-release"]
     assert all(os.access(tmp_path / name, os.X_OK) for name in names)
 
 
@@ -106,5 +106,5 @@ def test_an_unrecognised_name_lists_what_is_available(tmp_path):
 
     output = result.stdout + result.stderr
     assert "not one of the tools in this archive" in output
-    for name in ("addrev", "gitaddrev", "stage-release", "cherry-checker"):
+    for name in ("addrev", "stage-release", "cherry-checker"):
         assert name in output

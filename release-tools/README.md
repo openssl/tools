@@ -114,7 +114,7 @@ uvx ruff check . && uvx ruff format --check .
 # the entry scripts have no .py extension, so name them explicitly:
 uvx ruff check --config pyproject.toml \
     ../release-tools/stage-release ../review-tools/addrev \
-    ../review-tools/gitaddrev ../review-tools/cherry-checker
+    ../review-tools/cherry-checker
 ```
 
 The code is `ruff format`-ed at the 100 column limit set in
@@ -163,7 +163,7 @@ no checkout, no PATH setup, no installed packages:
 ```sh
 cd lib
 ./build-pyz                       # all four, into lib/dist/
-./build-pyz addrev gitaddrev      # just these
+./build-pyz addrev cherry-checker # just these
 ./build-pyz -o /tmp/x -p /usr/bin/python3.11
 ```
 
@@ -173,7 +173,6 @@ so any of them can stand alone:
 ```
 lib/dist/stage-release
 lib/dist/addrev
-lib/dist/gitaddrev
 lib/dist/cherry-checker
 ```
 
@@ -181,7 +180,7 @@ They are named exactly like the scripts they replace, with **no `.pyz`
 suffix**, so one can be copied straight over an existing install:
 
 ```sh
-cp lib/dist/addrev lib/dist/gitaddrev /usr/local/bin/
+cp lib/dist/addrev /usr/local/bin/
 ```
 
 The suffix is unnecessary on Unix -- the kernel reads the shebang -- and
@@ -189,16 +188,11 @@ would only stop the file being a drop-in replacement.  Pass
 `--extension .pyz` if you want it anyway.  Note that `file` reports these
 as "Zip archive data" rather than as a script; that is what a zipapp is.
 
-Two things worth knowing:
-
-- **They are byte-reproducible.** Member timestamps are normalised, so
-  building the same tree twice gives identical archives.  Set
-  `SOURCE_DATE_EPOCH` to pin the timestamp to something other than the
-  default.
-- **`addrev.pyz` needs nothing beside it.** It runs gitaddrev as a
-  subprocess, and inside an archive it points `PYTHONPATH` at the `.pyz`
-  itself, which Python imports from happily.  Verified with
-  `gitaddrev.pyz` absent.
+The archives are not reproducible build artifacts -- member timestamps come
+from the checkout, so two builds differ.  Nothing signs or publishes them, so
+there is nothing to verify against; if that changes, normalising the
+timestamps is the fix, and it has to force `TZ=UTC` while doing it, because
+`zipfile` derives its DOS timestamps from `time.localtime()`.
 
 ### One archive for everything
 
@@ -213,7 +207,6 @@ cd lib
 ```
 lib/dist/openssl-tools
 lib/dist/addrev         -> openssl-tools
-lib/dist/gitaddrev      -> openssl-tools
 lib/dist/stage-release  -> openssl-tools
 lib/dist/cherry-checker -> openssl-tools
 ```

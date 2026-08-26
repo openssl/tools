@@ -4,7 +4,7 @@ Helpers for reviewing and merging OpenSSL pull requests.
 
 ## Requirements
 
-`addrev`, `gitaddrev` and `cherry-checker` are Python and need only Python
+`addrev` and `cherry-checker` are Python and need only Python
 3.10 or later — no packages, and no `OpenSSL-Query`.  They query
 `api.openssl.org` directly; see
 [`lib/openssl_tools/reviewtools/query.py`](../lib/openssl_tools/reviewtools/query.py).
@@ -21,16 +21,15 @@ more.
 
 ## Putting the scripts on PATH
 
-`ghmerge` invokes `addrev` by bare name, and `addrev` invokes `gitaddrev`, so
-at least those two need to be reachable.  Two ways work:
+`ghmerge` invokes `addrev` by bare name, so at least that one needs to be
+reachable.  Two ways work:
 
 ```sh
 # add the directory
 export PATH="$TOOLS/review-tools:$PATH"
 
 # or symlink individual scripts
-ln -s "$TOOLS/review-tools/addrev"    ~/bin/addrev
-ln -s "$TOOLS/review-tools/gitaddrev" ~/bin/gitaddrev
+ln -s "$TOOLS/review-tools/addrev" ~/bin/addrev
 ```
 
 Symlinks are fine because each script resolves its own real path before
@@ -61,15 +60,13 @@ If you would rather not depend on the checkout at all, build zipapps:
 
 ```sh
 cd lib
-./build-pyz addrev gitaddrev cherry-checker
-cp dist/addrev dist/gitaddrev /usr/local/bin/
+./build-pyz addrev cherry-checker
+cp dist/addrev /usr/local/bin/
 ```
 
 Each is about 60 KiB, carries the whole package, and runs with only a Python
 3.10 interpreter.  They are named exactly like the scripts they replace — no
-`.pyz` suffix — so they drop straight over an existing install.  The archived
-`addrev` does not need the archived `gitaddrev` beside it: it points
-`PYTHONPATH` at its own archive when spawning the message filter.
+`.pyz` suffix — so they drop straight over an existing install.
 
 Or one busybox-style archive for all of them, symlinked to each name:
 
@@ -101,11 +98,11 @@ Some of the scripts use the REST API at <https://api.openssl.org>, and
 
 ### addrev
 
-`addrev` and `gitaddrev` are a pair that add or edit reviewers on commits:
-`gitaddrev` is a `git filter-branch --msg-filter`, and `addrev` drives it
-over a commit range.
+`addrev` adds or edits reviewers on a range of commits, rewriting it with
+`git commit-tree` and `git update-ref` and moving any tag whose target it
+rewrote.
 
-To use them, put both on your `PATH`.  release-tools calls the same code
+To use it, put it on your `PATH`.  release-tools calls the same code
 in-process, so staging a release does not need them on `PATH`.
 
 Run `addrev --help` for usage, and `addrev --list` for the known reviewer

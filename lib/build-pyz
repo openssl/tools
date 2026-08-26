@@ -13,7 +13,7 @@ setup, no installed packages -- so they can be dropped onto a build host or
 copied into a container image.
 
     ./build-pyz                      # all four, into dist/
-    ./build-pyz addrev gitaddrev     # just these
+    ./build-pyz addrev cherry-checker # just these
     ./build-pyz --output-dir /tmp/x
     ./build-pyz --extension .pyz     # if you want the suffix
 
@@ -32,9 +32,6 @@ because the dispatch reads argv[0] rather than locating anything on disk.
 It also answers to a subcommand, `openssl-tools addrev ...`, for when argv[0]
 is not something you control.
 
-Note on `addrev`: it runs gitaddrev as a subprocess, and inside an archive it
-points PYTHONPATH at the .pyz itself, which Python can import from.  So
-addrev.pyz is self-sufficient and does not need gitaddrev.pyz beside it.
 """
 
 from __future__ import annotations
@@ -54,7 +51,6 @@ PACKAGE = "openssl_tools"
 ENTRY_POINTS = {
     "stage-release": "openssl_tools.stagerelease.cli",
     "addrev": "openssl_tools.reviewtools.addrev_cli",
-    "gitaddrev": "openssl_tools.reviewtools.gitaddrev_cli",
     "cherry-checker": "openssl_tools.reviewtools.cherry_cli",
 }
 

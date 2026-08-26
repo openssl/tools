@@ -17,6 +17,8 @@ have to pull the address back out of it.
 
 from __future__ import annotations
 
+import os
+import subprocess
 import time
 
 import pytest
@@ -108,3 +110,15 @@ FROZEN_MERGE_DATE = "Tue Aug 25 12:34:56 2026"
 @pytest.fixture
 def frozen_time():
     return FROZEN_TIME
+
+
+def run_git(cwd, *args: str) -> str:
+    """Run git in `cwd` and return its stdout, failing loudly."""
+    return subprocess.run(
+        ("git", *args),
+        cwd=str(cwd),
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null"},
+    ).stdout
