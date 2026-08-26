@@ -396,6 +396,33 @@ def test_an_annotated_tag_follows_the_rewrite_and_keeps_its_tagger(tmp_path):
     )
 
 
+def test_a_lightweight_tag_follows_the_rewrite(tmp_path):
+    # A lightweight tag points straight at the commit, so it has no peeled
+    # target and is read from %(objectname) instead.
+    root = make_repo(tmp_path)
+    run_git(root, "tag", "light")
+
+    code, _, err = addrev(root, ["--nopr", "--noself", "steve", "levitte"])
+
+    assert code == 0, err
+    assert run_git(root, "rev-parse", "light").strip() == run_git(root, "rev-parse", "HEAD").strip()
+    assert run_git(root, "cat-file", "-t", "light").strip() == "commit"
+
+
+def test_a_tag_on_a_tree_is_left_alone(tmp_path):
+    # It peels to something that is not a commit, so it is never in the map.
+    # The old rev-parse-per-tag form raised on this instead.
+    root = make_repo(tmp_path)
+    tree = run_git(root, "rev-parse", "HEAD^{tree}").strip()
+    run_git(root, "tag", "-a", "treetag", "-m", "a tag on a tree", tree)
+    before = run_git(root, "rev-parse", "treetag").strip()
+
+    code, _, err = addrev(root, ["--nopr", "--noself", "steve", "levitte"])
+
+    assert code == 0, err
+    assert run_git(root, "rev-parse", "treetag").strip() == before
+
+
 def test_a_tag_outside_the_range_is_untouched(tmp_path):
     root = make_repo(tmp_path, commits=3)
     run_git(root, "tag", "-a", "marker", "-m", "PRE-CLANG-FORMAT", "HEAD~2")

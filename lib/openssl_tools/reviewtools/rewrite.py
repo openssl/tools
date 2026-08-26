@@ -176,10 +176,15 @@ def repoint_tags(mapping: dict[str, str], *, runner: CommandRunner = run_command
     if not mapping:
         return []
 
+    # The peeled target comes from the same call: %(*objectname) is the commit
+    # an annotated tag points at, and is empty for a lightweight one, where
+    # %(objectname) is the commit already.  Asking rev-parse per tag instead
+    # costs one subprocess for every tag in the repository -- 443 of them in
+    # an openssl clone, on every run, to move at most one.
     listing = _git(
         runner,
         "for-each-ref",
-        "--format=%(refname)%09%(objecttype)%09%(objectname)",
+        "--format=%(refname)%09%(objecttype)%09%(objectname)%09%(*objectname)",
         "refs/tags",
     )
 
@@ -187,10 +192,11 @@ def repoint_tags(mapping: dict[str, str], *, runner: CommandRunner = run_command
     for line in listing.splitlines():
         if not line.strip():
             continue
-        refname, objecttype, objectname = line.split("\t")
+        refname, objecttype, objectname, peeled = line.split("\t")
 
-        target = _git(runner, "rev-parse", f"{refname}^{{commit}}").strip()
-        new_target = mapping.get(target)
+        # A tag on a tree or a blob peels to something that is not a commit,
+        # so it is simply never in the map.
+        new_target = mapping.get(peeled or objectname)
         if new_target is None:
             continue
 
