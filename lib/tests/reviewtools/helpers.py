@@ -112,13 +112,17 @@ def frozen_time():
     return FROZEN_TIME
 
 
-def run_git(cwd, *args: str) -> str:
-    """Run git in `cwd` and return its stdout, failing loudly."""
+def run_git(cwd, *args: str, env: dict[str, str] | None = None) -> str:
+    """Run git in `cwd` and return its stdout, failing loudly.
+
+    `env` adds variables, for the ones git only reads from the environment --
+    GIT_COMMITTER_DATE in particular, which has no command line equivalent.
+    """
     return subprocess.run(
         ("git", *args),
         cwd=str(cwd),
         check=True,
         capture_output=True,
         text=True,
-        env={**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null"},
+        env={**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null", **(env or {})},
     ).stdout

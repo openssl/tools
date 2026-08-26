@@ -396,6 +396,54 @@ def test_an_annotated_tag_follows_the_rewrite_and_keeps_its_tagger(tmp_path):
     )
 
 
+def test_a_side_branch_with_older_dates_is_still_replayed_after_its_parent(tmp_path):
+    # Two lines of history, the side branch dated before the trunk.  Ordering
+    # by commit date -- git log's default -- emits the side commit before its
+    # own parent, and the replay then re-parents it onto the original commit,
+    # leaving the shared parent in the history twice: once rewritten, once not.
+    root = make_repo(tmp_path, commits=0)
+    commit = _dated_commit(root)
+
+    base = commit("base", "2019-01-01T00:00:00+0000")
+    commit("X", "2019-06-01T00:00:00+0000")
+    run_git(root, "checkout", "-q", "-b", "side")
+    commit("B", "2019-02-01T00:00:00+0000")  # older than its own parent
+    run_git(root, "checkout", "-q", "main")
+    commit("A", "2020-06-01T00:00:00+0000")
+    run_git(root, "merge", "-q", "--no-ff", "side", "-m", "M")
+
+    code, _, err = addrev(root, ["--nopr", "--noself", "steve", "levitte", f"{base}.."])
+
+    assert code == 0, err
+    subjects = run_git(root, "log", "--format=%s", f"{base}..").split()
+    # A fifth entry would mean the shared parent was left behind unrewritten
+    # and forked, which is what ordering by date produced.
+    assert sorted(subjects) == ["A", "B", "M", "X"]
+    credited = run_git(root, "log", "--format=%(trailers:key=Reviewed-by,valueonly)", f"{base}..")
+    assert credited.count(STEVE) == 4
+
+
+def _dated_commit(root):
+    """A helper that commits one file with the author and committer dates set."""
+
+    def commit(name, date):
+        (root / name).write_text(f"{name}\n")
+        run_git(root, "add", "-A")
+        run_git(
+            root,
+            "commit",
+            "-q",
+            "--date",
+            date,
+            "-m",
+            name,
+            env={"GIT_COMMITTER_DATE": date},
+        )
+        return run_git(root, "rev-parse", "HEAD").strip()
+
+    return commit
+
+
 def test_a_lightweight_tag_follows_the_rewrite(tmp_path):
     # A lightweight tag points straight at the commit, so it has no peeled
     # target and is read from %(objectname) instead.

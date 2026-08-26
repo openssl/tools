@@ -87,8 +87,17 @@ def _git(runner: CommandRunner, *args: str, **kwargs: object) -> str:
 
 
 def read_range(rev_range: str, *, runner: CommandRunner = run_command) -> list[CommitInfo]:
-    """The commits in `rev_range`, oldest first."""
-    out = _git(runner, "log", "--reverse", f"--format={_FORMAT}", rev_range)
+    """The commits in `rev_range`, parents before children.
+
+    --topo-order is what makes that guarantee, and `replay` depends on it: a
+    commit whose parent has not been rebuilt yet keeps the original parent,
+    which forks the history instead of rewriting it.  The default ordering is
+    by commit date, which is topological only by accident -- with two lines of
+    history it emits whichever side is newer first, so a side branch with
+    older dates comes out before its own parent.  git filter-branch passed
+    --topo-order for the same reason.
+    """
+    out = _git(runner, "log", "--topo-order", "--reverse", f"--format={_FORMAT}", rev_range)
 
     commits = []
     for record in out.split(_RECORD):
