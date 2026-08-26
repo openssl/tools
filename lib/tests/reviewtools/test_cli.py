@@ -93,6 +93,36 @@ def test_a_non_committer_reviewer_is_refused(tmp_path):
     assert "addrev --list" in err
 
 
+def test_a_reviewer_who_wrote_one_of_the_commits_is_refused_by_name(tmp_path):
+    # openssl/openssl PR 32357: three commits, one of them by a reviewer named
+    # on the command line.  Only that commit is short of reviewers, and saying
+    # which one is the whole diagnosis.
+    root = make_repo(tmp_path, commits=2)
+    (root / "own").write_text("x\n")
+    run_git(root, "add", "-A")
+    run_git(
+        root,
+        "-c",
+        "user.email=steve@openssl.org",
+        "-c",
+        "user.name=Steve Henson",
+        "commit",
+        "-q",
+        "-m",
+        "Steve fixes his own thing\n",
+    )
+    before = run_git(root, "rev-parse", "HEAD")
+
+    code, _, err = addrev(root, ["--nopr", "--noself", "steve", "levitte", "-2"])
+
+    assert code == 1
+    assert "Steve fixes his own thing" in err
+    assert "Too few reviewers" in err
+    assert "authored this commit" in err
+    # Nothing is written until the whole range validates.
+    assert run_git(root, "rev-parse", "HEAD") == before
+
+
 def test_a_non_trivial_commit_from_an_author_without_a_cla_is_refused(tmp_path):
     root = make_repo(tmp_path, author="nocla@example.invalid")
 

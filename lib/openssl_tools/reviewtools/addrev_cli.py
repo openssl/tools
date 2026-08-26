@@ -190,6 +190,12 @@ def parse_args(argv: Sequence[str]) -> Invocation:
     return result
 
 
+def _subject(commit_message: str) -> str:
+    """The first line of a commit message, for naming it in an error."""
+    subject = commit_message.strip().split("\n", 1)[0].strip()
+    return subject or "(no subject)"
+
+
 def rewrite_range(
     invocation: Invocation,
     *,
@@ -233,14 +239,19 @@ def rewrite_range(
             )
         resolution = resolutions[author]
 
-        reviewers.validate(
-            resolution,
-            author_email=author,
-            policy=policy,
-            trivial=message.is_trivial(commit.message),
-        )
-        if not invocation.remove_reviewers:
-            reviewers.require_any(resolution.reviewers)
+        try:
+            reviewers.validate(
+                resolution,
+                author_email=author,
+                policy=policy,
+                trivial=message.is_trivial(commit.message),
+            )
+            if not invocation.remove_reviewers:
+                reviewers.require_any(resolution.reviewers)
+        except ReviewError as error:
+            # Which commit is not obvious from a range, and the answer is
+            # usually the whole explanation.
+            raise ReviewError(f"{commit.sha[:12]} {_subject(commit.message)}: {error}") from error
 
         if invocation.verbose:
             print(

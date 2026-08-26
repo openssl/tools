@@ -265,6 +265,27 @@ def test_one_reviewer_does_not(people):
         validate(result, author_email=None, policy=OPENSSL)
 
 
+def test_naming_the_author_as_a_reviewer_explains_itself(people):
+    # openssl/openssl PR 32357 hit this: two reviewers named, one of whom
+    # wrote the commit, so only one could be credited.
+    result = resolve(
+        people,
+        ["steve", "levitte"],
+        author_email="steve@openssl.org",
+        policy=OPENSSL,
+    )
+
+    assert result.excluded_authors == [STEVE]
+    with pytest.raises(ReviewError, match=r"authored this commit"):
+        validate(result, author_email="steve@openssl.org", policy=OPENSSL)
+
+
+def test_an_author_who_was_not_named_is_not_reported_as_excluded(people):
+    result = resolve(people, ["levitte"], author_email="steve@openssl.org", policy=OPENSSL)
+
+    assert result.excluded_authors == []
+
+
 def test_an_author_reduces_the_requirement_where_they_count(people):
     result = resolve(
         people,

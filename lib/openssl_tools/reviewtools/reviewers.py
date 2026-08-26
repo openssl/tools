@@ -71,6 +71,10 @@ class Resolution:
     nocla: list[str] = field(default_factory=list)
     #: Known, CLA-holding candidates who are not in the commit group.
     noncommitters: list[str] = field(default_factory=list)
+    #: Committers named as reviewers who turned out to have authored the
+    #: commit, and so could not be credited.  Kept only to explain a
+    #: too-few-reviewers failure, which is otherwise baffling.
+    excluded_authors: list[str] = field(default_factory=list)
 
 
 def _strip_handle(identity: str) -> str:
@@ -170,6 +174,8 @@ def resolve(
         if author and not (policy.min_authors > 0 or release):
             # This repository does not let authors count as reviewers at all,
             # so there is nothing further to check.
+            if explicit:
+                _record(result.excluded_authors, tag)
             continue
 
         if not source.is_member_of(identity, COMMIT_GROUP):
@@ -225,7 +231,14 @@ def validate(
 
     required = policy.min_reviewers - resolution.author_count
     if len(resolution.reviewers) < required:
-        raise ReviewError(f"Too few reviewers (total must be at least {required})")
+        detail = ""
+        if resolution.excluded_authors:
+            detail = (
+                "\n"
+                + ", ".join(resolution.excluded_authors)
+                + (" authored this commit, so cannot be credited as a reviewer of it.")
+            )
+        raise ReviewError(f"Too few reviewers (total must be at least {required}){detail}")
 
 
 def require_any(reviewers: Sequence[str]) -> None:
