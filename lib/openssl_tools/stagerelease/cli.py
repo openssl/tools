@@ -72,7 +72,10 @@ OPTIONS
         re-tagging the release commit by hand as well.
 
     --quiet, --verbose, --debug
-        Control how much progress output is produced.
+        Control how much progress output is produced.  By default each step
+        is announced with a "== " heading; --verbose adds the output of every
+        command and the files each step touched; --quiet prints only the
+        final result.  --debug adds internal state on stderr.
 
     --porcelain
         Print the final result as shell variable assignments instead of
@@ -151,7 +154,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     noise = parser.add_mutually_exclusive_group()
     noise.add_argument("--quiet", action="store_true", help="only print the final output")
-    noise.add_argument("--verbose", action="store_true", help="verbose output")
+    noise.add_argument(
+        "--verbose",
+        action="store_true",
+        help="also show command output and the files each step touched",
+    )
 
     parser.add_argument("--debug", action="store_true", help="include debug output")
     parser.add_argument(

@@ -26,20 +26,20 @@ class Reporter:
     error_stream: TextIO = field(default_factory=lambda: sys.stderr)
 
     def echo(self, message: str) -> None:
-        """Ordinary progress, silenced by --quiet."""
+        """A step heading: what is being done, shown unless --quiet."""
         if not self.quiet:
-            print(message, file=self.stream)
+            print(message, file=self.stream, flush=True)
 
     def verbose(self, message: str) -> None:
-        """Detail, shown only under --verbose."""
+        """Detail under a heading -- command output, per-file progress."""
         if self.verbose_enabled and not self.quiet:
-            print(message, file=self.stream)
+            print(message, file=self.stream, flush=True)
 
     def debug(self, message: str) -> None:
         """Internal state, shown only under --debug, always on stderr."""
         if self.debug_enabled:
-            print(f"DEBUG: {message}", file=self.error_stream)
+            print(f"DEBUG: {message}", file=self.error_stream, flush=True)
 
     def out(self, message: str) -> None:
         """Final results, never silenced."""
-        print(message, file=self.stream)
+        print(message, file=self.stream, flush=True)
