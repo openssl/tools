@@ -210,15 +210,15 @@ def stage_release(
     # must not cost the caller a copyright commit and a `make update` first.
     reviewer_tags = reviewers.resolve(git, options.reviewers, query=query)
     if reviewer_tags:
-        reporter.verbose("== Reviewed-by: " + ", ".join(reviewer_tags))
+        reporter.echo("== Reviewed-by: " + ", ".join(reviewer_tags))
 
     # -- copyright years ----------------------------------------------------
 
-    reporter.verbose("== Checking source file copyright year updates")
+    reporter.echo("== Checking source file copyright year updates")
     result = update_copyright_years(git, root, today, reporter.verbose)
-    reporter.verbose(f"== Files considered: {result.considered}")
+    reporter.echo(f"== Files considered: {result.considered}")
     if git.has_tracked_changes():
-        reporter.verbose("== Committing copyright year updates")
+        reporter.echo("== Committing copyright year updates")
         git.add_update()
         git.commit("Copyright year updates\n\nRelease: yes")
         reviewers.credit(git, reviewer_tags)
@@ -228,11 +228,11 @@ def stage_release(
     reporter.echo("== Configuring OpenSSL for update and release.  This may take a bit of time")
     build.configure()
 
-    reporter.verbose("== Checking source file updates and fips checksums")
+    reporter.echo("== Checking source file updates and fips checksums")
     build.update(is_alpha=options.next_method == "alpha")
 
     if git.has_tracked_changes():
-        reporter.verbose("== Committing updates")
+        reporter.echo("== Committing updates")
         git.add_update()
         git.commit("make update\n\nRelease: yes")
         reviewers.credit(git, reviewer_tags)
@@ -240,16 +240,16 @@ def stage_release(
     # -- the release commit -------------------------------------------------
 
     if created_release_branch:
-        reporter.verbose(f"== Creating a local release branch and switch to it: {release_branch}")
+        reporter.echo(f"== Creating a local release branch and switch to it: {release_branch}")
         git.create_branch(release_branch)
 
     write_version(scheme, root, release_state)
 
     release = scheme.full_version(release_state)
     release_text = release_text_for(scheme, release_state)
-    reporter.verbose(f"== Updated version information to {release}")
+    reporter.echo(f"== Updated version information to {release}")
 
-    reporter.verbose(
+    reporter.echo(
         f"== Updating files with release date for {release} : {release_state.release_date}"
     )
     apply_fixups(
@@ -264,12 +264,12 @@ def stage_release(
         reporter,
     )
 
-    reporter.verbose("== Committing updates and tagging")
+    reporter.echo("== Committing updates and tagging")
     git.add_update()
     git.commit(f"Prepare for release of {release_text}\n\nRelease: yes")
     reviewers.credit(git, reviewer_tags)
 
-    reporter.echo(f"Tagging release with tag {release_tag}.")
+    reporter.echo(f"== Tagging release with tag {release_tag}")
     git.tag(release_tag, f"OpenSSL {release} release tag")
 
     # -- artifacts ----------------------------------------------------------
@@ -277,11 +277,11 @@ def stage_release(
     tar_name = f"openssl-{release}.tar"
     reporter.echo("== Generating tar, hash, and metadata files.")
     reporter.echo("== This may take a bit of time...")
-    reporter.verbose(f"== Making tarfile: {tar_name}.gz")
+    reporter.echo(f"== Making tarfile: {tar_name}.gz")
     artifacts = make_artifacts(runner, root, tar_name)
 
     metadata_path = root.parent / f"openssl-{release}.dat"
-    reporter.verbose(f"== Generating metadata file: {metadata_path.name}")
+    reporter.echo(f"== Generating metadata file: {metadata_path.name}")
     Metadata(
         update_branch=orig_branch,
         release_branch=scheme.branch_name(state) if created_release_branch else None,
@@ -296,7 +296,7 @@ def stage_release(
     # touching HEAD, so the post-release fixups start from the same text the
     # release fixups did.  That is what lets one set of post-release fixups
     # serve both the release branch and the update branch.
-    reporter.verbose("== Reset all files to their pre-release contents")
+    reporter.echo("== Reset all files to their pre-release contents")
     git.restore_worktree_to("HEAD^")
 
     prev_release_text = release_text
@@ -307,9 +307,9 @@ def stage_release(
 
     post_release = scheme.full_version(post_state)
     post_text = postrelease_text_for(scheme, post_state)
-    reporter.verbose(f"== Updated version information to {post_release}")
+    reporter.echo(f"== Updated version information to {post_release}")
 
-    reporter.verbose(f"== Updating files for {post_release} :")
+    reporter.echo(f"== Updating files for {post_release} :")
     apply_fixups(
         root,
         scheme,
@@ -323,7 +323,7 @@ def stage_release(
         reporter,
     )
 
-    reporter.verbose("== Committing updates")
+    reporter.echo("== Committing updates")
     git.add_update()
     git.commit(f"Prepare for {post_text}\n\nRelease: yes")
     reviewers.credit(git, reviewer_tags)
@@ -331,7 +331,7 @@ def stage_release(
     # -- move the update branch on to the next minor version ----------------
 
     if created_release_branch:
-        reporter.verbose(f"== Going back to the update branch {update_branch}")
+        reporter.echo(f"== Going back to the update branch {update_branch}")
         git.checkout_branch(update_branch)
 
         update_state = scheme.parse(git.blob_at_head(scheme.version_file))
@@ -340,9 +340,9 @@ def stage_release(
 
         minor_release = scheme.full_version(minor_state)
         minor_text = f"{scheme.series(minor_state)}{minor_state.marked_build_metadata}"
-        reporter.verbose(f"== Updated version information to {minor_release}")
+        reporter.echo(f"== Updated version information to {minor_release}")
 
-        reporter.verbose(f"== Updating files for {minor_release} :")
+        reporter.echo(f"== Updating files for {minor_release} :")
         apply_fixups(
             root,
             scheme,
@@ -353,12 +353,12 @@ def stage_release(
             reporter,
         )
 
-        reporter.verbose("== Committing updates")
+        reporter.echo("== Committing updates")
         git.add_update()
         git.commit(f"Prepare for {minor_text}\n\nRelease: yes")
         reviewers.credit(git, reviewer_tags)
 
-    reporter.verbose("== Done")
+    reporter.echo("== Done")
 
     return StageResult(
         release=release,
