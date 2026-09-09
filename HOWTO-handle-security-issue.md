@@ -281,7 +281,7 @@ or doing additional hardening inspired by the original problem.
 
 ## Making a release (Moderate / High / Critical severity issues)
 
-Most of the release mechanics are found in [HOWTO-make-a-release.md] and
+Most of the release mechanics are found in [HOWTO-release.md] and
 will not be repeated here.
 
 For premium releases, there's nothing additional to do, simply work off the
@@ -338,7 +338,7 @@ The recommended preparation is this:
     ```
 
 At this point, your local repository should be properly set up to perform
-the release following the instructions in [HOWTO-make-a-release.md].  When
+the release following the instructions in [HOWTO-release.md].  When
 publishing, push to the [private openssl/openssl repository], and you
 may also want to push to the [private openssl/security repository]
 for good measure.
@@ -605,7 +605,7 @@ Finish by publishing all the applicable
 [public openssl/openssl repository]: https://github.com/openssl/openssl
 [Security Policy]: https://openssl-library.org/policies/general/security-policy
 [GitHub Security Advisory]: https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/about-repository-security-advisories
-[HOWTO-make-a-release.md]: ./HOWTO-make-a-release.md
+[HOWTO-release.md]: ./HOWTO-release.md
 
 [Write an early advisory text]: #write-an-early-advisory-text
 [Write a security advisory text]: #write-a-security-advisory-text
