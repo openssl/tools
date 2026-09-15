@@ -45,15 +45,6 @@ esac
 
 
 case $b in
-*3*0*)
-    TARGET=openssl-3.0
-    ;;
-*3*2*)
-    TARGET=openssl-3.2
-    ;;
-*3*3*)
-    TARGET=openssl-3.3
-    ;;
 *3*4*)
     TARGET=openssl-3.4
     ;;
@@ -65,6 +56,9 @@ case $b in
     ;;
 *4*0*)
     TARGET=openssl-4.0
+    ;;
+*4*1*)
+    TARGET=openssl-4.1
     ;;
 m*)
     TARGET=master
