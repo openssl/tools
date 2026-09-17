@@ -24,45 +24,24 @@ Usage: stage-release.sh [ options ... ]
                 It can only be given with --alpha.
 --beta          Start or increase the "beta" pre-release tag.
 --final         Get out of "alpha" or "beta" and make a final release.
-                Implies --branch.
-
---branch        Create a release branch 'openssl-{major}.{minor}',
-                where '{major}' and '{minor}' are the major and minor
-                version numbers.
-
---clean-worktree
-                Expect the current worktree to be clean, and uses it directly.
-                This implies the current branch of the worktree will be updated.
-
---branch-fmt=<fmt>
-                Format for branch names.
-                Default is "%b" for the release branch.
---tag-fmt=<fmt> Format for tag names.
-                Default is "%t" for the release tag.
 
 --reviewer=<id> The reviewer of the commits.
---local-user=<keyid>
-                For the purpose of signing tags and tar files, use this
-                key (default: use the default e-mail address’ key).
---unsigned      Do not sign anything.
 
---staging-address=<address>
-                The staging location to upload release files to (default:
-                upload@dev.openssl.org)
---no-upload     Don't upload the staging release files.
---no-update     Don't perform 'make update' and 'make update-fips-checksums'.
 --quiet         Really quiet, only the final output will still be output.
 --verbose       Verbose output.
---debug         Include debug output.  Implies --no-upload.
+--debug         Include debug output.
 --porcelain     Give the output in an easy-to-parse format for scripts.
-
---force         Force execution
 
 --help          This text
 --manual        The manual
 
 If none of --alpha, --beta, or --final are given, this script tries to
 figure out the next step.
+
+The worktree this script runs in must be clean -- the script operates on
+the current branch directly and produces release artifacts in the parent
+directory.  Upload of those artifacts is out of scope; the caller is
+responsible for shipping them.
 EOF
     exit 0
 }
@@ -71,16 +50,10 @@ EOF
 next_method=
 next_method2=
 
-do_branch=false
-warn_branch=false
-
-do_upload=true
-do_update=true
-
-clean_worktree=false
-
-default_branch_fmt='OSSL--%b--%v'
-default_tag_fmt='%t'
+# Always try to create the release branch.  The post-arg-parsing
+# logic below resets this to false when we're already on a release
+# branch or when PATCH != 0, so passing --branch was redundant.
+do_branch=true
 
 ECHO=echo
 DEBUG=:
@@ -88,29 +61,15 @@ VERBOSE=:
 git_quiet=-q
 do_porcelain=false
 
-force=false
-
 do_help=false
 do_manual=false
 
-do_signed=true
-tagkey=' -s'
-gpgkey=
 reviewers=
 
-staging_address=upload@dev.openssl.org
-
 TEMP=$(getopt -l 'alpha,next-beta,beta,final' \
-              -l 'branch' \
-              -l 'clean-worktree' \
-              -l 'branch-fmt:,tag-fmt:' \
               -l 'reviewer:' \
-              -l 'local-user:,unsigned' \
-              -l 'staging-address:' \
-              -l 'no-upload,no-update' \
               -l 'quiet,verbose,debug' \
               -l 'porcelain' \
-              -l 'force' \
               -l 'help,manual' \
               -n stage-release.sh -- - "$@")
 eval set -- "$TEMP"
@@ -122,64 +81,14 @@ while true; do
             next_method2=$next_method
         fi
         shift
-        if [ "$next_method" = 'final' ]; then
-            do_branch=true
-        fi
         ;;
     --next-beta )
         next_method2=$(echo "x$1" | sed -e 's|^x--next-||')
         shift
         ;;
-    --branch )
-        do_branch=true
-        warn_branch=true
-        shift
-        ;;
-    --clean-worktree )
-        clean_worktree=true
-        default_branch_fmt='%b'
-        default_tag_fmt='%t'
-        shift
-        ;;
-    --branch-fmt )
-        shift
-        branch_fmt="$1"
-        shift
-        ;;
-    --tag-fmt )
-        shift
-        tag_fmt="$1"
-        shift
-        ;;
     --reviewer )
         reviewers="$reviewers $1=$2"
         shift
-        shift
-        ;;
-    --local-user )
-        shift
-        do_signed=true
-        tagkey=" -u $1"
-        gpgkey=" -u $1"
-        shift
-        ;;
-    --unsigned )
-        shift
-        do_signed=false
-        tagkey=" -a"
-        gpgkey=
-        ;;
-    --staging-address )
-        shift
-        staging_address="$1"
-        shift
-        ;;
-    --no-upload )
-        do_upload=false
-        shift
-        ;;
-    --no-update )
-        do_update=false
         shift
         ;;
     --quiet )
@@ -195,15 +104,10 @@ while true; do
         ;;
     --debug )
         DEBUG=echo
-        do_upload=false
         shift
         ;;
     --porcelain )
         do_porcelain=true
-        shift
-        ;;
-    --force )
-        force=true
         shift
         ;;
     --help )
@@ -230,16 +134,11 @@ while true; do
     esac
 done
 
-if [ -z "$branch_fmt" ]; then branch_fmt="$default_branch_fmt"; fi
-if [ -z "$tag_fmt" ]; then tag_fmt="$default_tag_fmt"; fi
-
 $DEBUG >&2 "DEBUG: \$next_method=$next_method"
 $DEBUG >&2 "DEBUG: \$next_method2=$next_method2"
 
 $DEBUG >&2 "DEBUG: \$do_branch=$do_branch"
 
-$DEBUG >&2 "DEBUG: \$do_upload=$do_upload"
-$DEBUG >&2 "DEBUG: \$do_update=$do_update"
 $DEBUG >&2 "DEBUG: \$DEBUG=$DEBUG"
 $DEBUG >&2 "DEBUG: \$VERBOSE=$VERBOSE"
 $DEBUG >&2 "DEBUG: \$git_quiet=$git_quiet"
@@ -285,9 +184,7 @@ fi
 found=true
 for fn in "$RELEASE_AUX/release-version-fn.sh" \
           "$RELEASE_AUX/release-state-fn.sh" \
-          "$RELEASE_AUX/release-data-fn.sh" \
-          "$RELEASE_AUX/string-fn.sh" \
-          "$RELEASE_AUX/upload-fn.sh"; do
+          "$RELEASE_AUX/release-data-fn.sh"; do
     if ! [ -f "$fn" ]; then
         echo >&2 "'$fn' is missing"
         found=false
@@ -301,10 +198,6 @@ fi
 . $RELEASE_AUX/release-version-fn.sh
 . $RELEASE_AUX/release-state-fn.sh
 . $RELEASE_AUX/release-data-fn.sh
-# Load string manipulation functions
-. $RELEASE_AUX/string-fn.sh
-# Load upload backend functions
-. $RELEASE_AUX/upload-fn.sh
 
 # Make sure we're in the work directory, and remember it
 if HERE=$(git rev-parse --show-toplevel); then
@@ -340,8 +233,6 @@ if (echo "$orig_branch" \
                -e '^OpenSSL_[0-9]+_[0-9]+_[0-9]+[a-z]*-stable$' \
                -e '^openssl-[0-9]+\.[0-9]+$'); then
     :
-elif $force; then
-    :
 else
     echo >&2 "Not in master or any recognised release branch"
     echo >&2 "Please 'git checkout' an appropriate branch"
@@ -368,128 +259,50 @@ if ! $found; then
     exit 1
 fi
 
-# We turn staging_address into a few variables, which can be used
-# by backends that must understand a subset of the SFTP commands
-staging_directory=
-staging_backend=
-case "$staging_address" in
-    *:* )
-        # Something with a colon is interpreted as the typical SCP
-        # location.  We reinterpret that in our terms
-        staging_directory="${staging_address#*:}"
-        staging_address="${staging_address%%:*}"
-        staging_backend=sftp
-        ;;
-    *@* )
-        staging_backend=sftp
-        ;;
-    sftp://?*/* | sftp://?* )
-        # First, remove the URI scheme
-        staging_address="${staging_address#sftp://}"
-        # Now we know that we have a host, followed by a slash, followed by
-        # a directory spec.  If there is no slash, there's no directory.
-        staging_directory="${staging_address#*/}"
-        if [ "$staging_directory" = "$staging_address" ]; then
-            # There was nothing with a slash to remove, so no directory.
-            staging_directory=
-        fi
-        staging_address="${staging_address%%/*}"
-        staging_backend=sftp
-        ;;
-    sftp:* )
-        echo >&2 "Invalid staging address $staging_address"
-        exit 1
-        ;;
-    * )
-        if $do_upload && ! [ -d "$staging_address" ]; then
-           echo >&2 "Not an existing directory: $staging_address"
-           exit 1
-        fi
-        staging_backend=file
-        ;;
-esac
-
 # Initialize #########################################################
 
 $ECHO "== Initializing work tree"
 
-release_clone=
-if $clean_worktree; then
-    if [ -n "$(git status -s)" ]; then
-        echo >&2 "You've specified --clean-worktree, but your worktree is unclean"
-        exit 1
-    fi
-else
-    # Generate a cloned directory name
-    release_clone="$orig_branch-release-tmp"
-
-    $ECHO "== Work tree will be in $release_clone"
-
-    # Make a clone in a subdirectory and move there
-    if ! [ -d "$release_clone" ]; then
-        $VERBOSE "== Cloning to $release_clone"
-        git clone $git_quiet -b "$orig_branch" -o parent . "$release_clone"
-    fi
-    cd "$release_clone"
+# This script operates on the current branch directly, so refuse to run
+# if the worktree is dirty.  Jenkins jobs run in a fresh workspace, so
+# in practice this is just a sanity check.
+if [ -n "$(git status -s)" ]; then
+    echo >&2 "Worktree is not clean; refusing to run"
+    exit 1
 fi
 
 get_version
 
 # Branches to start from.  The release branch is where the changes for the
 # release are made, and the update branch is where the post-release changes are
-# made.  If --branch was given and is relevant, they should be different (and
-# the update branch should be 'master'), otherwise they should be the same.
+# made.  When releasing from master at PATCH == 0 they differ (the update
+# branch stays as master, the release branch becomes openssl-X.Y); otherwise
+# they are the same.
 orig_update_branch="$orig_branch"
 orig_release_branch="$(std_branch_name)"
 
-# among others, we only create a release branch if the patch number is zero
+# We create a release branch only when we're on master at PATCH == 0;
+# otherwise (already on a release branch, or this is a patch release)
+# we make the release commit on the current branch.
 if [ "$orig_update_branch" = "$orig_release_branch" ] \
        || [ -n "$PATCH" -a "$PATCH" != 0 ]; then
-    if $do_branch && $warn_branch; then
-        echo >&2 "Warning! We're already in a release branch; --branch ignored"
-    fi
     do_branch=false
 fi
 
-if $do_branch; then
-    if [ "$orig_update_branch" != "master" ]; then
-        echo >&2 "--branch is invalid unless the current branch is 'master'"
-        exit 1
-    fi
-    # No need to check if $orig_update_branch and $orig_release_branch differ,
-    # 'cause the code a few lines up guarantee that if they are the same,
-    # $do_branch becomes false
-else
-    # In this case, the computed release branch may differ from the update branch,
-    # even if it shouldn't...  this is the case when alpha or beta releases are
-    # made in the master branch, which is perfectly ok.  Therefore, simply reset
-    # the release branch to be the same as the update branch and carry on.
+if ! $do_branch; then
+    # The computed release branch may differ from the update branch when
+    # alpha or beta releases are made on master, which is fine -- in that
+    # case we keep operating on the current branch.
     orig_release_branch="$orig_update_branch"
 fi
 
-# Check that the current branch is still on the same branch as our parent repo,
-# or on a release branch
+# Sanity check: we should still be on the branch the worktree started
+# on (or, after a --branch switch later in the script, on the release
+# branch).
 current_branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "$current_branch" = "$orig_update_branch" ]; then
-    :
-elif [ "$current_branch" = "$orig_release_branch" ]; then
-    :
-else
-    # It is an error to end up here.  Let's try to figure out what went wrong
-
-    if $clean_worktree; then
-        # We should never get here.  If we do, something is incorrect in
-        # the code above.
-        echo >&2 "Unexpected current branch: $current_branch"
-    else
-        echo >&2 "The cloned sub-directory '$release_clone' is on a branch"
-        if [ "$orig_update_branch" = "$orig_release_branch" ]; then
-            echo >&2 "other than '$orig_update_branch'."
-        else
-            echo >&2 "other than '$orig_update_branch' or '$orig_release_branch'."
-        fi
-        echo >&2 "Please 'cd \"$(pwd)\"; git checkout $orig_update_branch'"
-    fi
+if [ "$current_branch" != "$orig_update_branch" ] \
+       && [ "$current_branch" != "$orig_release_branch" ]; then
+    echo >&2 "Unexpected current branch: $current_branch"
     exit 1
 fi
 
@@ -500,8 +313,7 @@ $DEBUG >&2 "DEBUG: Source directory is $SOURCEDIR"
 
 # We always expect to start from a state of development
 if [ "$TYPE" != 'dev' ]; then
-    if $clean_worktree; then
-        cat >&2 <<EOF
+    cat >&2 <<EOF
 Not in a development branch.
 
 Have a look at the git log, it may be that a previous crash left it in
@@ -510,18 +322,6 @@ an intermediate state and that need to drop the top commit:
 git reset --hard $orig_head
 # WARNING! LOOK BEFORE YOU ACT, KNOW WHAT YOU DO
 EOF
-    else
-        cat >&2 <<EOF
-Not in a development branch.
-
-Have a look at the git log in $release_clone, it may be that
-a previous crash left it in an intermediate state and that need to drop
-the top commit:
-
-(cd $release_clone; git reset --hard $upstream)
-# WARNING! LOOK BEFORE YOU ACT, KNOW WHAT YOU DO
-EOF
-    fi
     exit 1
 fi
 
@@ -529,27 +329,13 @@ fi
 # but does check for possible next_method errors before we do bigger work.
 next_release_state "$next_method"
 
-# Make the update branch name according to our current data
-update_branch=$(format_string "$branch_fmt" \
-                              "b=$orig_update_branch" \
-                              "t=" \
-                              "v=$FULL_VERSION")
-
-# Make the release tag and branch name according to our current data
-release_tag=$(format_string "$tag_fmt" \
-                            "b=$orig_release_branch" \
-                            "t=$(std_tag_name)" \
-                            "v=$FULL_VERSION")
-release_branch=$(format_string "$branch_fmt" \
-                               "b=$orig_release_branch" \
-                               "t=$(std_tag_name)" \
-                               "v=$FULL_VERSION")
-
-# Create a update branch, unless it's the same as our current branch
-if [ "$update_branch" != "$orig_update_branch" ]; then
-    $VERBOSE "== Creating a local update branch and switch to it: $update_branch"
-    git checkout $git_quiet -b "$update_branch"
-fi
+# Standard branch and tag names.  The update branch is where the
+# post-release bump commit lands; the release branch is where the
+# release commit + tag live, which differs from the update branch
+# only when --branch was given and is effective.
+update_branch="$orig_update_branch"
+release_branch="$orig_release_branch"
+release_tag="$(std_tag_name)"
 
 $VERBOSE "== Checking source file copyright year updates"
 
@@ -602,11 +388,8 @@ set_version
 release="$FULL_VERSION"
 if [ -n "$PRE_LABEL" ]; then
     release_text="$SERIES$_BUILD_METADATA $PRE_LABEL $PRE_NUM"
-    announce_template=openssl-announce-pre-release.tmpl
 else
-    release_type=$(std_release_type $VERSION)
     release_text="$release"
-    announce_template=openssl-announce-release-$release_type.tmpl
 fi
 $VERBOSE "== Updated version information to $release"
 
@@ -627,16 +410,20 @@ git commit $git_quiet -m "Prepare for release of $release_text"$'\n\nRelease: ye
 if [ -n "$reviewers" ]; then
     addrev --release --nopr $reviewers
 fi
-$ECHO "Tagging release with tag $release_tag.  You may need to enter a pass phrase"
-git tag$tagkey "$release_tag" -m "OpenSSL $release release tag"
+$ECHO "Tagging release with tag $release_tag."
+# Annotated, never signed.  The signing key lives on an HSM that only
+# hsm-client can reach, and this script runs on the build host, so the tag is
+# re-signed afterwards by whoever has that access -- `git tag -s -f` over the
+# same commit, then the tarball with `sq-pkcs11 sign`.  Keeping the two apart
+# is what lets staging run without any HSM at all.
+git tag -a "$release_tag" -m "OpenSSL $release release tag"
 
 tarfile=openssl-$release.tar
 tgzfile=$tarfile.gz
 metadata=openssl-$release.dat
-announce=openssl-$release.txt
 
-$ECHO "== Generating tar, hash, announcement and metadata files."
-$ECHO "== This make take a bit of time..."
+$ECHO "== Generating tar, hash, and metadata files."
+$ECHO "== This may take a bit of time..."
 
 $VERBOSE "== Making tarfile: $tgzfile"
 
@@ -658,84 +445,31 @@ fi
 $VERBOSE "== Generating checksums: $tgzfile.sha1 $tgzfile.sha256"
 sha1hash=$(openssl sha1 < "../$tgzfile" | \
     (IFS='= '; while read X H; do echo $H; done))
-echo $sha1hash "$tgzfile" > "../$tgzfile.sha1"
 sha256hash=$(openssl sha256 < "../$tgzfile" | \
     (IFS='= '; while read X H; do echo $H; done))
-echo $sha256hash "$tgzfile" > "../$tgzfile.sha256"
-length=$(wc -c < "../$tgzfile")
 
-$VERBOSE "== Generating announcement text: $announce"
-# Hack the announcement template
-cat "$RELEASE_AUX/$announce_template" \
-    | sed -e "s|\\\$release_text|$release_text|g" \
-          -e "s|\\\$release_tag|$release_tag|g" \
-          -e "s|\\\$release|$release|g" \
-          -e "s|\\\$series|$SERIES|g" \
-          -e "s|\\\$label|$PRE_LABEL|g" \
-          -e "s|\\\$tarfile|$tgzfile|" \
-          -e "s|\\\$length|$length|" \
-          -e "s|\\\$sha1hash|$sha1hash|" \
-          -e "s|\\\$sha256hash|$sha256hash|" \
-    | perl -p "$RELEASE_AUX/fix-title.pl" \
-    > "../$announce"
+echo "$sha1hash *$tgzfile" > "../$tgzfile.sha1"
+echo "$sha256hash *$tgzfile" > "../$tgzfile.sha256"
 
-$VERBOSE "== Generating signatures: $tgzfile.asc $announce.asc"
-rm -f "../$tgzfile.asc" "../$announce.asc"
-$ECHO "Signing the release files.  You may need to enter a pass phrase"
-if $do_signed; then
-    gpg$gpgkey --use-agent -sba "../$tgzfile"
-    gpg$gpgkey --use-agent -sta --clearsign "../$announce"
-fi
+# No signature is produced here, but a stale one from an earlier run must not
+# survive: the tarball has just been rebuilt, so any existing .asc alongside it
+# now attests to different bytes.
+rm -f "../$tgzfile.asc"
 
-if ! $clean_worktree; then
-    # Push everything to the parent repo
-    $VERBOSE "== Push what we have to the parent repository"
-    git push --follow-tags parent HEAD
-fi
-
-if $do_signed; then
-    staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256"
-                    "$tgzfile.asc" "$announce.asc" )
-else
-    staging_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256" "$announce" )
-fi
+release_files=( "$tgzfile" "$tgzfile.sha1" "$tgzfile.sha256" )
 
 $VERBOSE "== Generating metadata file: $metadata"
 
 (
     set -x
-    if [ "$update_branch" != "$orig_update_branch" ]; then
-        echo "staging_update_branch='$update_branch'"
-    fi
     echo "update_branch='$orig_update_branch'"
     if [ "$release_branch" != "$update_branch" ]; then
-        if [ "$release_branch" != "$orig_release_branch" ]; then
-            echo "staging_release_branch='$release_branch'"
-        fi
         echo "release_branch='$orig_release_branch'"
     fi
     echo "release_tag='$release_tag'"
-    echo "upload_files='${staging_files[@]}'"
+    echo "release_files='${release_files[@]}'"
     echo "source_repo='$orig_remote_url'"
 ) > ../$metadata
-
-if $do_upload; then
-    $ECHO "== Upload tar, hash, announcement and metadata files to staging location"
-fi
-
-(
-    # With sftp, the progress meter is enabled by default,
-    # so we turn it off unless --verbose was given
-    if [ "$VERBOSE" == ':' ]; then
-        echo "progress"
-    fi
-    if [ -n "$staging_directory" ]; then
-        echo "cd $staging_directory"
-    fi
-    for uf in "${staging_files[@]}" "$metadata"; do
-        echo "put ../$uf"
-    done
-) | upload_backend_$staging_backend "$staging_address" $do_upload
 
 # Post-release #######################################################
 
@@ -786,12 +520,6 @@ if [ -n "$reviewers" ]; then
     addrev --release --nopr $reviewers
 fi
 
-if ! $clean_worktree; then
-    # Push everything to the parent repo
-    $VERBOSE "== Push what we have to the parent repository"
-    git push parent HEAD
-fi
-
 if [ "$release_branch" != "$update_branch" ]; then
     $VERBOSE "== Going back to the update branch $update_branch"
     git checkout $git_quiet "$update_branch"
@@ -823,48 +551,27 @@ if [ "$release_branch" != "$update_branch" ]; then
     fi
 fi
 
-if ! $clean_worktree; then
-    # Push everything to the parent repo
-    $VERBOSE "== Push what we have to the parent repository"
-    git push parent HEAD
-fi
-
 # Done ###############################################################
 
 $VERBOSE "== Done"
 
 cd $HERE
 if $do_porcelain; then
-    if [ -n "$release_clone" ]; then
-        echo "clone_directory='$release_clone'"
-    fi
     echo "orig_head='$orig_head'"
     echo "metadata='$metadata'"
 else
     cat <<EOF
 
 ======================================================================
-The release is done, and involves a few files and commits for you to
-deal with.  Everything you need has been pushed to your repository,
-please see instructions that follow.
+The release is done.  The release artifacts and a metadata file have
+been written to the parent directory; pushing the commits and tag and
+shipping the artifacts are the caller's responsibility.
 ======================================================================
 
-EOF
-
-    if $do_upload; then
-        cat <<EOF
-The following files were uploaded to $staging_address, please ensure they
-are dealt with appropriately:
+The following files were generated:
 
 EOF
-    else
-        cat <<EOF
-The following files were generated for upload, please deal with them
-appropriately:
-
-EOF
-    fi
-    for uf in "${staging_files[@]}"; do
+    for uf in "${release_files[@]}"; do
         echo "    $uf"
     done
     cat <<EOF
@@ -875,81 +582,31 @@ EOF
 
     if [ "$release_branch" != "$update_branch" ]; then
         cat <<EOF
-You need to prepare the main repository with a new branch, '$release_branch'.
-That is done directly in the server's bare repository like this:
-
-    git branch $release_branch $orig_HEAD
-
-EOF
-    fi
-    if [ "$update_branch" != "$orig_update_branch" ] \
-       && [ "$release_branch" != "$update_branch" ]; then
-        # "Normal" scenario with --branch
-        cat <<EOF
-A release tag and two branches have been added to your local repository.
-Push them to github, make PRs from them and have them approved.
-
-    Update branch: $update_branch
-    Release branch: $release_branch
-    Tag: $release_tag
-
-When merging everything into the main repository, do it like this:
-
-    git push git@github.openssl.org:openssl/openssl.git \\
-        $release_branch:$orig_release_branch
-    git push git@github.openssl.org:openssl/openssl.git \\
-        $update_branch:$orig_update_branch
-    git push git@github.openssl.org:openssl/openssl.git \\
-        $release_tag
-EOF
-    elif [ "$update_branch" != "$orig_update_branch" ]; then
-        # "Normal" scenario without --branch
-        cat <<EOF
-A release tag and a release/update branch have been added to your local
-repository.  Push them to github, make PRs from them and have them
-approved.
-
-    Release/update branch: $update_branch
-    Tag: $release_tag
-
-When merging everything into the main repository, do it like this:
-
-    git push git@github.openssl.org:openssl/openssl.git \\
-        $update_branch:$orig_update_branch
-    git push git@github.openssl.org:openssl/openssl.git \\
-        $release_tag
-EOF
-    elif [ "$release_branch" != "$update_branch" ]; then
-        # --clean-worktree and --branch scenario
-        cat <<EOF
-A release tag and a release branch has been added to your repository,
-and the current branch has been updated.  Push them to github, make
-PRs from them and have them approved:
+A release tag and a release branch have been added to the worktree,
+and the current branch has been updated.
 
     Updated branch: $update_branch
     Release branch: $release_branch
     Tag: $release_tag
 
-When merging everything into the main repository, do it like this:
+When pushing everything to the main repository, do it like this:
 
     git push git@github.openssl.org:openssl/openssl.git \\
-        $release_branch:$orig_release_branch
+        $release_branch
     git push git@github.openssl.org:openssl/openssl.git \\
         $update_branch
     git push git@github.openssl.org:openssl/openssl.git \\
         $release_tag
 EOF
     else
-        # --clean-worktree without --branch scenario
         cat <<EOF
-A release tag has been added to your local repository, and the current
-branch has been updated.  Push them to github, make PRs from them and
-have them approved.
+A release tag has been added to the worktree, and the current branch
+has been updated.
 
     Release/update branch: $update_branch
     Tag: $release_tag
 
-When merging everything into the main repository, do it like this:
+When pushing everything to the main repository, do it like this:
 
     git push git@github.openssl.org:openssl/openssl.git \\
         $update_branch
@@ -962,34 +619,6 @@ EOF
 
 ----------------------------------------------------------------------
 EOF
-
-    cat <<EOF
-
-When everything is done, or if something went wrong and you want to start
-over, simply clean away temporary things left behind:
-EOF
-    if [ -n "$release_clone" ]; then
-        cat <<EOF
-The release worktree:
-
-    rm -rf $release_clone
-EOF
-    fi
-    cat <<EOF
-
-Additional branches:
-
-EOF
-    if [ "$release_branch" != "$update_branch" ]; then
-        cat <<EOF
-    git branch -D $release_branch
-EOF
-    fi
-    if [ "$update_branch" != "$orig_update_branch" ]; then
-        cat <<EOF
-    git branch -D $update_branch
-EOF
-    fi
 fi
 
 exit 0
@@ -1012,16 +641,7 @@ B<--alpha> |
 B<--next-beta> |
 B<--beta> |
 B<--final> |
-B<--branch> |
-B<--clean-worktree> |
-B<--branch-fmt>=I<fmt> |
-B<--tag-fmt>=I<fmt> |
-B<--local-user>=I<keyid> |
-B<--unsigned> |
 B<--reviewer>=I<id> |
-B<--staging-address>=I<address> |
-B<--no-upload> |
-B<--no-update> |
 B<--quiet> |
 B<--verbose> |
 B<--debug> |
@@ -1046,20 +666,16 @@ next.  When B<--porcelain> is given, it finishes off with script friendly
 data instead, see the description of that option.  When finishing commands
 are given, they must be followed exactly.
 
-B<stage-release.sh> normally leaves behind a clone of the local repository,
-as a subdirectory in the current worktree, as well as an extra branch with
-the results of running this script in the local repository.  This extra
-branch is useful to create a pull request from, which will also be mentioned
-at the end of the run of B<stage-release.sh>.  This local clone subdirectory
-as well as this extra branch can safely be removed after all instructions
-have been successfully followed.
+B<stage-release.sh> operates on the current worktree directly: it
+refuses to run if the worktree is not clean, and updates the current
+branch in place.  The release artifacts (tarball, hashes, metadata) are
+written to the parent directory.  Signing them, pushing the resulting
+commits and tag, and shipping the artifacts, are the caller's
+responsibility -- nothing is signed, uploaded or pushed by this script.
 
-When the option B<--clean-worktree> is given, B<stage-release.sh> has a
-different behaviour.  In this case, it doesn't create that clone or any
-extra branch, and it will update the current branch of the worktree
-directly.  This is useful when it's desirable to push the changes directly
-to a remote repository without having to go through a pull request and
-approval process.
+The release tag is annotated, not signed: the signing key is held on an
+HSM that the build host cannot reach, so signing the tag and the tarball
+is a separate step, run where that access exists.
 
 =head1 OPTIONS
 
@@ -1086,66 +702,6 @@ release is done.
 Set the state of this branch to indicate that regular releases are to be
 done.  This is only valid if alpha or beta releases are currently ongoing.
 
-This implies B<--branch>.
-
-=item B<--branch>
-
-Create a branch specific for the I<SERIES> release series, if it doesn't
-already exist, and switch to it when making the release files.  The exact
-branch name will be C<< openssl-I<SERIES> >>.
-
-=item B<--clean-worktree>
-
-This indicates that the current worktree is clean and can be acted on
-directly, instead of creating a clone of the local repository or creating
-any extra branch.
-
-=item B<--branch-fmt>=I<fmt>
-
-=item B<--tag-fmt>=I<fmt>
-
-Format for branch and tag names.  This can be used to tune the names of
-branches and tags that are updated or added by this script.
-
-I<fmt> can include printf-like formating directives:
-
-=over 4
-
-=item %b
-
-is replaced with a branch name.  This branch name is usually the current
-branch of the current repository, but may also be the default release
-branch name that is generated when B<--branch> is given.
-
-=item %t
-
-is replaced with the generated release tag name.
-
-=item %v
-
-is replaced with the version number.  The exact version number varies
-through the process of this script.
-
-=back
-
-This script uses the following defaults:
-
-=over 4
-
-=item * Without B<--clean-worktree>
-
-For branches: C<OSSL--%b--%v>
-
-For tags: C<%t>
-
-=item * With B<--clean-worktree>
-
-For branches: C<%b>
-
-For tags: C<%t>
-
-=back
-
 =item B<--reviewer>=I<id>
 
 Add I<id> to the set of reviewers for the commits performed by this script.
@@ -1153,46 +709,6 @@ Multiple reviewers are allowed.
 
 If no reviewer is given, you will have to run C<addrev> manually, which
 means retagging a release commit manually as well.
-
-=item B<--local-user>=I<keyid>
-
-Use I<keyid> as the local user for C<git tag> and for signing with C<gpg>.
-
-If not given, then the default e-mail address' key is used.
-
-=item B<--unsigned>
-
-Do not sign the tarball or announcement file.  This leaves it for other
-scripts to sign the files later.
-
-=item B<--staging-address>=I<address>
-
-The staging location that the release files are to be uploaded to.
-Supported values are:
-
-=over 4
-
-=item -
-
-an existing local directory
-
-=item -
-
-something that can be interpreted as an SCP/SFTP address.  In this case,
-SFTP will always be used.  Typical SCP remote file specs will be translated
-into something that makes sense for SFTP.
-
-=back
-
-The default staging address is C<upload@dev.openssl.org>.
-
-=item B<--no-upload>
-
-Don't upload the release files to the staging location.
-
-=item B<--no-update>
-
-Don't run C<make update> and C<make update-fips-checksums>.
 
 =item B<--quiet>
 
@@ -1208,7 +724,7 @@ Verbose output.
 
 =item B<--debug>
 
-Display extra debug output.  Implies B<--no-upload>
+Display extra debug output.
 
 =item B<--porcelain>
 
@@ -1217,22 +733,12 @@ in a form reminicent of shell variable assignments.  Currently supported are:
 
 =over 4
 
-=item B<clone_directory>=I<dir>
-
-The directory for the clone that this script creates.  This is not given when
-the option B<--clean-worktree> is used.
-
 =item B<metadata>=I<file>
 
 The metadata file.  See L</FILES> for a description of all generated files
 as well as the contents of the metadata file.
 
 =back
-
-=item B<--force>
-
-Force execution.  Precisely, the check that the current branch is C<master>
-or a release branch is not done.
 
 =item B<--help>
 
@@ -1313,8 +819,9 @@ release date in the tar file of any release.
 
 =head1 FILES
 
-The following files are produced and normally uploaded to the staging
-address:
+The following files are produced in the parent directory of the
+worktree.  Shipping them is the caller's responsibility; this script
+does not upload anything.
 
 =over 4
 
@@ -1325,14 +832,6 @@ The source tarball itself.
 =item F<openssl-{VERSION}.tar.gz.sha1>, F<openssl-{VERSION}.tar.gz.sha256>
 
 The SHA1 and SHA256 checksums for F<openssl-{VERSION}.tar.gz>.
-
-=item F<openssl-{VERSION}.tar.gz.asc>
-
-The detached PGP signature for F<openssl-{VERSION}.tar.gz>.
-
-=item F<openssl-{VERSION}.txt.asc>
-
-The announcement text, clear signed with PGP.
 
 =item F<openssl-{VERSION}.dat>
 
@@ -1346,30 +845,20 @@ such as a script to promote this release to an actual release:
 
 The update branch.  This is always given.
 
-=item B<staging_update_branch>=I<branch>
-
-If a staging update branch was used (because B<--clean-worktree> wasn't
-given or because B<--branch-fmt> was used), it's given here.
-
 =item B<release_branch>=I<branch>
 
-The release branch, if it differs from the update branch (i.e. B<--branch>
-was given or implied).
-
-=item B<staging_release_branch>=I<branch>
-
-If a staging release branch was used (because B<--clean-worktree> wasn't
-given or because B<--branch-fmt> was used), it's given here.
+The release branch, if a new one was created (i.e. when releasing from
+C<master> at PATCH == 0).  Omitted when the release commit is made on
+the current branch.
 
 =item B<release_tag>=I<tag>
 
 The release tag.  This is always given.
 
-=item B<upload_files>='I<files>'
+=item B<release_files>='I<files>'
 
-The space separated list of files that were or would have been uploaded
-to the staging location (depending on the presence of B<--no-upload>).  This
-list doesn't include the metadata file itself.
+The space-separated list of release files produced.  Does not include
+the metadata file itself.
 
 =item B<source_repo>='I<URL>'
 

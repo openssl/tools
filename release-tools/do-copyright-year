@@ -44,13 +44,23 @@ process_files() {
     count=0
     sp="/-\|"
     sc=0
-    spin() {
-	printf "\r${sp:sc++:1} %s" "$@"
-	((sc==${#sp})) && sc=0
-    }
-    endspin() {
-	printf "\r%s\n" "$@"
-    }
+    # In a non-TTY context (e.g. Jenkins log capture), `\r` is not
+    # treated as a line clear and each spin tick shows up as its own
+    # line.  Skip the spinner there.
+    if [ -t 1 ]; then
+	spin() {
+	    printf "\r${sp:sc++:1} %s" "$@"
+	    ((sc==${#sp})) && sc=0
+	}
+	endspin() {
+	    printf "\r%s\n" "$@"
+	}
+    else
+	spin() { :; }
+	endspin() {
+	    printf "%s\n" "$@"
+	}
+    fi
 
     while read STATUS FILE ; do
 	if [ -d "$FILE" ]; then continue; fi
