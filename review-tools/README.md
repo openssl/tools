@@ -191,12 +191,13 @@ names, passed through to `addrev`.
 ### pick-to-branch
 
 Cherry-picks a commit, or several, onto a release branch named by a short
-form — `30`, `31`, or `m` for master.  If the target is not the current
+form — `35` for `openssl-3.5`, `40` for `openssl-4.0`, or `m` for master.
+Only the active branches are recognised.  If the target is not the current
 branch, the current branch and its state are preserved.
 
 ```sh
-pick-to-branch HEAD 31
-pick-to-branch <commit> 30 2
+pick-to-branch HEAD 40
+pick-to-branch <commit> 35 2
 ```
 
 ### opensslbuild and opensslpull
