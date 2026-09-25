@@ -26,7 +26,7 @@ from .errors import ReviewError
 #: Where a commit lives: only on the left, only on the right, or both.
 BRANCH_MARKERS = {"<": "<-", ">": "->", "=": "=="}
 
-#: The standard merge annotation, plus an older variant still in the history.
+#: Where a commit records the pull request it was merged from.
 _PRNUM_RE = re.compile(
     # The prose annotation, the trailer form that replaced it, and an older
     # variant still present in the history.

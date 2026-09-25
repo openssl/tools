@@ -70,6 +70,14 @@ def test_prnum_from_the_standard_merge_annotation():
     assert extract_prnum(message) == "12345"
 
 
+def test_prnum_from_the_merged_from_trailer():
+    # What addrev writes now.  It is the second alternative, so this also
+    # checks the number is taken from whichever group matched.
+    message = "Fix\n\nMerged-from: https://github.com/openssl/openssl/pull/31337\n"
+
+    assert extract_prnum(message) == "31337"
+
+
 def test_prnum_from_the_older_gh_annotation():
     assert extract_prnum("GH: #987") == "987"
 
