@@ -51,7 +51,9 @@ class Build:
         return bool(pattern.search(makefile.read_text(errors="replace")))
 
     def configure(self) -> None:
-        self.runner.run(["./Configure", "cc"], echo_output=True)
+        # Through perl explicitly: 1.0.2's Configure has no #! line, relying on
+        # a shell to run it after exec fails, and subprocess does not do that.
+        self.runner.run(["perl", "./Configure", "cc"], echo_output=True)
 
     def update(self, *, is_alpha: bool) -> None:
         """Run `make update`, plus the checks a non-alpha release requires."""
