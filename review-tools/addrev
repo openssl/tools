@@ -137,6 +137,20 @@ sub addrev_git {
 sub addrev_jj {
     my $revset = shift;
 
+    # Safety measure: refuse to work unless the working-copy commit @
+    # is an empty commit at the tip of history.  Rewriting underneath
+    # a non-empty or non-tip working copy is likely to clobber
+    # in-flight work.
+    my $at_state = qx{jj log --no-graph -r \@ -T 'if(empty, "empty", "nonempty")'};
+    die "addrev: 'jj log' failed\n" if $? != 0;
+    chomp $at_state;
+    die "addrev: refusing to work: the working-copy commit \@ is not empty\n"
+        unless $at_state eq "empty";
+    my @at_children = qx{jj log --no-graph -r 'children(\@)'};
+    die "addrev: 'jj log' failed\n" if $? != 0;
+    die "addrev: refusing to work: the working-copy commit \@ has children (is not the tip)\n"
+        if grep { /\S/ } @at_children;
+
     # Collect the commits the revset resolves to (newest first), keyed by
     # change id, as those stay stable when describing a commit rewrites
     # it and its descendants.
@@ -205,6 +219,10 @@ The VCS method is determined by the current directory: if it contains a
 .jj directory, the jj method applies (each commit in the revset gets its
 description rewritten via 'jj describe'), otherwise the git method
 applies (git filter-branch with gitaddrev as message filter).
+
+With the jj method, addrev refuses to work unless the working-copy
+commit \@ is empty and has no children (i.e. it's the tip), to avoid
+clobbering in-flight work.
 
 Examples (all meaning the same thing):
 
