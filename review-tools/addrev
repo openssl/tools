@@ -3,10 +3,16 @@
 use strict;
 use warnings;
 
+use IPC::Open2;
+
 my $gitaddrev = $ENV{GITADDREV} || "gitaddrev";
+
+# VCS method: if there's a .jj directory, jj applies, otherwise git
+my $use_jj = -d ".jj";
 
 my $args = "";
 my $filterargs = "";
+my $ncommits;
 my $list_reviewers = 0;
 my $help = 0;
 my $haveprnum = 0;
@@ -24,6 +30,7 @@ foreach (@ARGV) {
     } elsif (/^\w[-\w]*$/) {
         if (/^[0-9a-f]{7,}+/) {
             print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
+            $ncommits = undef;
             $filterargs = $_;
         } else {
             $args .= "--reviewer=$_ ";
@@ -60,7 +67,8 @@ foreach (@ARGV) {
         $args .= "--release ";
     } elsif (/^-(\d+)$/) {
         print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
-        $filterargs = "HEAD~$1..";
+        $ncommits = $1;
+        $filterargs = "";
     } elsif (/^--list$/) {
         $list_reviewers = 1;
         last;
@@ -69,10 +77,22 @@ foreach (@ARGV) {
         last;
     } else {
         print "Warning: overriding previous filter args $filterargs\n" if $filterargs ne "";
+        $ncommits = undef;
         $filterargs = $_;
     }
 }
-$filterargs = "HEAD^.." if $filterargs eq "";
+
+# Resolve the commit selection according to the VCS method:
+# - git: a commit range, default HEAD^..
+# - jj:  a revset, default @- (the jj counterpart of HEAD)
+my $commit_sel = $filterargs;
+if ($commit_sel eq "") {
+    if (defined $ncommits) {
+        $commit_sel = $use_jj ? "ancestors(\@-, $ncommits)" : "HEAD~$ncommits..";
+    } else {
+        $commit_sel = $use_jj ? '@-' : 'HEAD^..';
+    }
+}
 
 if ($list_reviewers) {
     system("$gitaddrev --list");
@@ -87,16 +107,70 @@ die "Need either [--prnum=]NNN or --nopr flag" unless $haveprnum;
 
 if ($useself) {
     if (!defined $my_email) {
-        $my_email = `git config --get user.email`;
+        $my_email = $use_jj ? `jj config get user.email`
+                            : `git config --get user.email`;
+        chomp $my_email;
     }
 
     $args .= "--myemail=$my_email ";
 }
 
-my $err = "/tmp/addrev$$";
-$ENV{FILTER_BRANCH_SQUELCH_WARNING} = 1;
-system("git filter-branch -f --tag-name-filter cat --msg-filter \"$gitaddrev $args\" $filterargs || (echo addrev failed; exit 1)");
-die if $?;
+if ($use_jj) {
+    addrev_jj($commit_sel);
+} else {
+    addrev_git($commit_sel);
+}
+
+# Rewrite the selected commits with git filter-branch, using $gitaddrev
+# as message filter
+sub addrev_git {
+    my $range = shift;
+
+    $ENV{FILTER_BRANCH_SQUELCH_WARNING} = 1;
+    system("git filter-branch -f --tag-name-filter cat --msg-filter \"$gitaddrev $args\" $range || (echo addrev failed; exit 1)");
+    die if $?;
+}
+
+# Rewrite the selected commits by running $gitaddrev on each commit
+# description in the revset, feeding the result to 'jj describe' on the
+# same commit
+sub addrev_jj {
+    my $revset = shift;
+
+    # Collect the commits the revset resolves to (newest first), keyed by
+    # change id, as those stay stable when describing a commit rewrites
+    # it and its descendants.
+    my @revs =
+        `jj log --no-graph -r '$revset' -T 'change_id ++ " " ++ commit_id ++ " " ++ author.email() ++ "\\n"'`;
+    die "addrev: 'jj log' failed (faulty revset '$revset'?)\n" if $? != 0;
+
+    foreach my $rev (@revs) {
+        chomp $rev;
+        my ($change_id, $commit_id, $email) = split ' ', $rev;
+
+        # $gitaddrev takes the author email and the commit id from the
+        # environment, like git filter-branch sets them up
+        local $ENV{GIT_AUTHOR_EMAIL} = $email;
+        local $ENV{GIT_COMMIT} = $commit_id;
+
+        my $desc = `jj log --no-graph -r '$change_id' -T 'description'`;
+        die "addrev: 'jj log' failed for $change_id\n" if $? != 0;
+
+        my ($rd, $wr);
+        my $pid = open2($rd, $wr, "$gitaddrev $args");
+        print $wr $desc;
+        close $wr;
+        my $newdesc = do { local $/; <$rd> };
+        close $rd;
+        waitpid $pid, 0;
+        die "addrev: $gitaddrev failed for $commit_id\n" if $? != 0;
+
+        open my $dwr, '|-', 'jj', 'describe', '--stdin', $change_id;
+        print $dwr $newdesc;
+        close $dwr
+            or die "addrev: 'jj describe' failed for $commit_id\n";
+    }
+}
 
 sub usage {
     print STDERR <<"EOF";
@@ -123,13 +197,23 @@ a string of alphanumeric or '-' characters, denoting a reviewer name.
 
 a string starting with \@, denoting a reviewer's github ID.
 
-anything else will be used as a commit range.  If no commit range is given,
-HEAD^.. is assumed.
+anything else will be used as a commit range (git method) or revset
+(jj method).  If no commit range or revset is given, HEAD^.. (git) or
+\@- (jj) is assumed.
+
+The VCS method is determined by the current directory: if it contains a
+.jj directory, the jj method applies (each commit in the revset gets its
+description rewritten via 'jj describe'), otherwise the git method
+applies (git filter-branch with gitaddrev as message filter).
 
 Examples (all meaning the same thing):
 
   addrev 12345 -2 steve levitte
   addrev --prnum=12345 steve \@levitte HEAD^^..
   addrev 12345 --reviewer=steve --reviewer=levitte\@openssl.org -2
+
+jj example (in a jj repo):
+
+  addrev 12345 steve 'mine() & mutable()'
 EOF
 }
