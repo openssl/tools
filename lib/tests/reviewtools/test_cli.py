@@ -264,11 +264,20 @@ def test_a_long_hex_string_is_a_commit_range():
 
 
 def test_a_dash_number_selects_the_last_n_commits():
-    assert addrev_cli.parse_args(["--nopr", "-3"]).filter_args == "HEAD~3.."
+    parsed = addrev_cli.parse_args(["--nopr", "-3"])
+
+    assert parsed.last_n == 3
+    # Not expanded to a range yet: the spelling is the VCS's business.
+    assert parsed.filter_args == ""
+    assert not parsed.filter_explicit
 
 
-def test_the_default_range_is_the_last_commit():
-    assert addrev_cli.parse_args(["--nopr"]).filter_args == "HEAD^.."
+def test_no_selection_is_left_for_the_vcs_to_default():
+    parsed = addrev_cli.parse_args(["--nopr"])
+
+    assert parsed.filter_args == ""
+    assert parsed.last_n is None
+    assert not parsed.filter_explicit
 
 
 def test_an_arbitrary_range_is_taken_as_is():
@@ -311,7 +320,7 @@ def test_list_short_circuits():
     parsed = addrev_cli.parse_args(["--list", "everything", "else"])
 
     assert parsed.list_reviewers
-    assert parsed.filter_args == "HEAD^.."
+    assert parsed.filter_args == ""
 
 
 def test_help_short_circuits():
