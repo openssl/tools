@@ -18,6 +18,7 @@ from __future__ import annotations
 import abc
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from . import rewrite
 from .commands import CommandRunner, run_command
@@ -129,5 +130,10 @@ class Git(Vcs):
 
 
 def detect(*, runner: CommandRunner = run_command) -> Vcs:
-    """The VCS of the current working copy.  Only git is known so far."""
+    """The VCS of the current working copy."""
+    if Path(".jj").is_dir():
+        # Local import: jj.py itself builds on this module.
+        from .jj import Jj
+
+        return Jj(runner=runner)
     return Git(runner=runner)
