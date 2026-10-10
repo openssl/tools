@@ -10,6 +10,10 @@ The argument grammar is positional and forgiving, because it is typed by
 hand and forwarded verbatim from ghmerge.  A bare number is a PR number, a
 bare word is a reviewer, a word that looks like an object id is a commit
 range, and `-3` means the last three commits.
+
+In a jj working copy (a .jj directory is present), the commit selection
+is a revset instead of a git range, and each selected commit's
+description is rewritten with 'jj describe' instead of git plumbing.
 """
 
 from __future__ import annotations
@@ -57,14 +61,28 @@ a string of alphanumeric or '-' characters, denoting a reviewer name.
 
 a string starting with @, denoting a reviewer's github ID.
 
-anything else will be used as a commit range.  If no commit range is given,
-HEAD^.. is assumed.
+anything else will be used as a commit range (git method) or revset
+(jj method).  If no commit range or revset is given, HEAD^.. (git) or
+@- (jj) is assumed.
+
+The VCS method is determined by the current directory: if it contains a
+.jj directory, the jj method applies (each commit in the revset gets its
+description rewritten via 'jj describe'), otherwise the git method
+applies.
+
+With the jj method, addrev refuses to work unless the working-copy
+commit @ is empty and has no children (i.e. it's the tip), to avoid
+clobbering in-flight work.
 
 Examples (all meaning the same thing):
 
   addrev 12345 -2 steve levitte
   addrev --prnum=12345 steve @levitte HEAD^^..
   addrev 12345 --reviewer=steve --reviewer=levitte@openssl.org -2
+
+jj example (in a jj repo):
+
+  addrev 12345 steve 'mine() & mutable()'
 """
 
 _PRNUM_RE = re.compile(r"^(?:--prnum=)?(\d{1,6})$")
