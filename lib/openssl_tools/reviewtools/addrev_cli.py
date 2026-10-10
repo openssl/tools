@@ -20,7 +20,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TextIO
 
-from . import listing, message, reviewers, rewrite
+from . import listing, message, reviewers, vcs
 from .commands import CommandRunner, run_command
 from .errors import ReviewError
 from .policy import POLICIES, get_policy
@@ -88,7 +88,11 @@ class Invocation:
     remove_reviewers: bool = False
     trivial: bool = False
     verbose: bool = False
+    # The selection exactly as typed; empty when it was defaulted, in
+    # which case the VCS supplies the spelling (see default_selection).
     filter_args: str = ""
+    filter_explicit: bool = False
+    last_n: int | None = None
     have_prnum: bool = False
     use_self: bool = True
     my_email: str | None = None
@@ -104,6 +108,8 @@ def parse_args(argv: Sequence[str]) -> Invocation:
         if result.filter_args:
             result.warnings.append(f"Warning: overriding previous filter args {result.filter_args}")
         result.filter_args = value
+        result.filter_explicit = True
+        result.last_n = None
 
     for arg in argv:
         prnum = _PRNUM_RE.match(arg)
@@ -171,7 +177,15 @@ def parse_args(argv: Sequence[str]) -> Invocation:
 
         last_n = _LAST_N_RE.match(arg)
         if last_n:
-            set_filter(f"HEAD~{last_n.group(1)}..")
+            if result.filter_args:
+                result.warnings.append(
+                    f"Warning: overriding previous filter args {result.filter_args}"
+                )
+            # Kept apart from filter_args: the jj spelling of "the last
+            # N commits" is only known once the VCS method is.
+            result.last_n = int(last_n.group(1))
+            result.filter_args = ""
+            result.filter_explicit = False
             continue
 
         if arg == "--list":
@@ -183,9 +197,6 @@ def parse_args(argv: Sequence[str]) -> Invocation:
             break
 
         set_filter(arg)
-
-    if not result.filter_args:
-        result.filter_args = "HEAD^.."
 
     return result
 
@@ -199,9 +210,9 @@ def _subject(commit_message: str) -> str:
 def rewrite_range(
     invocation: Invocation,
     *,
+    backend: vcs.Vcs,
     query: reviewers.PersonSource,
     stderr: TextIO,
-    runner: CommandRunner = run_command,
 ) -> int:
     """Rewrite the messages of every commit in the range.
 
@@ -211,19 +222,12 @@ def rewrite_range(
     lookups.
     """
     policy = get_policy(invocation.repo)
-    commits = rewrite.read_range(invocation.filter_args, runner=runner)
-    if not commits:
-        print("No commits in range", file=stderr)
-        return 0
-
-    ref = rewrite.current_branch_ref(runner=runner)
-    old_tip = commits[-1].sha
     resolutions: dict[str | None, reviewers.Resolution] = {}
 
-    def transform(commit: rewrite.CommitInfo) -> str:
+    def transform(commit: vcs.Commit) -> str:
         # A commit the caller did not ask for passes through untouched.
         if invocation.commits and not any(
-            commit.sha.startswith(wanted) for wanted in invocation.commits
+            commit.id.startswith(wanted) for wanted in invocation.commits
         ):
             return commit.message
 
@@ -251,11 +255,11 @@ def rewrite_range(
         except ReviewError as error:
             # Which commit is not obvious from a range, and the answer is
             # usually the whole explanation.
-            raise ReviewError(f"{commit.sha[:12]} {_subject(commit.message)}: {error}") from error
+            raise ReviewError(f"{commit.id[:12]} {_subject(commit.message)}: {error}") from error
 
         if invocation.verbose:
             print(
-                f"{commit.sha[:12]} reviewed-by " + ", ".join(resolution.reviewers),
+                f"{commit.id[:12]} reviewed-by " + ", ".join(resolution.reviewers),
                 file=stderr,
             )
 
@@ -268,14 +272,18 @@ def rewrite_range(
             remove_reviewers=invocation.remove_reviewers,
         )
 
-    mapping = rewrite.replay(commits, transform, runner=runner)
-    new_tip = mapping[old_tip]
-    if new_tip == old_tip:
+    backend.check_preconditions()
+    selection = (
+        invocation.filter_args
+        if invocation.filter_explicit
+        else backend.default_selection(invocation.last_n)
+    )
+    outcome = backend.rewrite_messages(selection, transform)
+    if outcome.selected == 0:
+        print("No commits in range", file=stderr)
+    elif outcome.changed == 0:
         print("Nothing to rewrite", file=stderr)
-        return 0
-
-    rewrite.update_branch(ref, new_tip, old_tip, runner=runner)
-    for name in rewrite.repoint_tags(mapping, runner=runner):
+    for name in outcome.moved_tags:
         print(f"Moved tag {name}", file=stderr)
     return 0
 
@@ -310,8 +318,9 @@ def main(
         if not invocation.have_prnum:
             raise ReviewError("Need either [--prnum=]NNN or --nopr flag")
 
+        backend = vcs.detect(runner=runner)
         if invocation.use_self and not invocation.my_email:
-            invocation.my_email = _git_user_email(runner)
+            invocation.my_email = backend.user_email()
 
         if invocation.trivial:
             print(
@@ -320,22 +329,11 @@ def main(
                 file=stderr,
             )
 
-        return rewrite_range(invocation, query=query, runner=runner, stderr=stderr)
+        return rewrite_range(invocation, backend=backend, query=query, stderr=stderr)
 
     except ReviewError as error:
         print(str(error), file=stderr)
         return 1
-
-
-def _git_user_email(runner: CommandRunner) -> str | None:
-    completed = runner(
-        ["git", "config", "--get", "user.email"],
-        capture_output=True,
-        text=True,
-    )
-    if completed.returncode != 0:
-        return None
-    return (completed.stdout or "").strip() or None
 
 
 def _format_repos() -> str:
