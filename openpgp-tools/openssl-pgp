@@ -1,0 +1,647 @@
+#!/usr/bin/env bash
+# Copyright 2026 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+#
+# openssl-pgp -- OpenSSL release-artifacts OpenPGP key and certificate helper.
+#
+# Implements the release-artifact OpenPGP policy on top of sq-pkcs11
+# (which speaks PKCS#11 to the nShield HSM).  Capabilities:
+#
+#   - generate the policy primary key and current signing subkey
+#   - issue / rotate the published OpenPGP certificate
+#   - issue primary-key and subkey-revocation certificates
+#
+# Requires sq-pkcs11 on PATH (or OPENSSL_PGP_SQ_PKCS11 set).
+
+set -euo pipefail
+
+PROG=${0##*/}
+
+usage() {
+    cat <<'EOF'
+Usage:
+  openssl-pgp primary-generate [--label LABEL] --cardset CARDSET [--module MODULE]
+  openssl-pgp subkey-generate [--label LABEL] [--module MODULE]
+  openssl-pgp cert-init [--generate-keys] [--output FILE] [--revocation-output FILE]
+  openssl-pgp subkey-rotate --new-subkey-label LABEL [--generate-subkey] [--input-cert FILE] [--output FILE]
+  openssl-pgp cert-revoke [--output FILE] [--reason REASON] [--message TEXT]
+  openssl-pgp subkey-revoke --subkey-fingerprint FPR [--input-cert FILE] [--output FILE] [--reason REASON] [--message TEXT]
+
+Required configuration (per command):
+  cert-init        OPENSSL_PGP_PRIMARY_LABEL, OPENSSL_PGP_CURRENT_SUBKEY_LABEL,
+                   OPENSSL_PGP_USERID, OPENSSL_PGP_PRIMARY_CARDSET
+  subkey-rotate    OPENSSL_PGP_PRIMARY_LABEL, OPENSSL_PGP_PRIMARY_CARDSET
+                   (does NOT use OPENSSL_PGP_CURRENT_SUBKEY_LABEL — old subkey
+                   comes from the input cert, new one from --new-subkey-label)
+  cert-revoke      OPENSSL_PGP_PRIMARY_LABEL, OPENSSL_PGP_PRIMARY_CARDSET
+  subkey-revoke    OPENSSL_PGP_PRIMARY_LABEL, OPENSSL_PGP_PRIMARY_CARDSET,
+                   plus --subkey-fingerprint identifying which subkey in
+                   the input cert to revoke (compromise scenario: subkey
+                   private key is NOT touched, only the primary signs)
+  primary-generate label and cardset (CLI flags or env vars)
+  subkey-generate  label (CLI flag or OPENSSL_PGP_CURRENT_SUBKEY_LABEL)
+
+Every label / cardset value is validated against the Security World
+(`cklist` / `nfkminfo --cardset-list`) before any HSM action runs.
+
+Optional configuration:
+  OPENSSL_PGP_CONFIG                 Config file to source before running
+  OPENSSL_PGP_CERT                   Published cert path (default: release.asc)
+  OPENSSL_PGP_GENERATEKEY            generatekey path (default: /opt/nfast/bin/generatekey)
+  OPENSSL_PGP_GENERATE_MODULE        Optional nShield module number/name for generatekey module=
+  OPENSSL_PGP_SQ_PKCS11              sq-pkcs11 binary (default: looked up as "sq-pkcs11" on PATH)
+  OPENSSL_PGP_PRELOAD                preload path (default: /opt/nfast/bin/preload) — wraps
+                                     primary-key operations so the K/N OCS quorum ceremony
+                                     runs in preload's interactive UI and sq-pkcs11 inherits
+                                     the preloaded session
+  OPENSSL_PGP_PRELOAD_MODULE         nShield module preload pins to via -m (default: 1).
+                                     Avoids spurious LogTokenNotPresent errors on multi-
+                                     module hosts where one set of cards is shuttled
+                                     between readers.  Set to "" to load on all modules.
+  PKCS11_MODULE_PATH                 PKCS#11 module path (default: /opt/nfast/toolkits/pkcs11/libcknfast.so)
+  OPENSSL_PGP_CKLIST                 cklist path (default: /opt/nfast/bin/cklist)
+  OPENSSL_PGP_NFKMINFO               nfkminfo path (default: /opt/nfast/bin/nfkminfo)
+  OPENSSL_PGP_GENTIME_TZ             Timezone of nfkminfo gentime (default: UTC)
+
+This wrapper implements the OpenSSL release-artifacts key policy:
+  - generated OpenPGP keys are nShield PKCS#11 RSA-4096 keys
+  - generated keys are created with generatekey --generate --batch
+  - generated keys always include logkeyusage=yes for Security World audit logging
+  - primary key is generated protect=token under the configured 2-of-4 OCS
+  - signing subkeys are generated protect=module
+  - primary validity is fixed to 5y; signing subkey validity is fixed to 1y
+  - cert creation/signing timestamps are derived from nShield gentime
+  - per-key-use audit (key identity, timestamp, requester, result, error
+    condition) is captured by the nShield Security World audit log; keys
+    must be generated with logkeyusage=yes
+EOF
+}
+
+die() {
+    printf '%s: %s\n' "$PROG" "$*" >&2
+    exit 1
+}
+
+note() {
+    printf '%s\n' "$*" >&2
+}
+
+need_cmd() {
+    command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+repo_dir() {
+    cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd
+}
+
+load_config() {
+    if [[ -n "${OPENSSL_PGP_CONFIG:-}" ]]; then
+        [[ -r "$OPENSSL_PGP_CONFIG" ]] || die "cannot read OPENSSL_PGP_CONFIG=$OPENSSL_PGP_CONFIG"
+        # shellcheck source=/dev/null
+        . "$OPENSSL_PGP_CONFIG"
+    elif [[ -r "$(repo_dir)/openssl-pgp.conf" ]]; then
+        # shellcheck source=/dev/null
+        . "$(repo_dir)/openssl-pgp.conf"
+    fi
+}
+
+default_config() {
+    : "${PKCS11_MODULE_PATH:=/opt/nfast/toolkits/pkcs11/libcknfast.so}"
+    : "${OPENSSL_PGP_CERT:=release.asc}"
+    : "${OPENSSL_PGP_GENERATEKEY:=/opt/nfast/bin/generatekey}"
+    : "${OPENSSL_PGP_CKLIST:=/opt/nfast/bin/cklist}"
+    : "${OPENSSL_PGP_NFKMINFO:=/opt/nfast/bin/nfkminfo}"
+    : "${OPENSSL_PGP_GENTIME_TZ:=UTC}"
+    : "${OPENSSL_PGP_SQ_PKCS11:=sq-pkcs11}"
+    : "${OPENSSL_PGP_PRELOAD:=/opt/nfast/bin/preload}"
+}
+
+# Each command calls only the prerequisite checks it actually needs, so a
+# command never demands an env var it does not use (e.g. subkey-rotate does
+# not consume OPENSSL_PGP_CURRENT_SUBKEY_LABEL).
+
+require_pkcs11_module() {
+    [[ -n "${PKCS11_MODULE_PATH:-}" ]] || die "PKCS11_MODULE_PATH is required"
+    [[ -r "$PKCS11_MODULE_PATH" ]] || die "PKCS11_MODULE_PATH is not readable: $PKCS11_MODULE_PATH"
+}
+
+require_sq_pkcs11_binary() {
+    [[ -x "$OPENSSL_PGP_SQ_PKCS11" ]] || command -v "$OPENSSL_PGP_SQ_PKCS11" >/dev/null 2>&1 \
+        || die "sq-pkcs11 not found: $OPENSSL_PGP_SQ_PKCS11"
+}
+
+# preload wraps every sq-pkcs11 invocation that touches the primary key.
+# It runs the K/N OCS quorum ceremony interactively (slot polling,
+# per-card prompts) and exec()s sq-pkcs11 with the preloaded session
+# available to libcknfast — sq-pkcs11 then sees the OCS slot as
+# already-authenticated and calls C_Login with a NULL PIN (the PKCS#11
+# protected-authentication-path idiom) to flip the session into User
+# state.  Sign operations use module-protected subkeys and do not need
+# preload — only the four primary-key commands below.
+require_preload() {
+    [[ -x "$OPENSSL_PGP_PRELOAD" ]] || die "preload not executable: $OPENSSL_PGP_PRELOAD"
+}
+
+require_userid() {
+    [[ -n "${OPENSSL_PGP_USERID:-}" ]] || die "OPENSSL_PGP_USERID is required"
+}
+
+# Validate that the env var named by $1 is set AND that its value is a
+# CKA_LABEL present in the Security World.  Catches typos that
+# require-var-only checks would silently pass through.
+require_hsm_label() {
+    local var_name=$1
+    local label=${!var_name:-}
+    [[ -n "$label" ]] || die "$var_name is required"
+    [[ -x "$OPENSSL_PGP_CKLIST" ]] || die "cklist not executable: $OPENSSL_PGP_CKLIST"
+    if ! label_exists "$label"; then
+        die "$var_name=$label is not present in the Security World; run \"$OPENSSL_PGP_CKLIST -n --cka-label=$label\" to verify"
+    fi
+}
+
+require_primary_cardset() {
+    [[ -n "${OPENSSL_PGP_PRIMARY_CARDSET:-}" ]] \
+        || die "OPENSSL_PGP_PRIMARY_CARDSET is required to address the OCS slot for primary-key operations"
+}
+
+primary_key_uri() {
+    require_primary_cardset
+    printf 'pkcs11:token=%s;object=%s;type=private\n' \
+        "$OPENSSL_PGP_PRIMARY_CARDSET" "$OPENSSL_PGP_PRIMARY_LABEL"
+}
+
+# Confirm OPENSSL_PGP_PRIMARY_CARDSET names a real OCS in this Security World.
+# A typo or stale value can otherwise cause sq-pkcs11 to fail later, after
+# destructive HSM actions (e.g. subkey-rotate generating a fresh key).
+verify_primary_cardset_exists() {
+    require_primary_cardset
+    [[ -x "$OPENSSL_PGP_NFKMINFO" ]] || die "nfkminfo not executable: $OPENSSL_PGP_NFKMINFO"
+    local cardset=$OPENSSL_PGP_PRIMARY_CARDSET nfkm_out
+    if ! nfkm_out=$("$OPENSSL_PGP_NFKMINFO" --cardset-list 2>&1); then
+        die "could not list Security World cardsets: $nfkm_out"
+    fi
+    # nfkminfo --cardset-list emits two header lines, then one line per
+    # cardset: <hash>  k/n  flags  <name>.  Match the requested name as a
+    # whitespace-separated word from column 4 onwards so the hash column
+    # cannot collide with a name that happens to be hex.
+    if ! awk -v want="$cardset" '
+            NR <= 2 { next }
+            {
+                for (i = 4; i <= NF; i++)
+                    if ($i == want) { found = 1; exit }
+            }
+            END { exit found ? 0 : 1 }
+        ' <<<"$nfkm_out"; then
+        die "OPENSSL_PGP_PRIMARY_CARDSET=$cardset is not a known OCS in this Security World; run \"$OPENSSL_PGP_NFKMINFO --cardset-list\" to see available cardsets"
+    fi
+}
+
+require_nshield_metadata_tools() {
+    [[ -x "$OPENSSL_PGP_CKLIST" ]] || die "cklist not executable: $OPENSSL_PGP_CKLIST"
+    [[ -x "$OPENSSL_PGP_NFKMINFO" ]] || die "nfkminfo not executable: $OPENSSL_PGP_NFKMINFO"
+}
+
+require_generatekey() {
+    [[ -x "$OPENSSL_PGP_GENERATEKEY" ]] || die "generatekey not executable: $OPENSSL_PGP_GENERATEKEY"
+}
+
+sq() {
+    PKCS11_MODULE_PATH=$PKCS11_MODULE_PATH "$OPENSSL_PGP_SQ_PKCS11" "$@"
+}
+
+# sq() wrapped in preload — for primary-key operations (cert-init,
+# subkey-rotate, cert-revoke, subkey-revoke).  preload runs the OCS
+# quorum ceremony and exec()s sq-pkcs11 with the preloaded session
+# inherited via libcknfast; OPENSSL_PGP_PRIMARY_CARDSET names the OCS.
+# Subkey generation uses the plain sq() above — a signing subkey is
+# module-protected and needs no preload.
+#
+# OPENSSL_PGP_PRELOAD_MODULE pins preload to a single nShield module
+# (-m flag).  Default "1" — when the agent has more than one module and
+# operators shuttle cards between readers, preload would otherwise try
+# to load the keys into every module and trip LogTokenNotPresent on
+# whichever module lost its cards first.  Pinning to one module
+# sidesteps that.  Override with OPENSSL_PGP_PRELOAD_MODULE=N (or empty
+# string to use preload's default, all-modules behaviour).
+sq_with_preload() {
+    require_primary_cardset
+    # ${VAR-default} (no colon) defaults on unset only — preserves an
+    # explicit empty string so the operator can opt out of -m entirely.
+    local module=${OPENSSL_PGP_PRELOAD_MODULE-1}
+    local -a preload_args=()
+    [[ -n "$module" ]] && preload_args+=(-m "$module")
+    PKCS11_MODULE_PATH=$PKCS11_MODULE_PATH \
+        "$OPENSSL_PGP_PRELOAD" "${preload_args[@]}" -c "$OPENSSL_PGP_PRIMARY_CARDSET" -- \
+        "$OPENSSL_PGP_SQ_PKCS11" "$@"
+}
+
+cklist_for_label() {
+    local label=$1
+    "$OPENSSL_PGP_CKLIST" -n --cka-label="$label"
+}
+
+nfkm_ident_for_label() {
+    local label=$1 ident
+    ident=$(cklist_for_label "$label" | awk -F'"' '/CKA_NFKM_ID/ { print $2; exit }')
+    [[ -n "$ident" ]] || die "could not find CKA_NFKM_ID for label: $label"
+    printf '%s\n' "$ident"
+}
+
+label_exists() {
+    local label=$1
+    cklist_for_label "$label" 2>/dev/null \
+        | awk -F'"' '/CKA_NFKM_ID/ { found = 1 } END { exit found ? 0 : 1 }'
+}
+
+require_label_absent_for_generation() {
+    local label=$1
+    if label_exists "$label"; then
+        die "refusing to generate key; label already exists in Security World: $label"
+    fi
+}
+
+hsm_gentime() {
+    local label=$1 ident gentime
+    ident=$(nfkm_ident_for_label "$label")
+    gentime=$("$OPENSSL_PGP_NFKMINFO" -k pkcs11 "$ident" \
+        | awk '/^[ \t]*gentime/ { print $2 " " $3; exit }')
+    [[ -n "$gentime" ]] || die "could not find nfkminfo gentime for label: $label ident: $ident"
+
+    if [[ "$OPENSSL_PGP_GENTIME_TZ" == "UTC" ]]; then
+        printf '%sT%sZ\n' "${gentime%% *}" "${gentime##* }"
+    else
+        need_cmd date
+        date -u -d "TZ=\"$OPENSSL_PGP_GENTIME_TZ\" $gentime" +"%Y-%m-%dT%H:%M:%SZ"
+    fi
+}
+
+verify_rsa4096_label() {
+    local label=$1 out key_type bits hex
+    out=$(cklist_for_label "$label")
+
+    key_type=$(awk '
+        /CKA_KEY_TYPE/ {
+            if ($0 ~ /CKK_RSA|RSA/) { print "RSA"; exit }
+            print "NOT_RSA"; exit
+        }
+    ' <<<"$out")
+    [[ "$key_type" == "RSA" ]] || die "label $label is not reported as RSA by cklist"
+
+    bits=$(awk '
+        /CKA_MODULUS_BITS|CKA_MODULUS_BITS/ {
+            for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9]+$/) { print $i; exit }
+            }
+        }
+    ' <<<"$out")
+
+    if [[ -z "$bits" ]]; then
+        hex=$(awk '
+            /CKA_MODULUS/ {
+                line = $0
+                sub(/^.*CKA_MODULUS[^0-9A-Fa-f]*/, "", line)
+                gsub(/[^0-9A-Fa-f]/, "", line)
+                print line
+                exit
+            }
+        ' <<<"$out")
+        if [[ -n "$hex" ]]; then
+            bits=$(( ${#hex} * 4 ))
+        fi
+    fi
+
+    if [[ -z "$bits" ]]; then
+        if [[ "${OPENSSL_PGP_ALLOW_UNVERIFIED_KEY_ATTRS:-0}" == "1" ]]; then
+            note "warning: could not verify RSA modulus size for $label from cklist output"
+            return 0
+        fi
+        die "could not verify RSA-4096 modulus size for $label; set OPENSSL_PGP_ALLOW_UNVERIFIED_KEY_ATTRS=1 to override after manual verification"
+    fi
+
+    [[ "$bits" == "4096" ]] || die "label $label is RSA-$bits, policy requires RSA-4096"
+}
+
+require_cert_exists() {
+    local path=$1
+    [[ -r "$path" ]] || die "certificate not readable: $path"
+}
+
+require_output_absent() {
+    local path=$1
+    [[ ! -e "$path" ]] || die "refusing to overwrite existing file: $path"
+}
+
+generatekey_pkcs11() {
+    require_generatekey
+    note "running nShield generatekey in batch mode; ACS/OCS prompts may follow"
+    "$OPENSSL_PGP_GENERATEKEY" --generate --batch pkcs11 "$@"
+}
+
+append_generate_module_arg() {
+    local -n argv=$1
+    local module=${2:-}
+    if [[ -n "$module" ]]; then
+        argv+=("module=$module")
+    elif [[ -n "${OPENSSL_PGP_GENERATE_MODULE:-}" ]]; then
+        argv+=("module=$OPENSSL_PGP_GENERATE_MODULE")
+    fi
+}
+
+cmd_primary_generate() {
+    local label=${OPENSSL_PGP_PRIMARY_LABEL:-} cardset=${OPENSSL_PGP_PRIMARY_CARDSET:-} module=
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --label) label=${2:?missing value for --label}; shift 2 ;;
+            --cardset) cardset=${2:?missing value for --cardset}; shift 2 ;;
+            --module) module=${2:?missing value for --module}; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "unknown primary-generate argument: $1" ;;
+        esac
+    done
+    [[ -n "$label" ]] || die "primary-generate requires --label or OPENSSL_PGP_PRIMARY_LABEL"
+    [[ -n "$cardset" ]] || die "primary-generate requires --cardset or OPENSSL_PGP_PRIMARY_CARDSET"
+    require_generatekey
+    require_nshield_metadata_tools
+    # Validate that --cardset / OPENSSL_PGP_PRIMARY_CARDSET names a real OCS in
+    # this Security World *before* generatekey starts prompting for cards.
+    OPENSSL_PGP_PRIMARY_CARDSET=$cardset verify_primary_cardset_exists
+    require_label_absent_for_generation "$label"
+
+    local args=(
+        protect=token
+        "cardset=$cardset"
+        type=RSA
+        size=4096
+        "plainname=$label"
+        logkeyusage=yes
+    )
+    append_generate_module_arg args "$module"
+
+    generatekey_pkcs11 "${args[@]}"
+    verify_rsa4096_label "$label"
+    note "generated OCS-protected RSA-4096 primary key with logkeyusage=yes: $label"
+}
+
+cmd_subkey_generate() {
+    local label=${OPENSSL_PGP_CURRENT_SUBKEY_LABEL:-} module=
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --label) label=${2:?missing value for --label}; shift 2 ;;
+            --module) module=${2:?missing value for --module}; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "unknown subkey-generate argument: $1" ;;
+        esac
+    done
+    [[ -n "$label" ]] || die "subkey-generate requires --label or OPENSSL_PGP_CURRENT_SUBKEY_LABEL"
+    require_generatekey
+    require_nshield_metadata_tools
+    require_label_absent_for_generation "$label"
+
+    local args=(
+        protect=module
+        type=RSA
+        size=4096
+        "plainname=$label"
+        logkeyusage=yes
+    )
+    append_generate_module_arg args "$module"
+
+    generatekey_pkcs11 "${args[@]}"
+    verify_rsa4096_label "$label"
+    note "generated module-protected RSA-4096 signing subkey with logkeyusage=yes: $label"
+}
+
+cmd_cert_init() {
+    local output=$OPENSSL_PGP_CERT revocation_output='' generate_keys=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --generate-keys) generate_keys=1; shift ;;
+            --output) output=${2:?missing value for --output}; shift 2 ;;
+            --revocation-output) revocation_output=${2:?missing value for --revocation-output}; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "unknown cert-init argument: $1" ;;
+        esac
+    done
+    [[ -n "$revocation_output" ]] || revocation_output="${output%.asc}-primary-revocation.asc"
+    # Validate every prerequisite before any destructive HSM action.  cert-init
+    # uses both labels and the cardset (to generate when --generate-keys is set,
+    # and to address them via the PKCS#11 URI when calling sq cert-export /
+    # sq cert-revoke).  The label-existence check is gated on --generate-keys:
+    # in generate mode the labels must NOT exist yet (asserted inside the
+    # cmd_*_generate calls), otherwise they MUST already exist.
+    require_pkcs11_module
+    require_sq_pkcs11_binary
+    require_preload
+    require_nshield_metadata_tools
+    require_userid
+    [[ -n "${OPENSSL_PGP_PRIMARY_LABEL:-}" ]] || die "OPENSSL_PGP_PRIMARY_LABEL is required"
+    [[ -n "${OPENSSL_PGP_CURRENT_SUBKEY_LABEL:-}" ]] || die "OPENSSL_PGP_CURRENT_SUBKEY_LABEL is required"
+    verify_primary_cardset_exists
+    require_output_absent "$output"
+    require_output_absent "$revocation_output"
+    if [[ "$generate_keys" == "1" ]]; then
+        require_generatekey
+        cmd_primary_generate \
+            --label "$OPENSSL_PGP_PRIMARY_LABEL" \
+            --cardset "$OPENSSL_PGP_PRIMARY_CARDSET"
+        cmd_subkey_generate \
+            --label "$OPENSSL_PGP_CURRENT_SUBKEY_LABEL"
+    else
+        label_exists "$OPENSSL_PGP_PRIMARY_LABEL" \
+            || die "OPENSSL_PGP_PRIMARY_LABEL=$OPENSSL_PGP_PRIMARY_LABEL is not present in the Security World; pass --generate-keys to create it"
+        label_exists "$OPENSSL_PGP_CURRENT_SUBKEY_LABEL" \
+            || die "OPENSSL_PGP_CURRENT_SUBKEY_LABEL=$OPENSSL_PGP_CURRENT_SUBKEY_LABEL is not present in the Security World; pass --generate-keys to create it"
+    fi
+    verify_rsa4096_label "$OPENSSL_PGP_PRIMARY_LABEL"
+    verify_rsa4096_label "$OPENSSL_PGP_CURRENT_SUBKEY_LABEL"
+
+    local primary_created subkey_created
+    primary_created=$(hsm_gentime "$OPENSSL_PGP_PRIMARY_LABEL")
+    subkey_created=$(hsm_gentime "$OPENSSL_PGP_CURRENT_SUBKEY_LABEL")
+
+    local primary_uri
+    primary_uri=$(primary_key_uri)
+
+    sq_with_preload cert-export \
+        --key-uri "$primary_uri" \
+        --subkey-label "$OPENSSL_PGP_CURRENT_SUBKEY_LABEL" \
+        --userid "$OPENSSL_PGP_USERID" \
+        --creation-time "$primary_created" \
+        --validity-period 5y \
+        --subkey-creation-time "$subkey_created" \
+        --subkey-validity-period 1y \
+        --output "$output"
+
+    sq_with_preload cert-revoke \
+        --key-uri "$primary_uri" \
+        --creation-time "$primary_created" \
+        --reason compromised \
+        --message "offline primary-key revocation certificate generated during cert-init" \
+        --output "$revocation_output"
+
+    note "certificate written: $output"
+    note "offline primary revocation written: $revocation_output"
+}
+
+cmd_subkey_rotate() {
+    local input=$OPENSSL_PGP_CERT output='' new_label='' generate_subkey=0
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --new-subkey-label) new_label=${2:?missing value for --new-subkey-label}; shift 2 ;;
+            --generate-subkey) generate_subkey=1; shift ;;
+            --input-cert) input=${2:?missing value for --input-cert}; shift 2 ;;
+            --output) output=${2:?missing value for --output}; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "unknown subkey-rotate argument: $1" ;;
+        esac
+    done
+    [[ -n "$new_label" ]] || die "subkey-rotate requires --new-subkey-label"
+    [[ -n "$output" ]] || output="${input%.asc}-rotated.asc"
+    # Validate every prerequisite before any destructive HSM action so a missing
+    # or wrong env var cannot leave a half-rotated state (e.g. a freshly
+    # generated subkey with no cert binding it).  Note: subkey-rotate does NOT
+    # consume OPENSSL_PGP_CURRENT_SUBKEY_LABEL — the existing subkey is read
+    # from the input cert and the new one comes from --new-subkey-label.
+    require_pkcs11_module
+    require_sq_pkcs11_binary
+    require_preload
+    require_nshield_metadata_tools
+    require_hsm_label OPENSSL_PGP_PRIMARY_LABEL
+    verify_primary_cardset_exists
+    require_cert_exists "$input"
+    require_output_absent "$output"
+    verify_rsa4096_label "$OPENSSL_PGP_PRIMARY_LABEL"
+    if [[ "$generate_subkey" == "1" ]]; then
+        cmd_subkey_generate --label "$new_label"
+    else
+        label_exists "$new_label" || die "--new-subkey-label $new_label is not a key in the Security World; pass --generate-subkey to generate one, or run \"$OPENSSL_PGP_CKLIST -n --cka-label=$new_label\" to confirm the label"
+    fi
+    verify_rsa4096_label "$new_label"
+
+    local primary_created subkey_created
+    primary_created=$(hsm_gentime "$OPENSSL_PGP_PRIMARY_LABEL")
+    subkey_created=$(hsm_gentime "$new_label")
+
+    local primary_uri
+    primary_uri=$(primary_key_uri)
+
+    sq_with_preload cert-export \
+        --merge-cert "$input" \
+        --key-uri "$primary_uri" \
+        --subkey-label "$new_label" \
+        --creation-time "$primary_created" \
+        --subkey-creation-time "$subkey_created" \
+        --subkey-validity-period 1y \
+        --output "$output"
+
+    note "rotated certificate written: $output"
+    note "update OPENSSL_PGP_CURRENT_SUBKEY_LABEL after publication and cutover"
+}
+
+cmd_cert_revoke() {
+    local output="${OPENSSL_PGP_CERT%.asc}-primary-revocation.asc" reason=compromised message="primary key suspected compromised"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --output) output=${2:?missing value for --output}; shift 2 ;;
+            --reason) reason=${2:?missing value for --reason}; shift 2 ;;
+            --message) message=${2:?missing value for --message}; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "unknown cert-revoke argument: $1" ;;
+        esac
+    done
+    # cert-revoke uses only the primary key + OCS; no UID, no subkey label.
+    require_pkcs11_module
+    require_sq_pkcs11_binary
+    require_preload
+    require_nshield_metadata_tools
+    require_hsm_label OPENSSL_PGP_PRIMARY_LABEL
+    verify_primary_cardset_exists
+    require_output_absent "$output"
+    verify_rsa4096_label "$OPENSSL_PGP_PRIMARY_LABEL"
+    local primary_created
+    primary_created=$(hsm_gentime "$OPENSSL_PGP_PRIMARY_LABEL")
+
+    local primary_uri
+    primary_uri=$(primary_key_uri)
+
+    sq_with_preload cert-revoke \
+        --key-uri "$primary_uri" \
+        --creation-time "$primary_created" \
+        --reason "$reason" \
+        --message "$message" \
+        --output "$output"
+    note "primary revocation written: $output"
+}
+
+cmd_subkey_revoke() {
+    # subkey-revoke now identifies the subkey by fingerprint inside the
+    # published cert (--input-cert + --subkey-fingerprint), so a
+    # compromised or deleted subkey can still be revoked using only the
+    # primary OCS-protected key.  No HSM access for the subkey itself.
+    local input=$OPENSSL_PGP_CERT
+    local fingerprint='' output='' reason=compromised message="signing subkey suspected compromised"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --subkey-fingerprint) fingerprint=${2:?missing value for --subkey-fingerprint}; shift 2 ;;
+            --input-cert) input=${2:?missing value for --input-cert}; shift 2 ;;
+            --output) output=${2:?missing value for --output}; shift 2 ;;
+            --reason) reason=${2:?missing value for --reason}; shift 2 ;;
+            --message) message=${2:?missing value for --message}; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) die "unknown subkey-revoke argument: $1" ;;
+        esac
+    done
+    [[ -n "$fingerprint" ]] || die "subkey-revoke requires --subkey-fingerprint (look it up in the published cert with \`sq inspect\` or \`gpg --list-keys --with-subkey-fingerprint\`)"
+    require_pkcs11_module
+    require_sq_pkcs11_binary
+    require_preload
+    require_nshield_metadata_tools
+    require_hsm_label OPENSSL_PGP_PRIMARY_LABEL
+    verify_primary_cardset_exists
+    require_cert_exists "$input"
+    [[ -n "$output" ]] || output="${input%.asc}-subkey-revocation.asc"
+    require_output_absent "$output"
+    verify_rsa4096_label "$OPENSSL_PGP_PRIMARY_LABEL"
+
+    local primary_created
+    primary_created=$(hsm_gentime "$OPENSSL_PGP_PRIMARY_LABEL")
+
+    local primary_uri
+    primary_uri=$(primary_key_uri)
+
+    sq_with_preload subkey-revoke \
+        --key-uri "$primary_uri" \
+        --input-cert "$input" \
+        --subkey-fingerprint "$fingerprint" \
+        --creation-time "$primary_created" \
+        --reason "$reason" \
+        --message "$message" \
+        --output "$output"
+    note "subkey revocation written: $output"
+}
+
+main() {
+    load_config
+    default_config
+    local cmd=${1:-}
+    [[ -n "$cmd" ]] || { usage; exit 2; }
+    shift
+
+    # Each cmd_* function validates its own preconditions at the top, so main
+    # only dispatches.  -h / --help short-circuits before any validation runs
+    # because the command's arg loop handles -h before reaching its
+    # require_* / verify_* calls.
+    case "$cmd" in
+        -h|--help|help) usage ;;
+        primary-generate|subkey-generate|cert-init|subkey-rotate|cert-revoke|subkey-revoke)
+            "cmd_${cmd//-/_}" "$@"
+            ;;
+        *) die "unknown command: $cmd" ;;
+    esac
+}
+
+main "$@"
