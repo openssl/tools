@@ -134,3 +134,9 @@ class ModernScheme(Scheme):
 
     def next_minor(self, state: ReleaseState) -> ReleaseState:
         return replace(state, minor=state.minor + 1, patch=0)
+
+    def next_major(self, state: ReleaseState) -> ReleaseState:
+        # The shared library version follows MAJOR: a major release is the
+        # one place the ABI is allowed to break.
+        major = state.major + 1
+        return replace(state, major=major, minor=0, patch=0, shlib_version=str(major))

@@ -250,6 +250,117 @@ def test_postrelease_falls_back_to_the_heading_when_no_previous_release_given():
     assert "### Changes between 3.1 and 3.2 [xx XXX xxxx]\n" in result
 
 
+SERIES_CHANGES_MD = (
+    "OpenSSL Releases\n"
+    "----------------\n"
+    "\n"
+    " - [OpenSSL 3.6](#openssl-36)\n"
+    " - [OpenSSL 3.5](#openssl-35)\n"
+    "\n"
+    "OpenSSL 3.6\n"
+    "-----------\n"
+    "\n"
+    "### Changes between 3.5 and 3.6 [xx XXX xxxx]\n"
+    "\n"
+    " * Something.\n"
+)
+
+SERIES_NEWS_MD = (
+    "OpenSSL Releases\n"
+    "----------------\n"
+    "\n"
+    " - [OpenSSL 3.6](#openssl-36)\n"
+    " - [OpenSSL 3.5](#openssl-35)\n"
+    "\n"
+    "OpenSSL 3.6\n"
+    "-----------\n"
+    "\n"
+    "### Major changes between OpenSSL 3.5 and OpenSSL 3.6 [under development]\n"
+    "\n"
+    "  * Something.\n"
+)
+
+NEW_SERIES = FixupContext(release="4.0.0-dev", release_text="4.0", opens_series=True)
+
+
+def test_changes_md_opening_a_series_adds_a_section_above_the_latest():
+    # The text openssl/openssl#28423 wrote by hand when master became 4.0.
+    assert changes_md_postrelease(SERIES_CHANGES_MD, NEW_SERIES) == (
+        "OpenSSL Releases\n"
+        "----------------\n"
+        "\n"
+        " - [OpenSSL 4.0](#openssl-40)\n"
+        " - [OpenSSL 3.6](#openssl-36)\n"
+        " - [OpenSSL 3.5](#openssl-35)\n"
+        "\n"
+        "OpenSSL 4.0\n"
+        "-----------\n"
+        "\n"
+        "### Changes between 3.6 and 4.0 [xx XXX xxxx]\n"
+        "\n"
+        " * none yet\n"
+        "\n"
+        "OpenSSL 3.6\n"
+        "-----------\n"
+        "\n"
+        "### Changes between 3.5 and 3.6 [xx XXX xxxx]\n"
+        "\n"
+        " * Something.\n"
+    )
+
+
+def test_news_md_opening_a_series_adds_a_section_above_the_latest():
+    assert news_md_postrelease(SERIES_NEWS_MD, NEW_SERIES) == (
+        "OpenSSL Releases\n"
+        "----------------\n"
+        "\n"
+        " - [OpenSSL 4.0](#openssl-40)\n"
+        " - [OpenSSL 3.6](#openssl-36)\n"
+        " - [OpenSSL 3.5](#openssl-35)\n"
+        "\n"
+        "OpenSSL 4.0\n"
+        "-----------\n"
+        "\n"
+        "### Major changes between OpenSSL 3.6 and OpenSSL 4.0 [under development]\n"
+        "\n"
+        "  * none\n"
+        "\n"
+        "OpenSSL 3.6\n"
+        "-----------\n"
+        "\n"
+        "### Major changes between OpenSSL 3.5 and OpenSSL 3.6 [under development]\n"
+        "\n"
+        "  * Something.\n"
+    )
+
+
+def test_opening_a_series_tolerates_a_heading_without_its_underline():
+    # master's CHANGES.md has had one: the heading line alone is the anchor.
+    text = SERIES_CHANGES_MD.replace("OpenSSL 3.6\n-----------\n", "OpenSSL 3.6\n")
+
+    assert changes_md_postrelease(text, NEW_SERIES) == (
+        "OpenSSL Releases\n"
+        "----------------\n"
+        "\n"
+        " - [OpenSSL 4.0](#openssl-40)\n"
+        " - [OpenSSL 3.6](#openssl-36)\n"
+        " - [OpenSSL 3.5](#openssl-35)\n"
+        "\n"
+        "OpenSSL 4.0\n"
+        "-----------\n"
+        "\n"
+        "### Changes between 3.6 and 4.0 [xx XXX xxxx]\n"
+        "\n"
+        " * none yet\n"
+        "\n"
+        "OpenSSL 3.6\n"
+        "\n"
+        "### Changes between 3.5 and 3.6 [xx XXX xxxx]\n"
+        "\n"
+        " * Something.\n"
+    )
+
+
 # -- general behaviour ------------------------------------------------------
 
 
@@ -258,6 +369,8 @@ def test_a_file_with_no_matching_heading_is_untouched():
 
     for fixup in (changes_md_release, news_md_release, changes_md_postrelease):
         assert fixup(original, FixupContext(release="3.2.0")) == original
+    for fixup in (changes_md_postrelease, news_md_postrelease):
+        assert fixup(original, NEW_SERIES) == original
 
 
 def test_form_feeds_survive():

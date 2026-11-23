@@ -196,6 +196,13 @@ def test_minor_steps_the_version_even_from_a_released_state(modern):
     assert modern.full_version(state) == "3.3.0-dev"
 
 
+def test_major_is_allowed_from_any_phase(modern):
+    for tag in ("", "dev", "alpha1-dev", "beta2-dev"):
+        state = next_release_state(modern, state_with(modern, tag), "major", TODAY)
+        assert modern.full_version(state) == "4.0.0-dev"
+        assert state.shlib_version == "4"
+
+
 def test_an_unknown_method_is_a_programming_error(modern):
     with pytest.raises(ValueError, match="unknown next method"):
         next_release_state(modern, state_with(modern, "dev"), "gamma", TODAY)

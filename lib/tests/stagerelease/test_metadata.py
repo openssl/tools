@@ -50,6 +50,32 @@ def test_omits_the_release_branch_when_none_was_created():
     assert metadata.render().startswith("update_branch='openssl-3.2'\n")
 
 
+def test_lists_the_dev_start_tag_after_the_release_tag():
+    metadata = Metadata(
+        update_branch="master",
+        release_branch="openssl-3.2",
+        release_tag="openssl-3.2.0-alpha1",
+        dev_start_tag="3.3-dev-start",
+        release_files=FILES,
+        source_repo="x",
+    )
+
+    assert "release_tag='openssl-3.2.0-alpha1'\ndev_start_tag='3.3-dev-start'\n" in (
+        metadata.render()
+    )
+
+
+def test_omits_the_dev_start_tag_when_none_was_created():
+    metadata = Metadata(
+        update_branch="openssl-3.2",
+        release_tag="openssl-3.2.1",
+        release_files=FILES,
+        source_repo="x",
+    )
+
+    assert "dev_start_tag" not in metadata.render()
+
+
 def test_the_metadata_file_does_not_list_itself():
     metadata = Metadata(
         update_branch="master",

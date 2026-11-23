@@ -24,12 +24,17 @@ class Metadata:
     source_repo: str
     #: Only set when a new release branch was created for this release.
     release_branch: str | None = None
+    #: Only set when a new release branch was created: the tag on the update
+    #: branch marking where the next series' development starts.
+    dev_start_tag: str | None = None
 
     def render(self) -> str:
         lines = [f"update_branch='{self.update_branch}'"]
         if self.release_branch:
             lines.append(f"release_branch='{self.release_branch}'")
         lines.append(f"release_tag='{self.release_tag}'")
+        if self.dev_start_tag:
+            lines.append(f"dev_start_tag='{self.dev_start_tag}'")
         lines.append("release_files='{}'".format(" ".join(self.release_files)))
         lines.append(f"source_repo='{self.source_repo}'")
         return "".join(f"{line}\n" for line in lines)

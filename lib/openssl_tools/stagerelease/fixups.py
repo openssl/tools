@@ -43,6 +43,10 @@ _NEWS_MD_RE = re.compile(
     r"^### Major changes between OpenSSL (\S+) and OpenSSL (\S+) \[under development\]"
 )
 _README_RE = re.compile(r"^ OpenSSL.*$")
+#: ' - [OpenSSL 3.6](#openssl-36)', an entry in the .md files' release list.
+_RELEASE_LIST_RE = re.compile(r"^ - \[OpenSSL [^]]+\]\(#openssl-[^)]+\)$")
+#: 'OpenSSL 3.6', the heading over one series' entries in the .md files.
+_SERIES_HEADING_RE = re.compile(r"^OpenSSL (\d+\.\d+)$")
 _SPEC_RE = re.compile(r"^Version:\s+(\S+)$")
 
 
@@ -55,6 +59,10 @@ class FixupContext:
     release_date: str = ""
     prev_release_text: str = ""
     prev_release_date: str = ""
+    #: Set for the commit moving master on to a new series: the .md files
+    #: then get a new series section rather than a new entry in the current
+    #: one.  `release_text` is the new series, e.g. '3.7'.
+    opens_series: bool = False
 
     @property
     def is_pre_release(self) -> bool:
@@ -177,7 +185,40 @@ def changes_postrelease(text: str, ctx: FixupContext) -> str:
     return _edit_first_match(text, _CHANGES_RE, build)
 
 
+def _open_series(text: str, series: str, entry: Callable[[str], str]) -> str:
+    """Add a section for `series` above the latest one in a .md file.
+
+    Two insertions: an entry at the top of the release list, and a heading
+    plus `entry(previous_series)` above the latest series' heading.  The
+    latest series' own entries are left exactly as they were.
+    """
+    heading = f"OpenSSL {series}"
+    anchor = "#openssl-" + series.replace(".", "")
+    lines = split_lines(text)
+    for index, line in enumerate(lines):
+        if _RELEASE_LIST_RE.match(line):
+            lines.insert(index, f" - [{heading}]({anchor})\n")
+            break
+    for index, line in enumerate(lines):
+        match = _SERIES_HEADING_RE.match(line)
+        if match:
+            lines.insert(index, f"{heading}\n{'-' * len(heading)}\n\n{entry(match[1])}\n")
+            break
+    return "".join(lines)
+
+
 def changes_md_postrelease(text: str, ctx: FixupContext) -> str:
+    if ctx.opens_series:
+        return _open_series(
+            text,
+            ctx.release_text,
+            lambda previous: (
+                f"### Changes between {previous} and {ctx.release_text} [xx XXX xxxx]\n"
+                f"\n"
+                f" * none yet\n"
+            ),
+        )
+
     previous_date = ctx.prev_release_date or "xx XXX xxxx"
 
     def build(m: re.Match[str], post: str) -> str | None:
@@ -217,6 +258,18 @@ def news_postrelease(text: str, ctx: FixupContext) -> str:
 
 
 def news_md_postrelease(text: str, ctx: FixupContext) -> str:
+    if ctx.opens_series:
+        return _open_series(
+            text,
+            ctx.release_text,
+            lambda previous: (
+                f"### Major changes between OpenSSL {previous} and OpenSSL"
+                f" {ctx.release_text} [under development]\n"
+                f"\n"
+                f"  * none\n"
+            ),
+        )
+
     previous_date = ctx.prev_release_date or "under development"
 
     def build(m: re.Match[str], post: str) -> str | None:

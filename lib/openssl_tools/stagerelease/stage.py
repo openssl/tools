@@ -12,8 +12,9 @@ The run produces, in the current worktree:
   * a `make update` commit, if anything needed updating
   * a release commit and an annotated (never signed) tag
   * a post-release commit returning the branch to development
-  * when releasing from master at PATCH == 0, a new release branch, and a
-    further commit moving master on to the next minor version
+  * when releasing from master at PATCH == 0, a new release branch, a
+    further commit moving master on to the next minor (or major) version,
+    and a `<series>-dev-start` tag on that commit
 
 and, in the worktree's parent directory, the tarball, its checksums, and a
 metadata file describing what was staged.
@@ -53,6 +54,9 @@ class StageOptions:
     #: The state to leave the branch in afterwards.  Differs from
     #: `next_method` only for --alpha --next-beta.
     next_method2: str = ""
+    #: Move master on to the next major version rather than the next minor
+    #: one.  Only meaningful when a release branch is created.
+    next_major: bool = False
     reviewers: tuple[str, ...] = ()
 
 
@@ -66,6 +70,9 @@ class StageResult:
     update_branch: str
     release_branch: str
     created_release_branch: bool
+    #: The tag marking where development of the next series starts on the
+    #: update branch; only set when a release branch was created.
+    dev_start_tag: str | None
     artifacts: Artifacts
     metadata_path: Path
     orig_head: str
@@ -195,6 +202,12 @@ def stage_release(
     if not created_release_branch:
         release_branch = update_branch
 
+    if options.next_major and not created_release_branch:
+        raise ReleaseError(
+            "--next-major only applies when a new release branch is created",
+            "That is a release from master at PATCH == 0.",
+        )
+
     # -- decide the release ------------------------------------------------
 
     release_state = next_release_state(scheme, state, options.next_method, today)
@@ -280,16 +293,6 @@ def stage_release(
     reporter.echo(f"== Making tarfile: {tar_name}.gz")
     artifacts = make_artifacts(runner, root, tar_name)
 
-    metadata_path = root.parent / f"openssl-{release}.dat"
-    reporter.echo(f"== Generating metadata file: {metadata_path.name}")
-    Metadata(
-        update_branch=orig_branch,
-        release_branch=scheme.branch_name(state) if created_release_branch else None,
-        release_tag=release_tag,
-        release_files=artifacts.names(),
-        source_repo=orig_remote_url,
-    ).write(metadata_path)
-
     # -- the post-release commit --------------------------------------------
 
     # Put every tracked file back to its pre-release contents without
@@ -328,35 +331,53 @@ def stage_release(
     git.commit(f"Prepare for {post_text}\n\nRelease: yes")
     reviewers.credit(git, reviewer_tags)
 
-    # -- move the update branch on to the next minor version ----------------
+    # -- move the update branch on to the next series -----------------------
 
+    dev_start_tag = None
     if created_release_branch:
         reporter.echo(f"== Going back to the update branch {update_branch}")
         git.checkout_branch(update_branch)
 
         update_state = scheme.parse(git.blob_at_head(scheme.version_file))
-        minor_state = next_release_state(scheme, update_state, "minor", today)
-        write_version(scheme, root, minor_state)
+        series_method = "major" if options.next_major else "minor"
+        series_state = next_release_state(scheme, update_state, series_method, today)
+        write_version(scheme, root, series_state)
 
-        minor_release = scheme.full_version(minor_state)
-        minor_text = f"{scheme.series(minor_state)}{minor_state.marked_build_metadata}"
-        reporter.echo(f"== Updated version information to {minor_release}")
+        series_release = scheme.full_version(series_state)
+        series = scheme.series(series_state)
+        series_text = f"{series}{series_state.marked_build_metadata}"
+        reporter.echo(f"== Updated version information to {series_release}")
 
-        reporter.echo(f"== Updating files for {minor_release} :")
+        reporter.echo(f"== Updating files for {series_release} :")
         apply_fixups(
             root,
             scheme,
             POSTRELEASE,
-            # No previous release is named here, so the fixups fall back to
-            # their placeholder text.
-            FixupContext(release=minor_release, release_text=minor_text),
+            FixupContext(release=series_release, release_text=series, opens_series=True),
             reporter,
         )
 
         reporter.echo("== Committing updates")
         git.add_update()
-        git.commit(f"Prepare for {minor_text}\n\nRelease: yes")
+        git.commit(f"Prepare for {series_text}\n\nRelease: yes")
         reviewers.credit(git, reviewer_tags)
+
+        # Tagged after the reviewers are credited: crediting rewrites the
+        # commit, and the tag has to name the one that gets pushed.
+        dev_start_tag = f"{series}-dev-start"
+        reporter.echo(f"== Marking the start of {series} development with tag {dev_start_tag}")
+        git.tag(dev_start_tag, f"Start of OpenSSL {series} development")
+
+    metadata_path = root.parent / f"openssl-{release}.dat"
+    reporter.echo(f"== Generating metadata file: {metadata_path.name}")
+    Metadata(
+        update_branch=orig_branch,
+        release_branch=scheme.branch_name(state) if created_release_branch else None,
+        release_tag=release_tag,
+        dev_start_tag=dev_start_tag,
+        release_files=artifacts.names(),
+        source_repo=orig_remote_url,
+    ).write(metadata_path)
 
     reporter.echo("== Done")
 
@@ -367,6 +388,7 @@ def stage_release(
         update_branch=update_branch,
         release_branch=release_branch,
         created_release_branch=created_release_branch,
+        dev_start_tag=dev_start_tag,
         artifacts=artifacts,
         metadata_path=metadata_path,
         orig_head=orig_head,

@@ -168,3 +168,6 @@ class LegacyScheme(Scheme):
     def next_minor(self, state: ReleaseState) -> ReleaseState:
         # A minor release steps FIX and restarts the patch letters.
         return replace(state, fix=(state.fix or 0) + 1, patch="")
+
+    def next_major(self, state: ReleaseState) -> ReleaseState:
+        raise ReleaseError("The 1.x versioning scheme has no major-version step")

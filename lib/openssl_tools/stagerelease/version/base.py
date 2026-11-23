@@ -26,7 +26,7 @@ from dataclasses import dataclass, replace
 Patch = int | str
 
 #: The transitions `bump()` understands, matching the shell's fixup_version().
-BUMP_KINDS = ("alpha", "beta", "final", "minor", "")
+BUMP_KINDS = ("alpha", "beta", "final", "minor", "major", "")
 
 
 @dataclass(frozen=True)
@@ -148,6 +148,10 @@ class Scheme(abc.ABC):
     def next_minor(self, state: ReleaseState) -> ReleaseState:
         """Move `state` on to the next minor version, resetting the patch."""
 
+    @abc.abstractmethod
+    def next_major(self, state: ReleaseState) -> ReleaseState:
+        """Move `state` on to the next major version, resetting the rest."""
+
     def bump(self, state: ReleaseState, kind: str) -> ReleaseState:
         """The shell's fixup_version().
 
@@ -165,9 +169,9 @@ class Scheme(abc.ABC):
                 return replace(state, pre_num=(state.pre_num or 0) + 1)
             return state
 
-        if kind == "minor":
+        if kind in ("minor", "major"):
             if state.dev:
-                state = self.next_minor(state)
+                state = self.next_minor(state) if kind == "minor" else self.next_major(state)
             return replace(state, pre_label="", pre_num=0)
 
         # 'final' and '' behave identically: leave any pre-release series and
