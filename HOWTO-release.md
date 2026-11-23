@@ -20,7 +20,7 @@ the addresses and an operator following this document does not need them.
 - [After the pipeline](#after-the-pipeline)
 - [Security releases](#security-releases)
 - [Post-release tasks](#post-release-tasks)
-- [Doing it by hand](#doing-it-by-hand)
+- [Staging locally](#staging-locally)
 - [Known failure modes](#known-failure-modes)
 
 ## How releases actually happen
@@ -73,8 +73,9 @@ You do **not** need a copy of the release signing key.  It lives in an HSM
 and is only reachable from the signing agent; nothing you run locally signs
 release artifacts.
 
-To reproduce a release locally, or to run the manual fallback, you need
-Python 3.10 or later and nothing else.
+To stage a release locally you need Python 3.10 or later (standard library
+only), plus Perl and `make`, because `stage-release` runs `./Configure` and
+`make update`.
 
 ## Before the release
 
@@ -165,10 +166,10 @@ module.  Signing happens right after staging, before the review pull
 requests are opened, in a dedicated pipeline stage pinned to the one agent
 with HSM access.  Only two files go to that agent, as a Jenkins stash: the
 unsigned tag object (`git cat-file tag`) and the tarball.  It signs both with
-`sq-pkcs11`, and only the signed tag object and the tarball's detached `.asc`
-come back.  The pipeline then writes the signed tag object into the
-repository and points the tag at it, so the tag keeps the tagger line that
-`stage-release` wrote.
+[`sq-pkcs11`](https://github.com/openssl/sq-pkcs11), and only the signed
+tag object and the tarball's detached `.asc` come back.  The pipeline then writes
+the signed tag object into the repository and points the tag at it, so the tag
+keeps the tagger line that `stage-release` wrote.
 
 The certificate is two-tier: a Certify-only primary key protected by an
 operator card quorum, and a module-protected signing subkey used unattended.
@@ -246,9 +247,7 @@ A security release is made the same way as any other, with the
 `make-security-release` pipeline from the embargoed security repository.
 
 Everything else about the security issues themselves is the Security
-Response Team's responsibility and is covered by its own documentation, not
-here: the advisories, including their records in `release-metadata`, the
-CVEs, pre-notification and the embargo.
+Response Team's responsibility.
 
 ## Post-release tasks
 
@@ -269,10 +268,15 @@ for the released version **and every later branch**.
 Watch the mailing lists for the next few hours.  Fix what comes up, and in
 the worst case make another release.
 
-## Doing it by hand
+## Staging locally
 
-The manual path exists for when automation fails or for a release the
-pipelines are not set up for.  It is the same tool, run directly:
+There is no manual path to a published release.  The release tag must be
+signed with the HSM-held key, which happens in the pipeline's signing stage,
+and the pre-receive hook rejects a release tag that is not signed with it.
+
+Staging a release on your own machine is still useful as a rehearsal: to see
+what `stage-release` will do to a branch before running the pipeline, or to
+investigate a pipeline failure.  It is the same tool the pipeline runs:
 
     git clone <tools-repo> tools          # referred to below as $TOOLS
     git clone <source-repo> openssl
@@ -284,9 +288,11 @@ Staging several releases from one repository is easiest with worktrees:
 
     git worktree add ../openssl-3.5 openssl-3.5
 
-Then check the result before pushing anything: read the commits it made,
-read the `.dat` file, and confirm the tag points at the release commit.  The
-tag is unsigned at this point and must be signed on the signing agent before
-it is pushed, because the pre-receive hook rejects unsigned release tags.
+Then read the commits it made, read the `.dat` file, and confirm the tag
+points at the release commit.
 
-**Do not push** until the review and signing steps have happened.
+**Never push the result.**  The tag is unsigned and the commits have not been
+reviewed.  If the pipeline failed, fix the cause and run the pipeline again;
+a `dry_run` run is a cheap way to check the fix, with the caveat about
+pre-receive hooks described under
+[How releases actually happen](#how-releases-actually-happen).
