@@ -40,14 +40,18 @@ Every pipeline follows the same shape:
 2. Run `release-tools/stage-release` inside the source worktree.  This makes
    the release commits, an annotated tag, the tarball and its checksums.
 3. Resolve the tag and version once, and derive the staging branch names.
-4. Push staging branches and open a pull request.
-5. Poll until the PR has **two approving reviews**.
-6. Sign the tag and the tarball on the signing agent, which is the only
+4. Sign the tag and the tarball on the signing agent, which is the only
    machine with HSM access.
-7. Push the release branches and the signed tag to the source repository.
-8. Trigger the mirror job that syncs the internal repository to the public
-   one.
-9. Create a **draft** GitHub release with the signed artifacts attached.
+5. Archive the tarball, its signature, its checksums and the `.dat` file as
+   build artifacts.
+6. Push staging branches and open a pull request for each.
+7. Poll until each PR has **two approving reviews**.
+8. Push the release branches and the signed tag to the source repository.
+   The extended pipeline pushes to `extended-releases` first and then to
+   `premium`.
+9. For public and security releases, trigger the mirror job that syncs the
+   internal repository to the public one.
+10. Create a **draft** GitHub release with the signed artifacts attached.
 
 Two parameters matter on every pipeline:
 
@@ -123,8 +127,8 @@ the release — bullet points only, leave the date as **under development**.
 ## Running the release
 
 Run the pipeline for the release type you are making.  The parameters are
-the release branch, the reviewers, and whether this is an alpha, beta or
-final release.
+the release branch and the two reviewers; `make-release` also asks whether
+this is an alpha, beta or final release.
 
 The pipeline will stop and wait at the review gate.  Two approvals are
 required, and the pipeline polls for them; it does not proceed on one.
@@ -157,9 +161,14 @@ Run `release-tools/stage-release --manual` for the full description.
 ## Signing
 
 Release artifacts are OpenPGP-signed with a key held in a hardware security
-module.  Signing happens in a dedicated pipeline stage pinned to the one
-agent with HSM access; the tree crosses agents as a stash, and only the
-signed tag object and the detached signature come back.
+module.  Signing happens right after staging, before the review pull
+requests are opened, in a dedicated pipeline stage pinned to the one agent
+with HSM access.  Only two files go to that agent, as a Jenkins stash: the
+unsigned tag object (`git cat-file tag`) and the tarball.  It signs both with
+`sq-pkcs11`, and only the signed tag object and the tarball's detached `.asc`
+come back.  The pipeline then writes the signed tag object into the
+repository and points the tag at it, so the tag keeps the tagger line that
+`stage-release` wrote.
 
 The certificate is two-tier: a Certify-only primary key protected by an
 operator card quorum, and a module-protected signing subkey used unattended.
@@ -203,8 +212,9 @@ signature and its checksums attached.  Check that:
 - alpha and beta releases are marked as a pre-release,
 - the newest release is marked as the latest release.
 
-Then publish it.  The release notes are pulled automatically from the
-release-metadata news endpoint.
+Then publish it.  For public and security releases the release notes are
+pulled automatically from the release-metadata news endpoint; extended
+releases get a fixed one-line note.
 
 ### Update the release metadata
 
