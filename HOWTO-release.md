@@ -1,10 +1,7 @@
 # HOW TO MAKE AN OPENSSL RELEASE
 
 This is the whole release process, from freezing the source repository to
-checking the website afterwards.  It replaces the earlier
-`HOWTO-make-a-release.md`, `HOWTO-stage-a-release.md` and
-`HOWTO-publish-a-release.md`, which described a manual procedure that has
-since been automated.
+checking the website afterwards.
 
 Please fix any errors you find while doing, or just after, your next release.
 
