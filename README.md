@@ -19,5 +19,3 @@ external workflows invoke them by absolute path.
 Instructions that span more than one set of tools are in this top directory:
 
 - [HOWTO-release.md](HOWTO-release.md) — the whole release process
-- [HOWTO-handle-security-issue.md](HOWTO-handle-security-issue.md) — handling
-  an embargoed security issue, up to and including its release
