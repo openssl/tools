@@ -9,7 +9,6 @@ Most sets of tools are in their own subdirectory with their own README:
 | [`release-tools/`](release-tools/README.md) | staging an OpenSSL release |
 | [`review-tools/`](review-tools/README.md) | reviewing and merging pull requests |
 | [`openpgp-tools/`](openpgp-tools/README.md) | the release signing key's lifecycle |
-| [`OpenSSL-Query/`](OpenSSL-Query/README.md) | Perl client for the committer and CLA database; no longer used by anything here |
 | `statistics/` | generating test data for the OpenSSL source tree |
 
 `lib/` is the exception: it is not a set of tools but the shared Python that

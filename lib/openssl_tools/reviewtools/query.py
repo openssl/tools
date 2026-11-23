@@ -6,7 +6,7 @@
 # https://www.openssl.org/source/license.html
 """A client for the OpenSSL committer and CLA database at api.openssl.org.
 
-The Perl equivalent is the OpenSSL-Query distribution: OpenSSL::Query with
+This replaces the Perl OpenSSL-Query distribution: OpenSSL::Query with
 its PersonREST and ClaREST backends, plus a registration and priority system
 for plugging in alternative backends.  Only the REST backend was ever used
 here, and the API it speaks has seven endpoints, so this is a plain client.
