@@ -65,7 +65,7 @@ To run a release you need:
 
 - Permission to run the release pipelines.
 - Push access to the relevant source repository.
-- Access to `openssl/release-metadata`, for advisories and release data.
+- Access to `openssl/release-metadata`, for release data.
 - For security releases, access to the embargoed security repository.
 
 You do **not** need a copy of the release signing key.  It lives in an HSM
@@ -214,8 +214,6 @@ release-metadata news endpoint.
 In the `release-metadata` repository:
 
 - Update `data.json` if the schedule, EOL or LTS status changed.
-- For a security release, add the advisory to `secadv/` and the
-  machine-readable record to `secjson/`.
 
 Open a pull request, get it reviewed, and merge it.
 
@@ -237,23 +235,13 @@ assuming the data is wrong.
 
 ## Security releases
 
-In addition to everything above:
+A security release is made the same way as any other, with the
+`make-security-release` pipeline from the embargoed security repository.
 
-### Send the advisory
-
-Sign the advisory as yourself and send it, from your own address, to the
-public project, users and announce lists.  Send it separately to
-`oss-security@lists.openwall.com` rather than cross-posting.
-
-Check the list archives to confirm the messages arrived.
-
-### Register the CVEs
-
-Inform MITRE about any CVE in the release; the procedure is at the top of
-`cvepool.txt` in the security repository.
-
-Close the GitHub advisory without publishing it there, and delete the
-private fork if one was created.
+Everything else about the security issues themselves is the Security
+Response Team's responsibility and is covered by its own documentation, not
+here: the advisories, including their records in `release-metadata`, the
+CVEs, pre-notification and the embargo.
 
 ## Post-release tasks
 
