@@ -10,7 +10,6 @@ Most sets of tools are in their own subdirectory with their own README:
 | [`review-tools/`](review-tools/README.md) | reviewing and merging pull requests |
 | [`openpgp-tools/`](openpgp-tools/README.md) | the release signing key's lifecycle |
 | [`OpenSSL-Query/`](OpenSSL-Query/README.md) | Perl client for the committer and CLA database; no longer used by anything here |
-| `nist-conversion/` | converting NIST DRBG test vectors for `evp_test` |
 | `statistics/` | generating test data for the OpenSSL source tree |
 
 `lib/` is the exception: it is not a set of tools but the shared Python that
