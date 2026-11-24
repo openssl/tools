@@ -75,6 +75,11 @@ def test_step_options_are_mutually_exclusive(capsys):
     assert "not allowed with" in capsys.readouterr().err
 
 
+def test_next_major_defaults_off():
+    assert parse().next_major is False
+    assert parse("--alpha", "--next-major").next_major is True
+
+
 def test_reviewers_accumulate():
     args = parse("--reviewer=steve", "--reviewer=@richsalz")
 
@@ -104,6 +109,7 @@ def test_help_mentions_every_option(capsys):
         "--beta",
         "--final",
         "--next-beta",
+        "--next-major",
         "--reviewer",
         "--quiet",
         "--verbose",
@@ -122,6 +128,7 @@ def make_result(created_branch: bool) -> StageResult:
         update_branch="master",
         release_branch="openssl-3.2" if created_branch else "master",
         created_release_branch=created_branch,
+        dev_start_tag="3.3-dev-start" if created_branch else None,
         artifacts=Artifacts(
             tarball=Path("/artifacts/openssl-3.2.0.tar.gz"),
             sha1=Path("/artifacts/openssl-3.2.0.tar.gz.sha1"),
@@ -154,8 +161,9 @@ def test_instructions_mention_both_branches_when_one_was_created():
 
     assert "Release branch: openssl-3.2" in output
     assert "Updated branch: master" in output
-    # Three pushes: release branch, update branch, tag.
-    assert output.count("git push") == 3
+    assert "Development start tag: 3.3-dev-start" in output
+    # Four pushes: release branch, update branch, release tag, dev-start tag.
+    assert output.count("git push") == 4
 
 
 def test_instructions_mention_one_branch_otherwise():

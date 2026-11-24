@@ -173,6 +173,13 @@ def test_next_minor_steps_fix_and_clears_the_patch(scheme):
     assert scheme.version(bumped) == "1.0.3"
 
 
+def test_there_is_no_major_step(scheme):
+    state = scheme.parse(LEGACY_OPENSSLV_H)
+
+    with pytest.raises(ReleaseError, match="no major-version step"):
+        scheme.next_major(state)
+
+
 # The two cases below are where a differential run against the shell
 # functions disagreed.  In both the shell wrote a corrupt
 # OPENSSL_VERSION_NUMBER, because its decoder was `^(z)*(.)$` -- a capture

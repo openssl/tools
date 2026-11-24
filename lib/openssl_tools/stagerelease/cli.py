@@ -36,7 +36,7 @@ MANUAL = """\
 stage-release - OpenSSL release staging
 
 SYNOPSIS
-    stage-release [--alpha | --beta | --final] [--next-beta]
+    stage-release [--alpha | --beta | --final] [--next-beta] [--next-major]
                   [--reviewer=ID ...] [--quiet | --verbose] [--debug]
                   [--porcelain]
 
@@ -66,6 +66,13 @@ OPTIONS
         Leave the alpha or beta series and make a regular release.  Only
         valid when alpha or beta releases are ongoing.
 
+    --next-major
+        When the release creates a new release branch (a release from
+        master at PATCH == 0), move master on to the next major version,
+        e.g. from 4.2.0-dev to 5.0.0-dev rather than 4.3.0-dev.
+        SHLIB_VERSION follows the new major version.  It is an error
+        anywhere else.
+
     --reviewer=ID
         Add ID as a reviewer of the commits this makes.  May be repeated.
         Without it you have to run addrev by hand afterwards, which means
@@ -87,6 +94,11 @@ RELEASE BRANCHES AND TAGS
     are openssl-<VERSION>, with -alpha<n> or -beta<n> for pre-releases.
     Both forms are recognised.
 
+    When a release branch is created, the commit moving master on to the
+    next series is tagged <SERIES>-dev-start, e.g. 5.0-dev-start: the start
+    of that series' development window.  Like the release tag it is
+    annotated and unsigned.
+
 FILES
     Written to the parent directory of the worktree:
 
@@ -98,8 +110,9 @@ FILES
 
     openssl-<VERSION>.dat
         Metadata for later pipeline steps, as shell variable assignments:
-        update_branch, release_branch (only when one was created),
-        release_tag, release_files and source_repo.
+        update_branch, release_branch and dev_start_tag (only when a
+        release branch was created), release_tag, release_files and
+        source_repo.
 """
 
 
@@ -142,6 +155,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--next-beta",
         action="store_true",
         help="switch to beta releases afterwards; use with --alpha",
+    )
+    parser.add_argument(
+        "--next-major",
+        action="store_true",
+        help="move master on to the next major version, not the next minor",
     )
     parser.add_argument(
         "--reviewer",
@@ -208,6 +226,7 @@ def format_result(result: StageResult, porcelain: bool) -> str:
             f"    Updated branch: {result.update_branch}",
             f"    Release branch: {result.release_branch}",
             f"    Tag: {result.release_tag}",
+            f"    Development start tag: {result.dev_start_tag}",
             "",
             "When pushing everything to the main repository, do it like this:",
             "",
@@ -217,6 +236,8 @@ def format_result(result: StageResult, porcelain: bool) -> str:
             f"        {result.update_branch}",
             f"    git push {PUSH_URL} \\",
             f"        {result.release_tag}",
+            f"    git push {PUSH_URL} \\",
+            f"        {result.dev_start_tag}",
         ]
     else:
         lines += [
@@ -265,6 +286,7 @@ def main(argv: Sequence[str] | None = None, *, today: date | None = None) -> int
             StageOptions(
                 next_method=next_method,
                 next_method2=next_method2,
+                next_major=args.next_major,
                 reviewers=tuple(args.reviewers),
             ),
             runner=runner,

@@ -127,7 +127,8 @@ the release — bullet points only, leave the date as **under development**.
 
 Run the pipeline for the release type you are making.  The parameters are
 the release branch, the reviewers, and whether this is an alpha, beta or
-final release.
+final release.  When the release branches off `master`, also say whether
+`master` moves on to a new major version rather than the next minor one.
 
 The pipeline will stop and wait at the review gate.  Two approvals are
 required, and the pipeline polls for them; it does not proceed on one.
@@ -150,7 +151,10 @@ recognised release branch.  In order:
 6. Writes `openssl-<version>.dat` describing what was staged.
 7. Returns the branch to development with a post-release commit, and — when
    releasing from `master` at patch 0 — creates the new release branch and
-   moves `master` on to the next minor version.
+   moves `master` on to the next minor version, or the next major one with
+   `--next-major`.  That commit opens the new series' sections in
+   `CHANGES.md` and `NEWS.md` and is tagged `<series>-dev-start` (e.g.
+   `5.0-dev-start`), marking where its development window begins.
 
 It signs nothing, pushes nothing and uploads nothing.  It does not generate
 announcement text; that was removed.

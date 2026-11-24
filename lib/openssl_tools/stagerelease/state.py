@@ -32,7 +32,7 @@ from .errors import ReleaseError
 from .version import ReleaseState, Scheme
 
 #: The `next` values a caller may ask for.
-NEXT_METHODS = ("", "alpha", "beta", "final", "minor")
+NEXT_METHODS = ("", "alpha", "beta", "final", "minor", "major")
 
 _MONTHS = (
     "Jan",
@@ -122,9 +122,9 @@ def next_release_state(
             if phase == "":
                 return _post_release(scheme, state, "final")
 
-        # -- moving master on to the next minor version ----------------------
-        elif next_method == "minor":
-            return _post_release(scheme, state, "minor")
+        # -- moving master on to the next minor or major version ------------
+        elif next_method in ("minor", "major"):
+            return _post_release(scheme, state, next_method)
 
         # -- whatever comes next --------------------------------------------
         else:

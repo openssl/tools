@@ -51,9 +51,21 @@ CHANGES_MD = """\
 Changes
 =======
 
+OpenSSL Releases
+----------------
+
+ - [OpenSSL 3.2](#openssl-32)
+ - [OpenSSL 3.1](#openssl-31)
+
+OpenSSL 3.2
+-----------
+
 ### Changes between 3.1 and 3.2 [xx XXX xxxx]
 
  * Something happened.
+
+OpenSSL 3.1
+-----------
 
 ### Changes between 3.0 and 3.1 [14 Mar 2023]
 
@@ -64,9 +76,21 @@ NEWS_MD = """\
 NEWS
 ====
 
+OpenSSL Releases
+----------------
+
+ - [OpenSSL 3.2](#openssl-32)
+ - [OpenSSL 3.1](#openssl-31)
+
+OpenSSL 3.2
+-----------
+
 ### Major changes between OpenSSL 3.1 and OpenSSL 3.2 [under development]
 
   * Nothing yet.
+
+OpenSSL 3.1
+-----------
 
 ### Major changes between OpenSSL 3.0 and OpenSSL 3.1 [14 Mar 2023]
 

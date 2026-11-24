@@ -115,6 +115,137 @@ def test_alpha_leaves_both_branches_in_the_right_state(tmp_path):
     assert version_on(root, "master")["PRE_RELEASE_TAG"] == "dev"
 
 
+def test_next_major_moves_master_to_the_next_major_version(tmp_path):
+    root = make_repo(tmp_path, branch="master", patch=0)
+
+    stage(root, next_method="alpha", next_method2="alpha", next_major=True)
+
+    master = version_on(root, "master")
+    assert (master["MAJOR"], master["MINOR"], master["PATCH"]) == ("4", "0", "0")
+    assert master["SHLIB_VERSION"] == "4"
+    assert master["PRE_RELEASE_TAG"] == "dev"
+    subject = run_git(root, "log", "-1", "--pretty=%s", "master")
+    assert subject.strip() == "Prepare for 4.0"
+    # The release branch is not affected.
+    release = version_on(root, "openssl-3.2")
+    assert (release["MAJOR"], release["MINOR"], release["SHLIB_VERSION"]) == ("3", "2", "3")
+
+
+def test_next_major_is_refused_when_no_release_branch_is_created(tmp_path):
+    root = make_repo(tmp_path, branch="openssl-3.2", patch=1)
+    head = run_git(root, "rev-parse", "HEAD")
+
+    with pytest.raises(ReleaseError, match="--next-major only applies"):
+        stage(root, next_major=True)
+
+    # Refused before anything was committed.
+    assert run_git(root, "rev-parse", "HEAD") == head
+
+
+def test_master_gets_a_new_series_section(tmp_path):
+    root = make_repo(tmp_path, branch="master", patch=0)
+
+    stage(root, next_method="alpha", next_method2="alpha", next_major=True)
+
+    assert run_git(root, "show", "master:CHANGES.md") == (
+        "Changes\n"
+        "=======\n"
+        "\n"
+        "OpenSSL Releases\n"
+        "----------------\n"
+        "\n"
+        " - [OpenSSL 4.0](#openssl-40)\n"
+        " - [OpenSSL 3.2](#openssl-32)\n"
+        " - [OpenSSL 3.1](#openssl-31)\n"
+        "\n"
+        "OpenSSL 4.0\n"
+        "-----------\n"
+        "\n"
+        "### Changes between 3.2 and 4.0 [xx XXX xxxx]\n"
+        "\n"
+        " * none yet\n"
+        "\n"
+        "OpenSSL 3.2\n"
+        "-----------\n"
+        "\n"
+        "### Changes between 3.1 and 3.2 [xx XXX xxxx]\n"
+        "\n"
+        " * Something happened.\n"
+        "\n"
+        "OpenSSL 3.1\n"
+        "-----------\n"
+        "\n"
+        "### Changes between 3.0 and 3.1 [14 Mar 2023]\n"
+        "\n"
+        " * Something older.\n"
+    )
+    news = run_git(root, "show", "master:NEWS.md")
+    assert news.startswith(
+        "NEWS\n"
+        "====\n"
+        "\n"
+        "OpenSSL Releases\n"
+        "----------------\n"
+        "\n"
+        " - [OpenSSL 4.0](#openssl-40)\n"
+        " - [OpenSSL 3.2](#openssl-32)\n"
+        " - [OpenSSL 3.1](#openssl-31)\n"
+        "\n"
+        "OpenSSL 4.0\n"
+        "-----------\n"
+        "\n"
+        "### Major changes between OpenSSL 3.2 and OpenSSL 4.0 [under development]\n"
+        "\n"
+        "  * none\n"
+        "\n"
+        "OpenSSL 3.2\n"
+        "-----------\n"
+        "\n"
+        "### Major changes between OpenSSL 3.1 and OpenSSL 3.2 [under development]\n"
+    )
+
+
+def test_the_start_of_the_next_series_is_tagged_on_master(tmp_path):
+    root = make_repo(tmp_path, branch="master", patch=0)
+
+    result, _, _ = stage(root, next_method="alpha", next_method2="alpha")
+
+    assert result.dev_start_tag == "3.3-dev-start"
+    assert run_git(root, "cat-file", "-t", "3.3-dev-start").strip() == "tag"
+    assert run_git(root, "rev-parse", "3.3-dev-start^{}") == run_git(root, "rev-parse", "master")
+    contents = run_git(root, "cat-file", "tag", "3.3-dev-start")
+    assert "Start of OpenSSL 3.3 development" in contents
+    assert "BEGIN PGP SIGNATURE" not in contents
+    # The release branch does not contain it.
+    assert run_git(root, "tag", "--merged", "openssl-3.2", "*-dev-start") == ""
+
+
+def test_the_dev_start_tag_follows_next_major(tmp_path):
+    root = make_repo(tmp_path, branch="master", patch=0)
+
+    result, _, _ = stage(root, next_method="alpha", next_method2="alpha", next_major=True)
+
+    assert result.dev_start_tag == "4.0-dev-start"
+
+
+def test_the_dev_start_tag_names_the_credited_commit(tmp_path):
+    # Crediting reviewers amends the commit; the tag must follow.
+    root = make_repo(tmp_path, branch="master", patch=0)
+    runner = Runner(cwd=root)
+
+    stage_release(
+        StageOptions(next_method="alpha", next_method2="alpha", reviewers=("steve", "levitte")),
+        runner=runner,
+        git=Git(runner),
+        build=FakeBuild(),
+        today=TODAY,
+        query=FakePeople(),
+    )
+
+    assert run_git(root, "rev-parse", "3.3-dev-start^{}") == run_git(root, "rev-parse", "master")
+    assert "Reviewed-by:" in run_git(root, "log", "-1", "--pretty=%B", "3.3-dev-start^{}")
+
+
 def test_alpha_next_beta_switches_the_release_branch_to_beta(tmp_path):
     root = make_repo(tmp_path, branch="master", patch=0)
 
@@ -191,6 +322,7 @@ def test_the_metadata_file_describes_the_staging_run(tmp_path):
     assert "update_branch='master'\n" in contents
     assert "release_branch='openssl-3.2'\n" in contents
     assert "release_tag='openssl-3.2.0-alpha1'\n" in contents
+    assert "dev_start_tag='3.3-dev-start'\n" in contents
     assert "source_repo='https://example.invalid/openssl.git'\n" in contents
 
 
@@ -218,6 +350,8 @@ def test_patch_release_moves_the_branch_on(tmp_path):
     assert version_on(root, "openssl-3.2")["PATCH"] == "2"
     assert version_on(root, "openssl-3.2")["PRE_RELEASE_TAG"] == "dev"
     assert "openssl-3.3" not in run_git(root, "branch", "--list")
+    assert run_git(root, "tag", "--list", "*-dev-start") == ""
+    assert "dev_start_tag" not in (root.parent / "openssl-3.2.1.dat").read_text()
 
 
 def test_patch_release_updates_the_changelogs(tmp_path):

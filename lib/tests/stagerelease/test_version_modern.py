@@ -122,6 +122,21 @@ def test_next_patch_and_next_minor(scheme):
     assert (bumped.minor, bumped.patch) == (3, 0)
 
 
+def test_next_major_resets_minor_and_patch_and_steps_the_shlib_version(scheme):
+    state = scheme.parse(MODERN_VERSION_DAT)
+    bumped = scheme.bump(state, "major")
+
+    assert scheme.render(bumped, "") == (
+        "MAJOR=4\n"
+        "MINOR=0\n"
+        "PATCH=0\n"
+        "PRE_RELEASE_TAG=dev\n"
+        "BUILD_METADATA=\n"
+        'RELEASE_DATE=""\n'
+        "SHLIB_VERSION=4\n"
+    )
+
+
 def test_parse_assignments_ignores_comments_and_blanks():
     values = parse_assignments("# a comment\n\nMAJOR=3\nRELEASE_DATE='1 Jan 2026'\n")
 
