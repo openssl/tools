@@ -14,7 +14,7 @@ into the same file, replacing the existing kXxx[] declarations.
 
 from pathlib import Path
 
-from . import alt_ta, delta, indirect, no_chain
+from . import alt_ta, delta, indirect, no_chain, two_dp
 
 
 def _all_cmd(args):
@@ -22,7 +22,8 @@ def _all_cmd(args):
     alt_ta.build(args.source)
     no_chain.build(args.source)
     delta.build(args.source)
-    print(f"regenerated all indirect-CRL artifacts in {args.source}")
+    two_dp.build(args.source)
+    print(f"regenerated all crltest artifacts in {args.source}")
 
 
 def register(subparsers):
@@ -36,7 +37,8 @@ def register(subparsers):
     alt_ta.register(sub)
     no_chain.register(sub)
     delta.register(sub)
+    two_dp.register(sub)
 
-    p = sub.add_parser("all", help="Run indirect, alt-ta, no-chain, and delta in order.")
+    p = sub.add_parser("all", help="Run indirect, alt-ta, no-chain, delta, and two-dp in order.")
     p.add_argument("--source", type=Path, required=True, help="Path to crltest.c")
     p.set_defaults(func=_all_cmd)
