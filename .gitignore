@@ -18,24 +18,6 @@ ropass.txt
 rwpass.txt
 ghpass.txt
 
-# QueryApp
-/QueryApp/Makefile
-/QueryApp/Makefile.old
-/QueryApp/META.yml
-/QueryApp/MYMETA.*
-/QueryApp/blib
-/QueryApp/inc
-/QueryApp/pm_to_blib
-
-# OpenSSL-Query
-/OpenSSL-Query/Makefile
-/OpenSSL-Query/Makefile.old
-/OpenSSL-Query/META.yml
-/OpenSSL-Query/MYMETA.*
-/OpenSSL-Query/blib
-/OpenSSL-Query/inc
-/OpenSSL-Query/pm_to_blib
-
 # in case someone forgets and commits their token
 github-approve-label-workflow/token.txt
 

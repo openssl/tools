@@ -5,8 +5,7 @@ Helpers for reviewing and merging OpenSSL pull requests.
 ## Requirements
 
 `addrev` and `cherry-checker` are Python and need only Python
-3.10 or later — no packages, and no `OpenSSL-Query`.  They query
-`api.openssl.org` directly; see
+3.10 or later — no packages.  They query `api.openssl.org` directly; see
 [`lib/openssl_tools/reviewtools/query.py`](../lib/openssl_tools/reviewtools/query.py).
 
 Those three are thin entry points; the code lives in
@@ -15,9 +14,6 @@ alongside the release-staging package so the two can import each other.
 
 `ghmerge`, `opensslbuild`, `opensslpull` and `pick-to-branch` are shell;
 `ghmerge` additionally needs `jq`.  `ghlink` is Perl.
-
-`OpenSSL-Query` is still in this repository, but nothing here uses it any
-more.
 
 ## Putting the scripts on PATH
 
