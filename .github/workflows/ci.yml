@@ -1,0 +1,81 @@
+# Lint, type-check and test the shared Python in lib/ and the entry scripts
+# that use it -- the same commands release-tools/README.md lists for running
+# by hand.
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - lib/**
+      - release-tools/stage-release
+      - review-tools/addrev
+      - review-tools/cherry-checker
+      - .github/workflows/ci.yml
+  pull_request:
+    paths:
+      - lib/**
+      - release-tools/stage-release
+      - review-tools/addrev
+      - review-tools/cherry-checker
+      - .github/workflows/ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: lib
+
+env:
+  # The entry scripts have no .py extension, so ruff has to be told about them.
+  ENTRY_SCRIPTS: ../release-tools/stage-release ../review-tools/addrev ../review-tools/cherry-checker
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+      - name: ruff check
+        run: uvx ruff check . && uvx ruff check --config pyproject.toml $ENTRY_SCRIPTS
+      - name: ruff format
+        if: ${{ !cancelled() }}
+        run: uvx ruff format --check . && uvx ruff format --check --config pyproject.toml $ENTRY_SCRIPTS
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+      - run: uvx --with pytest mypy
+
+  pytest:
+    name: pytest (${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+      - run: uvx --python ${{ matrix.python }} --with pytest pytest -q
